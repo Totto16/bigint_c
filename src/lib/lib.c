@@ -212,8 +212,6 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 
 			if(alignment != 0) {
 
-				uint64_t previous_last_bytes = U64(0);
-
 				// 3.1.1. shift the last to_shift bytes of every number into the next one
 				for(size_t i = temp.number_count; i != 0; --i) {
 					uint64_t last_bytes = (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
@@ -222,10 +220,8 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 						// those x values from above are not 0
 						ASSERT((last_bytes == 0), "alignment and to_shift incorrectly calculated");
 					} else {
-						temp.numbers[i] = (previous_last_bytes << alignment) + temp.numbers[i];
+						temp.numbers[i] = (last_bytes << alignment) + temp.numbers[i];
 					}
-
-					previous_last_bytes = last_bytes;
 
 					temp.numbers[i - 1] = temp.numbers[i - 1] >> to_shift;
 				}
