@@ -69,3 +69,45 @@ TEST(BigInt, ParseSuccess1) {
 
 	free_bigint(big_int);
 }
+
+TEST(BigInt, ParseSuccess2) {
+	MaybeBigInt maybe_big_int = bigint_from_string("-1");
+
+	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+
+	BigIntCPP result = BigIntCPP(false, { 1ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	free_bigint(big_int);
+}
+
+TEST(BigInt, ParseSuccess3) {
+	MaybeBigInt maybe_big_int = bigint_from_string("-1_0");
+
+	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+
+	BigIntCPP result = BigIntCPP(false, { 10ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	free_bigint(big_int);
+}
+
+TEST(BigInt, ParseSuccess4) {
+	MaybeBigInt maybe_big_int = bigint_from_string("+0021");
+
+	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+
+	BigIntCPP result = BigIntCPP(true, { 21ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	free_bigint(big_int);
+}
