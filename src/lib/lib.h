@@ -44,9 +44,11 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
  * @brief Parses a string and returns a MaybeBigInt, use that to check if it was successfull or if
  * it failed
  *
- * @details The allowed format is /^[+-]?[0-9][0-9_]*$/
+ * @details The allowed format is /^[+-]?[0-9][0-9_',.]*$/
  *          In words: Optional "-" or "+" at the start, then followed by a digit, afterwards you can
- * use digits and optional separators "_" (only one atm)
+ *          use digits and optional separators "_", "'", ",", "."
+ *          note, that "." and "," are no decimal separators like found in doubles (depending on
+ *          where in the world it is "," or ".")
  * @param str
  * @return MaybeBigInt
  */

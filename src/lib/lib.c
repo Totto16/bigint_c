@@ -258,13 +258,22 @@ static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
 	bigint_helper_realloc_to_new_size(big_int);
 }
 
+NODISCARD static inline bool helper_is_digit(StrType value) {
+	return value >= '0' && value <= '9';
+}
+
+NODISCARD static inline bool helper_is_separator(StrType value) {
+	// valid separators are /[_',.]/
+	return value == '_' || value == '\'' || value == ',' || value == '.';
+}
+
 NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 
 	BigInt result = bigint_helper_positive_zero();
 
 	size_t str_len = strlen(str);
 
-	// bigint regex: /^[+-]?[0-9][0-9_]*$/
+	// bigint regex: /^[+-]?[0-9][0-9_',.]*$/
 
 	if(str_len == 0) {
 		free_bigint(result);
@@ -306,9 +315,9 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 	for(; i < str_len; ++i) {
 		StrType value = str[i];
 
-		if(value >= '0' && value <= '9') {
+		if(helper_is_digit(value)) {
 			helper_add_value_to_bcd_digits(&bcd_digits, value - '0');
-		} else if(value == '_') {
+		} else if(helper_is_separator(value)) {
 			if(start) {
 				// not allowed
 				free_bigint(result);
@@ -316,7 +325,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 				// TODO:report position and character
 				return (MaybeBigInt){
 					.error = true,
-					.data = { .error = (MaybeBigIntError) "'_' not allowed at the start" }
+					.data = { .error = (MaybeBigIntError) "separator not allowed at the start" }
 				};
 			}
 			// skip this separator
