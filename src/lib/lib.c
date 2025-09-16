@@ -238,6 +238,8 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 			}
 		}
 	}
+
+	free_bigint(temp);
 }
 
 static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
