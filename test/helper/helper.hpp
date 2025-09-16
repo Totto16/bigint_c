@@ -4,6 +4,7 @@
 
 #include <bigint_c.h>
 
+#include <string>
 #include <vector>
 
 struct BigIntCPP {
@@ -15,6 +16,7 @@ struct BigIntCPP {
 	BigIntCPP(bool positive, std::vector<uint64_t> values);
 
 	explicit BigIntCPP(const BigInt& big_int_c);
+	explicit BigIntCPP(const std::string& str);
 
 	BigIntCPP(const BigIntCPP&) = delete;
 	BigIntCPP& operator=(const BigIntCPP&) = delete;

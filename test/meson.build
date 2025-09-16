@@ -2,6 +2,9 @@ test_deps = deps
 
 test_deps += dependency('gtest', version:'>=1.17.0')
 
+test_deps += dependency('gmp')
+
+
 test_deps += bigint_c_dep
 
 test_src = files('entry.cpp')

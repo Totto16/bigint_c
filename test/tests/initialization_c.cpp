@@ -111,3 +111,32 @@ TEST(BigInt, ParseSuccess4) {
 
 	free_bigint(big_int);
 }
+
+TEST(BigInt, ParseSuccessLargeNumbers) {
+
+	std::vector<std::string> tests{
+		"1234567890123456789012345678901234567890123456789012345678901234567890",
+		"-11234567890123456789012345678901234567890123456789012345678901234567890",
+		"24324532532563264267342634556842562345613297843267583265789324659324673284732894563981"
+		"4561"
+		"39785613294561329856328951326589326593285619745274152487134561328456132789453267845132"
+		"4671"
+		"245476124714912461294128412412412041204020202020202022020202",
+		"21412513613241245132512512", std::to_string(std::numeric_limits<uint64_t>::max())
+	};
+
+	for(const std::string& test : tests) {
+
+		MaybeBigInt maybe_big_int = bigint_from_string(test.c_str());
+
+		EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+
+		BigInt c_result = maybe_bigint_get_value(maybe_big_int);
+
+		BigIntCPP cpp_result = BigIntCPP(test);
+
+		EXPECT_EQ(c_result, cpp_result);
+
+		free_bigint(c_result);
+	}
+}
