@@ -6,6 +6,8 @@ test_deps += bigint_c_dep
 
 test_src = files('entry.cpp')
 
+subdir('helper')
+
 test_files = [
     'initialization_c.cpp',
 ]
@@ -17,7 +19,7 @@ foreach file : test_files
     test_exe = executable(
         'test_' + file_name,
         test_src,
-        files(file),
+        files('tests' / file),
         dependencies: test_deps,
         override_options: {
             'warning_level': '3',

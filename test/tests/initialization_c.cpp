@@ -1,6 +1,9 @@
 
 #include <bigint_c.h>
 
+#include "../helper/helper.hpp"
+#include "../helper/printer.hpp"
+
 #include <gtest/gtest.h>
 
 TEST(BigInt, ParseError1) {
@@ -51,4 +54,18 @@ TEST(BigInt, ParseError5) {
 	std::string error = maybe_bigint_get_error(maybe_big_int);
 
 	EXPECT_EQ(error, "'_' not allowed at the start");
+}
+
+TEST(BigInt, ParseSuccess1) {
+	MaybeBigInt maybe_big_int = bigint_from_string("+0");
+
+	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+
+	BigIntCPP result = BigIntCPP(true, { 0ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	free_bigint(big_int);
 }
