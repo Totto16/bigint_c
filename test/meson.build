@@ -1,0 +1,31 @@
+test_deps = deps
+
+test_deps += dependency('gtest')
+
+test_deps += bigint_c_dep
+
+test_src = files('entry.cpp')
+
+test_files = [
+    'initialization.cpp',
+]
+
+add_languages('cpp',required:true, native:true)
+
+foreach file : test_files
+    file_name = file.split('.')[-2]
+    test_exe = executable(
+        'test_' + file_name,
+        test_src,
+        files(file),
+        dependencies: test_deps,
+    )
+
+    test(
+        'test_' + file_name,
+        test_exe,
+        protocol: 'gtest',
+        is_parallel: true,
+    )
+
+endforeach
