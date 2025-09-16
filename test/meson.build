@@ -1,6 +1,6 @@
 test_deps = deps
 
-test_deps += dependency('gtest')
+test_deps += dependency('gtest', version:'>=1.17.0')
 
 test_deps += bigint_c_dep
 
@@ -10,7 +10,7 @@ test_files = [
     'initialization.cpp',
 ]
 
-add_languages('cpp',required:true, native:true)
+add_languages('cpp',required:true, native:false)
 
 foreach file : test_files
     file_name = file.split('.')[-2]
