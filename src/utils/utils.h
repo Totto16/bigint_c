@@ -34,7 +34,8 @@
 
 #define UNREACHABLE_WITH_MSG(msg) \
 	do { \
-		ASSERT(false, "UNREACHABLE: " msg); /*NOLINT(cert-dcl03-c,misc-static-assert)*/ \
+		custom_panic(__FILE__, __LINE__, \
+		             "UNREACHABLE: " msg); /*NOLINT(cert-dcl03-c,misc-static-assert)*/ \
 	} while(false)
 
 #endif
