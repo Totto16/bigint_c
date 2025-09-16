@@ -7,7 +7,7 @@ test_deps += bigint_c_dep
 test_src = files('entry.cpp')
 
 test_files = [
-    'initialization.cpp',
+    'initialization_c.cpp',
 ]
 
 add_languages('cpp',required:true, native:false)

@@ -271,7 +271,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 	if(str_len == 0) {
 		free_bigint(result);
 		return (MaybeBigInt){ .error = true,
-			                  .data = { .error = (MaybeBigIntError) "empty string" } };
+			                  .data = { .error = (MaybeBigIntError) "empty string is not valid" } };
 	}
 
 	size_t i = 0;
@@ -310,7 +310,17 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 
 		if(value >= '0' && value <= '9') {
 			helper_add_value_to_bcd_digits(&bcd_digits, value - '0');
-		} else if(!start && value == '_') {
+		} else if(value == '_') {
+			if(start) {
+				// not allowed
+				free_bigint(result);
+				free_bcd_digits(bcd_digits);
+				// TODO:report position and character
+				return (MaybeBigInt){
+					.error = true,
+					.data = { .error = (MaybeBigIntError) "'_' not allowed at the start" }
+				};
+			}
 			// skip this separator
 			continue;
 		} else {
