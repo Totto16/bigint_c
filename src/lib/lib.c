@@ -308,7 +308,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 	for(; i < str_len; ++i) {
 		StrType value = str[i];
 
-		if(value >= '0' && i <= '9') {
+		if(value >= '0' && value <= '9') {
 			helper_add_value_to_bcd_digits(&bcd_digits, value - '0');
 		} else if(!start && value == '_') {
 			// skip this separator

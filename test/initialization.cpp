@@ -10,5 +10,5 @@ TEST(BigInt, ParseError) {
 
 	std::string error = maybe_bigint_get_error(maybe_big_int);
 
-	EXPECT_EQ(error, "test");
+	EXPECT_EQ(error, "invalid character");
 }
