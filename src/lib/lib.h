@@ -14,7 +14,13 @@ typedef struct {
 	size_t number_count;
 } BigInt;
 
-typedef const char* MaybeBigIntError;
+typedef char StrType;
+
+typedef const StrType* ConstStr;
+
+typedef StrType* Str;
+
+typedef ConstStr MaybeBigIntError;
 
 typedef struct {
 	bool error;
@@ -24,7 +30,7 @@ typedef struct {
 	} data;
 } MaybeBigInt;
 
-// function on maybe bigint
+// functions on maybe bigint
 
 NODISCARD bool maybe_bigint_is_error(MaybeBigInt maybe_big_int);
 
@@ -34,8 +40,18 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
 
 // normal bigint functions
 
-NODISCARD MaybeBigInt bigint_from_string(const char* str);
+/**
+ * @brief Parses a string and returns a MaybeBigInt, use that to check if it was successfull or if
+ * it failed
+ *
+ * @details The allowed format is /^[+-]?[0-9][0-9_]*$/
+ *          In words: Optional "-" or "+" at the start, then followed by a digit, afterwards you can
+ * use digits and optional separators "_" (only one atm)
+ * @param str
+ * @return MaybeBigInt
+ */
+NODISCARD MaybeBigInt bigint_from_string(ConstStr str);
 
 void free_bigint(BigInt big_int);
 
-NODISCARD char* bigint_to_string(BigInt big_int);
+NODISCARD Str bigint_to_string(BigInt big_int);

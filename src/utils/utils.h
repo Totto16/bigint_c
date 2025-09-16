@@ -11,6 +11,8 @@
 
 #define UNUSED(v) ((void)(v))
 
+#define UNREACHABLE() UNREACHABLE_WITH_MSG("")
+
 // cool trick from here:
 // https://stackoverflow.com/questions/777261/avoiding-unused-variables-warnings-when-using-assert-in-a-release-build
 #ifdef NDEBUG
@@ -20,24 +22,19 @@
 		UNUSED((msg)); \
 	} while(false)
 
+#define UNREACHABLE_WITH_MSG(msg) \
+	do { \
+		fprintf(stderr, "[%s %s:%d]: UNREACHABLE: %s", __func__, __FILE__, __LINE__, msg); \
+		exit(EXIT_FAILURE); \
+	} while(false)
 #else
 
 #include "./assert.h"
 #define ASSERT(cond, message) custom_assert(__FILE__, __LINE__, cond, message)
 
-#endif
-
-#ifdef NDEBUG
-#define UNREACHABLE() \
+#define UNREACHABLE_WITH_MSG(msg) \
 	do { \
-		fprintf(stderr, "[%s %s:%d]: UNREACHABLE", __func__, __FILE__, __LINE__); \
-		exit(EXIT_FAILURE); \
-	} while(false)
-#else
-
-#define UNREACHABLE() \
-	do { \
-		ASSERT(false, "UNREACHABLE"); /*NOLINT(cert-dcl03-c,misc-static-assert)*/ \
+		ASSERT(false, "UNREACHABLE: " msg); /*NOLINT(cert-dcl03-c,misc-static-assert)*/ \
 	} while(false)
 
 #endif
