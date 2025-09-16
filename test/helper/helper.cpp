@@ -80,8 +80,9 @@ BigIntCPP::BigIntCPP(const std::string& str) : m_values{} {
 	for(size_t i = 0; i < num_chunks; ++i) {
 		m_values.at(i) = mpz_get_ui(temp);
 
-		// Shift right by 64 bits
-		mpz_fdiv_q_2exp(temp, temp, CHUNK_BITS);
+		// Shift right by 64 bits, don't perform arithmetic shifts (affects negative values), see
+		// https://gmplib.org/manual/Integer-Division
+		mpz_tdiv_q_2exp(temp, temp, CHUNK_BITS);
 	}
 
 	// note: 0 is always positive here
