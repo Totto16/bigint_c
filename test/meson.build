@@ -19,6 +19,12 @@ foreach file : test_files
         test_src,
         files(file),
         dependencies: test_deps,
+        override_options: {
+            'warning_level': '3',
+            'werror': true,
+            'b_coverage': false,
+            'cpp_std': ['c++23', 'c++latest', 'c++20'],
+        },
     )
 
     test(
