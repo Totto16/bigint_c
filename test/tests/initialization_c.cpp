@@ -53,7 +53,17 @@ TEST(BigInt, ParseError5) {
 
 	std::string error = maybe_bigint_get_error(maybe_big_int);
 
-	EXPECT_EQ(error, "'_' not allowed at the start");
+	EXPECT_EQ(error, "separator not allowed at the start");
+}
+
+TEST(BigInt, ParseError6) {
+	MaybeBigInt maybe_big_int = bigint_from_string("!0");
+
+	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+
+	std::string error = maybe_bigint_get_error(maybe_big_int);
+
+	EXPECT_EQ(error, "invalid character");
 }
 
 TEST(BigInt, ParseSuccess1) {
@@ -106,6 +116,20 @@ TEST(BigInt, ParseSuccess4) {
 	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
 	BigIntCPP result = BigIntCPP(true, { 21ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	free_bigint(big_int);
+}
+
+TEST(BigInt, ParseSuccess5) {
+	MaybeBigInt maybe_big_int = bigint_from_string("-10_00'00.000,00");
+
+	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+
+	BigIntCPP result = BigIntCPP(false, { 10000000000ULL });
 
 	EXPECT_EQ(big_int, result);
 
