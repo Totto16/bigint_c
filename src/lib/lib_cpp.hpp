@@ -162,8 +162,8 @@ struct BigInt {
 	}
 
 	[[nodiscard]] BigInt& operator-() {
-		// TODO
-		UNREACHABLE_WITH_MSG("TODO");
+		bigint_negate(&(this->m_c_value));
+		return *this;
 	}
 
 	[[nodiscard]] BigInt& operator+=(const BigInt& value2) {

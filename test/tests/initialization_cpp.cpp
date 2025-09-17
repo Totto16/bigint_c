@@ -576,3 +576,34 @@ TEST(BigInt, IntegerGteComparison) {
 		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
 }
+
+TEST(BigInt, IntegerNegate) {
+	std::vector<std::pair<BigInt, BigInt>> tests{};
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-1").value());
+	tests.emplace_back(BigInt::get_from_string("+13532532637355324813252495259").value(),
+	                   BigInt::get_from_string("-13532532637355324813252495259").value());
+	tests.emplace_back(BigInt::get_from_string("-384324_132132_3123123_3").value(),
+	                   BigInt::get_from_string("+384324_132132_3123123_3").value());
+	tests.emplace_back(BigInt::get_from_string("-112").value(),
+	                   BigInt::get_from_string("+112").value());
+	tests.emplace_back(BigInt::get_from_string("-53427592652352534267532769352786325678352768352673"
+	                                           "526785267526783526783526735267352673528")
+	                       .value(),
+	                   BigInt::get_from_string("+53427592652352534267532769352786325678352768352673"
+	                                           "526785267526783526783526735267352673528")
+	                       .value());
+
+	for(auto& test : tests) {
+
+		auto& [value1, value2] = test;
+
+		const auto& negated = -value1;
+
+		EXPECT_EQ(negated, value2) << "Input values: " << value1 << ", " << value2;
+	}
+}

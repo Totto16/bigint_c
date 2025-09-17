@@ -514,3 +514,8 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 
 	return CMP_ARE_EQUAL;
 }
+
+void bigint_negate(BigIntC* big_int) {
+
+	big_int->positive = !big_int->positive;
+}
