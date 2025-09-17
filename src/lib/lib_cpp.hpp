@@ -44,7 +44,7 @@ struct BigInt {
 
 	BigInt(int64_t value) noexcept { m_c_value = bigint_from_signed_number(value); }
 
-	// TODO: make a constexpress literal in c++
+	// TODO: make a constexpres literal in c++
 
 	[[nodiscard]] static std::expected<BigInt, std::string>
 	get_from_string(const std::string& str) noexcept {

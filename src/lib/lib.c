@@ -487,6 +487,7 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 		//-x <=> -y ==  cmp_reverse (x <=> y)
 
 		big_int1.positive = true;
+		big_int2.positive = true;
 		return cmp_reverse(bigint_compare_bigint(big_int1, big_int2));
 	}
 
@@ -499,8 +500,9 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 	}
 
 	for(size_t i = big_int1.number_count; i != 0; --i) {
-		uint64_t num1 = big_int1.numbers[i];
-		uint64_t num2 = big_int2.numbers[i];
+		uint64_t num1 = big_int1.numbers[i - 1];
+		uint64_t num2 = big_int2.numbers[i - 1];
+
 		if(num1 < num2) {
 			return CMP_FIRST_ONE_IS_LESS;
 		}
