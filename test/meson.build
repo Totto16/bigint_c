@@ -13,6 +13,7 @@ subdir('helper')
 
 test_files = [
     'initialization_c.cpp',
+    'initialization_cpp.cpp',
 ]
 
 add_languages('cpp',required:true, native:false)

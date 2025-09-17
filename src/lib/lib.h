@@ -14,7 +14,7 @@ typedef struct {
 	size_t number_count;
 } BigIntImpl;
 
-#ifndef __cplusplus
+#ifndef BIGINT_USE_CPP
 typedef BigIntImpl BigInt;
 
 #endif

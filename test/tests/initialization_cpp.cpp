@@ -1,9 +1,5 @@
 
-
-extern "C" {
-#define BIGINT_C_NO_CPP
 #include <bigint_c.h>
-}
 
 #include "../helper/helper.hpp"
 
@@ -74,13 +70,11 @@ TEST(BigInt, ParseSuccess1) {
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
-	BigIntImpl big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
 	BigIntTest result = BigIntTest(true, { 0ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(&big_int);
 }
 
 TEST(BigInt, ParseSuccess2) {
@@ -88,13 +82,11 @@ TEST(BigInt, ParseSuccess2) {
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
-	BigIntImpl big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
 	BigIntTest result = BigIntTest(false, { 1ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(&big_int);
 }
 
 TEST(BigInt, ParseSuccess3) {
@@ -102,13 +94,11 @@ TEST(BigInt, ParseSuccess3) {
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
-	BigIntImpl big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
 	BigIntTest result = BigIntTest(false, { 10ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(&big_int);
 }
 
 TEST(BigInt, ParseSuccess4) {
@@ -116,13 +106,11 @@ TEST(BigInt, ParseSuccess4) {
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
-	BigIntImpl big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
 	BigIntTest result = BigIntTest(true, { 21ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(&big_int);
 }
 
 TEST(BigInt, ParseSuccess5) {
@@ -130,13 +118,11 @@ TEST(BigInt, ParseSuccess5) {
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
-	BigIntImpl big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
 	BigIntTest result = BigIntTest(false, { 10000000000ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(&big_int);
 }
 
 TEST(BigInt, ParseSuccessLargeNumbers) {
@@ -169,7 +155,5 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 		BigIntTest cpp_result = BigIntTest(test);
 
 		EXPECT_EQ(c_result, cpp_result) << "Input string: " << test;
-
-		free_bigint(&c_result);
 	}
 }
