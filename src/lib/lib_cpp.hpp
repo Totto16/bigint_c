@@ -205,4 +205,37 @@ struct BigInt {
 		// TODO
 		UNREACHABLE_WITH_MSG("TODO");
 	}
+
+	[[nodiscard]] std::string to_string() const {
+		return std::string{ bigint_to_string(this->underlying()) };
+	}
+
+	[[nodiscard]] explicit operator std::string() { return this->to_string(); }
 };
+
+namespace std {
+template <> struct hash<BigIntImpl> {
+	std::size_t operator()(const BigIntImpl& value) const noexcept {
+		std::size_t hash = std::hash<bool>()(value.positive);
+
+		hash = hash ^ value.number_count;
+
+		// see: https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector
+		for(size_t i = 0; i < value.number_count; ++i) {
+			hash = hash ^
+			       std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+		}
+
+		return hash;
+	}
+};
+
+template <> struct hash<BigInt> {
+	std::size_t operator()(const BigInt& value) const noexcept {
+		return std::hash<BigIntImpl>()(value.underlying());
+	}
+};
+
+std::string to_string(const BigInt& value);
+
+} // namespace std
