@@ -39,21 +39,17 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2) {
-	return value1.underlying() == value2;
-}
 
-[[nodiscard]] bool operator==(const BigIntC& value1, const BigIntTest& value2) {
-
-	if(value1.positive != value2.positive()) {
+	if(value1.underlying().positive != value2.positive()) {
 		return false;
 	}
 
-	if(value1.number_count != value2.values().size()) {
+	if(value1.underlying().number_count != value2.values().size()) {
 		return false;
 	}
 
-	for(size_t i = 0; i < value1.number_count; ++i) {
-		if(value1.numbers[i] != value2.values().at(i)) {
+	for(size_t i = 0; i < value1.underlying().number_count; ++i) {
+		if(value1.underlying().numbers[i] != value2.values().at(i)) {
 			return false;
 		}
 	}

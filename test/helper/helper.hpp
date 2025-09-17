@@ -32,5 +32,3 @@ struct BigIntTest {
 
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2);
-
-[[nodiscard]] bool operator==(const BigIntC& value1, const BigIntTest& value2);

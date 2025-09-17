@@ -1,5 +1,6 @@
 
 
+#define BIGINT_C_HIDE_C_LIB_FNS_AND_TYPES_IN_CPP
 #include <bigint_c.h>
 
 #include <gtest/gtest.h>
@@ -155,7 +156,7 @@ TEST(BigInt, IntegerToBigIntU) {
 
 	for(const uint64_t& test : tests) {
 
-		BigInt c_result = bigint_from_unsigned_number(test);
+		BigInt c_result = BigInt(test);
 
 		BigIntTest cpp_result = BigIntTest(test);
 
@@ -169,7 +170,7 @@ TEST(BigInt, IntegerToBigIntI) {
 
 	for(const int64_t& test : tests) {
 
-		BigInt c_result = bigint_from_signed_number(test);
+		BigInt c_result = BigInt(test);
 
 		BigIntTest cpp_result = BigIntTest(test);
 

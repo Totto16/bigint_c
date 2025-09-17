@@ -251,3 +251,23 @@ template <> struct hash<BigInt> {
 std::string to_string(const BigInt& value);
 
 } // namespace std
+
+#ifdef BIGINT_C_HIDE_C_LIB_FNS_AND_TYPES_IN_CPP
+
+#define BigIntC undef
+#define MaybeBigIntC undef
+#define maybe_bigint_is_error undef
+#define maybe_bigint_get_value undef
+#define maybe_bigint_get_error undef
+#define maybe_bigint_from_string undef
+#define bigint_from_unsigned_number undef
+#define bigint_from_signed_number undef
+#define free_bigint undef
+#define free_bigint_without_reset undef
+#define bigint_to_string undef
+#define bigint_add_bigint undef
+#define bigint_sub_bigint undef
+#define bigint_eq_bigint undef
+#define bigint_compare_bigint undef
+
+#endif
