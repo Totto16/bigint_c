@@ -2,77 +2,66 @@
 
 #include <bigint_c.h>
 
-#include "../helper/helper.hpp"
-#include "../helper/printer.hpp"
-
 #include <gtest/gtest.h>
 
+#include "../helper/helper.hpp"
+#include "../helper/matcher.hpp"
+#include "../helper/printer.hpp"
+
 TEST(BigInt, ParseError1) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("error");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("error");
 
-	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	std::string error = maybe_bigint_get_error(maybe_big_int);
-
-	EXPECT_EQ(error, "invalid character");
+	EXPECT_EQ(maybe_big_int.error(), "invalid character");
 }
 
 TEST(BigInt, ParseError2) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-");
 
-	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	std::string error = maybe_bigint_get_error(maybe_big_int);
-
-	EXPECT_EQ(error, "'-' alone is not valid");
+	EXPECT_EQ(maybe_big_int.error(), "'-' alone is not valid");
 }
 
 TEST(BigInt, ParseError3) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("+");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+");
 
-	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	std::string error = maybe_bigint_get_error(maybe_big_int);
-
-	EXPECT_EQ(error, "'+' alone is not valid");
+	EXPECT_EQ(maybe_big_int.error(), "'+' alone is not valid");
 }
 
 TEST(BigInt, ParseError4) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("");
 
-	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	std::string error = maybe_bigint_get_error(maybe_big_int);
-
-	EXPECT_EQ(error, "empty string is not valid");
+	EXPECT_EQ(maybe_big_int.error(), "empty string is not valid");
 }
 
 TEST(BigInt, ParseError5) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("_0");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("_0");
 
-	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	std::string error = maybe_bigint_get_error(maybe_big_int);
-
-	EXPECT_EQ(error, "separator not allowed at the start");
+	EXPECT_EQ(maybe_big_int.error(), "separator not allowed at the start");
 }
 
 TEST(BigInt, ParseError6) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("!0");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("!0");
 
-	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	std::string error = maybe_bigint_get_error(maybe_big_int);
-
-	EXPECT_EQ(error, "invalid character");
+	EXPECT_EQ(maybe_big_int.error(), "invalid character");
 }
 
 TEST(BigInt, ParseSuccess1) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("+0");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+0");
 
-	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
-	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = std::move(maybe_big_int.value());
 
 	BigIntTest result = BigIntTest(true, { 0ULL });
 
@@ -80,11 +69,11 @@ TEST(BigInt, ParseSuccess1) {
 }
 
 TEST(BigInt, ParseSuccess2) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-1");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-1");
 
-	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
-	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = std::move(maybe_big_int.value());
 
 	BigIntTest result = BigIntTest(false, { 1ULL });
 
@@ -92,11 +81,11 @@ TEST(BigInt, ParseSuccess2) {
 }
 
 TEST(BigInt, ParseSuccess3) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-1_0");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-1_0");
 
-	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
-	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = std::move(maybe_big_int.value());
 
 	BigIntTest result = BigIntTest(false, { 10ULL });
 
@@ -104,11 +93,11 @@ TEST(BigInt, ParseSuccess3) {
 }
 
 TEST(BigInt, ParseSuccess4) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("+0021");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+0021");
 
-	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
-	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = std::move(maybe_big_int.value());
 
 	BigIntTest result = BigIntTest(true, { 21ULL });
 
@@ -116,11 +105,11 @@ TEST(BigInt, ParseSuccess4) {
 }
 
 TEST(BigInt, ParseSuccess5) {
-	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-10_00'00.000,00");
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-10_00'00.000,00");
 
-	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
-	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
+	BigInt big_int = std::move(maybe_big_int.value());
 
 	BigIntTest result = BigIntTest(false, { 10000000000ULL });
 
@@ -148,11 +137,11 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 
 	for(const std::string& test : tests) {
 
-		MaybeBigInt maybe_big_int = maybe_bigint_from_string(test.c_str());
+		std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string(test.c_str());
 
-		EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
+		ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
-		BigInt c_result = maybe_bigint_get_value(maybe_big_int);
+		BigInt c_result = std::move(maybe_big_int.value());
 
 		BigIntTest cpp_result = BigIntTest(test);
 

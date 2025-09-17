@@ -1,6 +1,7 @@
 test_deps = deps
 
 test_deps += dependency('gtest', version:'>=1.17.0')
+test_deps += dependency('gmock', version:'>=1.17.0')
 
 test_deps += dependency('gmp')
 

@@ -33,15 +33,15 @@ typedef struct {
 		BigIntC result;
 		MaybeBigIntError error;
 	} data;
-} MaybeBigInt;
+} MaybeBigIntC;
 
 // functions on maybe bigint
 
-NODISCARD bool maybe_bigint_is_error(MaybeBigInt maybe_big_int);
+NODISCARD bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int);
 
-NODISCARD BigIntC maybe_bigint_get_value(MaybeBigInt maybe_big_int);
+NODISCARD BigIntC maybe_bigint_get_value(MaybeBigIntC maybe_big_int);
 
-NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
+NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int);
 
 // normal bigint functions
 
@@ -57,7 +57,7 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
  * @param str - the input string
  * @return MaybeBigInt - the result
  */
-NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str);
+NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str);
 
 NODISCARD BigIntC bigint_from_unsigned_number(uint64_t number);
 

@@ -7,6 +7,7 @@
 
 #include "./lib.h"
 
+#include <expected>
 #include <stdexcept>
 #include <string>
 
@@ -25,8 +26,19 @@ struct BigInt {
 
 	BigInt(int64_t value) noexcept { m_c_value = bigint_from_signed_number(value); }
 
+	[[nodiscard]] static std::expected<BigInt, std::string>
+	get_from_string(const std::string& str) noexcept {
+		MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
+
+		if(maybe_bigint_is_error(result)) {
+			return std::unexpected<std::string>{ std::string{ maybe_bigint_get_error(result) } };
+		}
+
+		return maybe_bigint_get_value(result);
+	}
+
 	explicit BigInt(const std::string& str) {
-		MaybeBigInt result = maybe_bigint_from_string(str.c_str());
+		MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
 
 		if(maybe_bigint_is_error(result)) {
 			throw std::runtime_error(std::string{ maybe_bigint_get_error(result) });

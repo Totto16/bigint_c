@@ -8,18 +8,18 @@
 
 // functions on maybe bigint
 
-NODISCARD bool maybe_bigint_is_error(MaybeBigInt maybe_big_int) {
+NODISCARD bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int) {
 	return maybe_big_int.error;
 }
 
-NODISCARD BigInt maybe_bigint_get_value(MaybeBigInt maybe_big_int) {
-	ASSERT(!maybe_bigint_is_error(maybe_big_int), "MaybeBigInt has no value");
+NODISCARD BigInt maybe_bigint_get_value(MaybeBigIntC maybe_big_int) {
+	ASSERT(!maybe_bigint_is_error(maybe_big_int), "MaybeBigIntC has no value");
 
 	return maybe_big_int.data.result;
 }
 
-NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int) {
-	ASSERT(maybe_bigint_is_error(maybe_big_int), "MaybeBigInt has no error");
+NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
+	ASSERT(maybe_bigint_is_error(maybe_big_int), "MaybeBigIntC has no error");
 
 	return maybe_big_int.data.error;
 }
@@ -266,7 +266,7 @@ NODISCARD static inline bool helper_is_separator(StrType value) {
 	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
-NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
+NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	BigInt result = bigint_helper_positive_zero();
 
@@ -276,8 +276,9 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 
 	if(str_len == 0) {
 		free_bigint(&result);
-		return (MaybeBigInt){ .error = true,
-			                  .data = { .error = (MaybeBigIntError) "empty string is not valid" } };
+		return (MaybeBigIntC){
+			.error = true, .data = { .error = (MaybeBigIntError) "empty string is not valid" }
+		};
 	}
 
 	size_t i = 0;
@@ -288,7 +289,7 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 
 		if(str_len == 1) {
 			free_bigint(&result);
-			return (MaybeBigInt){
+			return (MaybeBigIntC){
 				.error = true, .data = { .error = (MaybeBigIntError) "'-' alone is not valid" }
 			};
 		}
@@ -299,7 +300,7 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 
 		if(str_len == 1) {
 			free_bigint(&result);
-			return (MaybeBigInt){
+			return (MaybeBigIntC){
 				.error = true, .data = { .error = (MaybeBigIntError) "'+' alone is not valid" }
 			};
 		}
@@ -322,7 +323,7 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 				free_bigint(&result);
 				free_bcd_digits(bcd_digits);
 				// TODO:report position and character
-				return (MaybeBigInt){
+				return (MaybeBigIntC){
 					.error = true,
 					.data = { .error = (MaybeBigIntError) "separator not allowed at the start" }
 				};
@@ -333,8 +334,8 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 			free_bigint(&result);
 			free_bcd_digits(bcd_digits);
 			// TODO:report position and character
-			return (MaybeBigInt){ .error = true,
-				                  .data = { .error = (MaybeBigIntError) "invalid character" } };
+			return (MaybeBigIntC){ .error = true,
+				                   .data = { .error = (MaybeBigIntError) "invalid character" } };
 		}
 
 		if(start) {
@@ -348,7 +349,7 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 
 	bigint_helper_remove_leading_zeroes(&result);
 
-	return (MaybeBigInt){ .error = false, .data = { .result = result } };
+	return (MaybeBigIntC){ .error = false, .data = { .result = result } };
 }
 
 NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {

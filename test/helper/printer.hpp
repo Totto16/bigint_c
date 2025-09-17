@@ -3,6 +3,7 @@
 
 #include "./helper.hpp"
 
+#include <expected>
 #include <gtest/gtest.h>
 
 void PrintTo(const BigIntTest& value, std::ostream* os) {
@@ -38,3 +39,26 @@ std::ostream& operator<<(std::ostream& os, const BigIntTest& value) {
 	PrintTo(value, &os);
 	return os;
 }
+
+namespace
+
+    std
+
+{
+
+// make helper::expected printable
+template <typename T, typename S> void PrintTo(const expected<T, S>& value, std::ostream* os) {
+	if(value.has_value()) {
+		*os << "<Expected.Value>: " << ::testing::PrintToString<T>(value.value());
+	} else {
+		*os << "<Expected.Error>: " << ::testing::PrintToString<S>(value.error());
+	}
+}
+
+template <typename T, typename S>
+std::ostream& operator<<(std::ostream& os, const expected<T, S>& value) {
+	PrintTo<T, S>(value);
+	return os;
+}
+
+} // namespace std
