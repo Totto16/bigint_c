@@ -25,9 +25,12 @@ struct BigIntTest {
 	BigIntTest& operator=(const BigIntTest&) = delete;
 	BigIntTest(BigIntTest&& big_int) noexcept;
 	BigIntTest& operator=(BigIntTest&& big_int) noexcept;
+	~BigIntTest();
 
 	[[nodiscard]] bool positive() const;
 	[[nodiscard]] const std::vector<uint64_t>& values() const;
+
+	[[nodiscard]] std::string to_string() const;
 };
 
 // helper thought just for the tests

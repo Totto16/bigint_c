@@ -607,3 +607,65 @@ TEST(BigInt, IntegerNegate) {
 		EXPECT_EQ(negated, value2) << "Input values: " << value1 << ", " << value2;
 	}
 }
+
+static bool has_no_special_chars(const std::string& input) {
+
+	size_t i = 0;
+
+	if(input.at(0) == '-' || input.at(0) == '+') {
+		++i;
+	}
+
+	for(; i < input.size(); ++i) {
+		char value = input.at(i);
+
+		if(value >= '0' && value <= '9') {
+			continue;
+		} else if(value == '_' || value == '\'' || value == ',' || value == '.') {
+			return false;
+		} else {
+			throw std::runtime_error("unexpected value in bigint string");
+		}
+	}
+
+	return true;
+}
+
+TEST(BigInt, IntegerToString) {
+
+	std::vector<std::string> tests{
+		"1234567890123456789012345678901234567890123456789012345678901234567890",
+		"-11234567890123456789012345678901234567890123456789012345678901234567890",
+		"11234567890123456789012345678901234567890123456789012345678901234567890",
+		"24324532532563264267342634556842562345613297843267583265789324659324673284732894563981"
+		"4561"
+		"39785613294561329856328951326589326593285619745274152487134561328456132789453267845132"
+		"4671"
+		"245476124714912461294128412412412041204020202020202022020202",
+		"21412513613241245132512512",
+		"-12",
+		"-13250891325632415132851327653205672349642764295634279051326750329653285642516950265784258"
+		"342756342875346857346583456342875634256257263526347891326841364578916478134613784612784612"
+		"47812647812641278461278461247812648126478124612461274612841241",
+		std::to_string(std::numeric_limits<uint64_t>::max()),
+		"-384324_132132_3123123_3",
+		"+384324_132132_3123123_3"
+	};
+
+	for(const std::string& test : tests) {
+
+		BigInt big_int = BigInt::get_from_string(test.c_str()).value();
+
+		BigIntTest cpp_result = BigIntTest(test);
+
+		std::string bigint_c_str = big_int.to_string();
+
+		std::string bigint_cpp_str = cpp_result.to_string();
+
+		EXPECT_EQ(bigint_c_str, bigint_cpp_str) << "Input string: " << test;
+
+		if(has_no_special_chars(test)) {
+			EXPECT_EQ(test, bigint_c_str);
+		}
+	}
+}

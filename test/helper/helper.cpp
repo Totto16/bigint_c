@@ -18,6 +18,8 @@ BigIntTest::BigIntTest(const BigInt& big_int_c) noexcept
 	}
 }
 
+BigIntTest::~BigIntTest() = default;
+
 BigIntTest::BigIntTest(BigIntTest&& big_int) noexcept
     : m_positive{ big_int.m_positive }, m_values{ std::move(big_int.m_values) } {}
 
@@ -70,6 +72,8 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	mpz_t temp;
 	mpz_init_set(temp, number);
 
+	// TODO: maybe use mpz_export
+
 	for(size_t i = 0; i < num_chunks; ++i) {
 		values.at(i) = mpz_get_ui(temp);
 
@@ -85,6 +89,29 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	mpz_clear(temp);
 
 	test = BigIntTest(positive, std::move(values));
+}
+
+static mpz_t* get_gmp_value_from_bigint(const BigIntTest& test) {
+
+	mpz_t* bigint = (mpz_t*)malloc(sizeof(mpz_t));
+	mpz_init(*bigint);
+
+	int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
+	int endian = 0; // host endian
+	int nails = 0;  // use all 64 bits of the number
+
+	// see: https://gmplib.org/manual/Integer-Import-and-Export
+	mpz_import(*bigint, test.values().size(), order, sizeof(uint64_t), endian, nails,
+	           (void*)(test.values().data()));
+
+	// reverse signedness, if necessary
+	if(!test.positive() && mpz_sgn(*bigint) > 0) {
+		mpz_neg(*bigint, *bigint);
+	} else if(test.positive() && mpz_sgn(*bigint) < 0) {
+		mpz_neg(*bigint, *bigint);
+	}
+
+	return bigint;
 }
 
 // the same algorithm as in c, but using a external library, to verify the test result
@@ -118,4 +145,35 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	mpz_set_si(bigint, number);
 
 	initialize_bigint_from_gmp(*this, std::move(bigint));
+}
+
+[[nodiscard]] std::string BigIntTest::to_string() const {
+	mpz_t* number = get_gmp_value_from_bigint(*this);
+
+	size_t needed_size =
+	    mpz_sizeinbase(*number, 10) + 2; // one for the eventual "-" and one for the 0 terminator
+
+	char* buffer = (char*)malloc(needed_size * sizeof(char));
+
+	if(buffer == nullptr) {
+		mpz_clear(*number);
+		free(number);
+		throw std::runtime_error("string conversion error");
+	}
+
+	char* result = mpz_get_str(buffer, 10, *number);
+
+	if(result == nullptr) {
+		mpz_clear(*number);
+		free(number);
+		throw std::runtime_error("string conversion error");
+	}
+
+	std::string str{ result };
+
+	free(result);
+	mpz_clear(*number);
+	free(number);
+
+	return str;
 }
