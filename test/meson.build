@@ -28,7 +28,6 @@ foreach file : test_files
         override_options: {
             'warning_level': '3',
             'werror': true,
-            'b_coverage': false,
             'cpp_std': ['c++23', 'c++latest', 'c++20'],
         },
     )
