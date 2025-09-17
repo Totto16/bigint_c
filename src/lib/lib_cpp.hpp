@@ -63,9 +63,21 @@ struct BigInt {
 
 	[[nodiscard]] const BigIntImpl& underlying() const { return m_c_value; }
 
-	[[nodiscard]] bool operator==(const BigInt& value2) const {
-		// TODO
-		UNUSED(value2);
-		UNREACHABLE_WITH_MSG("TODO");
+	[[nodiscard]] uint8_t operator<=>(const BigInt& value2) const {
+		return bigint_compare_bigint(this->m_c_value, value2.m_c_value);
 	}
+
+	[[nodiscard]] bool operator==(const BigInt& value2) const {
+		return bigint_eq_bigint(this->m_c_value, value2.m_c_value);
+	}
+
+	[[nodiscard]] bool operator!=(const BigInt& value2) const { return !(*this == value2); }
+
+	[[nodiscard]] bool operator>=(const BigInt& value2) const { return (*this <=> value2) >= 0; }
+
+	[[nodiscard]] bool operator>(const BigInt& value2) const { return (*this <=> value2) > 0; }
+
+	[[nodiscard]] bool operator<=(const BigInt& value2) const { return (*this <=> value2) <= 0; }
+
+	[[nodiscard]] bool operator<(const BigInt& value2) const { return (*this <=> value2) < 0; }
 };

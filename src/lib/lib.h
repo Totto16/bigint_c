@@ -54,8 +54,8 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
  *          use digits and optional separators "_", "'", ",", "."
  *          note, that "." and "," are no decimal separators like found in doubles (depending on
  *          where in the world it is "," or ".")
- * @param str
- * @return MaybeBigInt
+ * @param str - the input string
+ * @return MaybeBigInt - the result
  */
 NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str);
 
@@ -73,4 +73,22 @@ NODISCARD BigIntImpl bigint_add_bigint(BigIntImpl big_int1, BigIntImpl big_int2)
 
 NODISCARD BigIntImpl bigint_sub_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
 
+/**
+ * @brief This compares two bigints for equality, this is faster than comparing them, as this may
+ * return earlier in some cases and perform less checks
+ *
+ * @param big_int1
+ * @param big_int2
+ * @return bool
+ */
+NODISCARD bool bigint_eq_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+
+/**
+ * @brief This compares two bigints, return 0 if they are equal, -1 if the first one is less then
+ * the second one, 1 if the first one is greater then the second one
+ *
+ * @param big_int1
+ * @param big_int2
+ * @return 0, -1 or 1
+ */
 NODISCARD uint8_t bigint_compare_bigint(BigIntImpl big_int1, BigIntImpl big_int2);

@@ -96,9 +96,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
 	if(bcd_digits.count == 0) {
-		ASSERT(big_int->number_count == 0, "not initialized BigInt correctly");
-		big_int->numbers[0] = U64(0);
-		return;
+		UNREACHABLE_WITH_MSG("not initialized BigInt correctly");
 	}
 
 	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
