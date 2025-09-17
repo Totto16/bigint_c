@@ -2,17 +2,13 @@
 
 #pragma once
 
-#if defined(__cplusplus) && !defined(BIGINT_C_NO_CPP)
-#define BIGINT_USE_CPP
-#endif
-
-#ifdef BIGINT_USE_CPP
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "../lib/lib.h"
 
-#ifdef BIGINT_USE_CPP
+#ifdef __cplusplus
 }
 
 #include "../lib/lib_cpp.hpp"

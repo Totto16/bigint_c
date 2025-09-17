@@ -18,6 +18,9 @@ struct BigIntTest {
 	explicit BigIntTest(const BigInt& big_int_c) noexcept;
 	explicit BigIntTest(const std::string& str);
 
+	explicit BigIntTest(const uint64_t& number);
+	explicit BigIntTest(const int64_t& number);
+
 	BigIntTest(const BigIntTest&) = delete;
 	BigIntTest& operator=(const BigIntTest&) = delete;
 	BigIntTest(BigIntTest&& big_int) noexcept;
@@ -30,4 +33,4 @@ struct BigIntTest {
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2);
 
-[[nodiscard]] bool operator==(const BigIntImpl& value1, const BigIntTest& value2);
+[[nodiscard]] bool operator==(const BigIntC& value1, const BigIntTest& value2);

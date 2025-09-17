@@ -42,7 +42,7 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 	return value1.underlying() == value2;
 }
 
-[[nodiscard]] bool operator==(const BigIntImpl& value1, const BigIntTest& value2) {
+[[nodiscard]] bool operator==(const BigIntC& value1, const BigIntTest& value2) {
 
 	if(value1.positive != value2.positive()) {
 		return false;
@@ -63,27 +63,16 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 
 static constexpr uint8_t CHUNK_BITS = 64;
 
-// the same algorithm as in c, but using a external library, to verify the test result
-// see https://gmplib.org/manual/Concept-Index for gmp docs
-BigIntTest::BigIntTest(const std::string& str) : m_values{} {
-
-	mpz_t big;
-	mpz_init(big);
-
-	// Parse the decimal string into the big integer
-	if(mpz_set_str(big, str.c_str(), 10) != 0) {
-		mpz_clear(big);
-		throw std::runtime_error("Failed to parse bigint string");
-	}
-
-	size_t num_chunks = (mpz_sizeinbase(big, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
-	m_values.resize(num_chunks);
+static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
+	size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
+	std::vector<uint64_t> values{};
+	values.resize(num_chunks);
 
 	mpz_t temp;
-	mpz_init_set(temp, big);
+	mpz_init_set(temp, number);
 
 	for(size_t i = 0; i < num_chunks; ++i) {
-		m_values.at(i) = mpz_get_ui(temp);
+		values.at(i) = mpz_get_ui(temp);
 
 		// Shift right by 64 bits, don't perform arithmetic shifts (affects negative values), see
 		// https://gmplib.org/manual/Integer-Division
@@ -91,8 +80,43 @@ BigIntTest::BigIntTest(const std::string& str) : m_values{} {
 	}
 
 	// note: 0 is always positive here
-	m_positive = mpz_sgn(big) >= 0;
+	bool positive = mpz_sgn(number) >= 0;
 
-	mpz_clear(big);
+	mpz_clear(number);
 	mpz_clear(temp);
+
+	test = BigIntTest(positive, std::move(values));
+}
+
+// the same algorithm as in c, but using a external library, to verify the test result
+// see https://gmplib.org/manual/Concept-Index for gmp docs
+BigIntTest::BigIntTest(const std::string& str) : m_values{} {
+
+	mpz_t bigint;
+	mpz_init(bigint);
+
+	// Parse the decimal string into the big integer
+	if(mpz_set_str(bigint, str.c_str(), 10) != 0) {
+		mpz_clear(bigint);
+		throw std::runtime_error("Failed to parse bigint string");
+	}
+
+	initialize_bigint_from_gmp(*this, std::move(bigint));
+}
+
+BigIntTest::BigIntTest(const uint64_t& number) : m_values{} {
+	mpz_t bigint;
+	mpz_init(bigint);
+
+	mpz_set_ui(bigint, number);
+
+	initialize_bigint_from_gmp(*this, std::move(bigint));
+}
+BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
+	mpz_t bigint;
+	mpz_init(bigint);
+
+	mpz_set_si(bigint, number);
+
+	initialize_bigint_from_gmp(*this, std::move(bigint));
 }

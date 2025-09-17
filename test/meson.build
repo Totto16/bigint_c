@@ -12,7 +12,6 @@ test_src = files('entry.cpp')
 subdir('helper')
 
 test_files = [
-    'initialization_c.cpp',
     'initialization_cpp.cpp',
 ]
 

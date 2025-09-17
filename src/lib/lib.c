@@ -2,6 +2,7 @@
 
 #include "./lib.h"
 
+#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -351,13 +352,30 @@ NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 }
 
 NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
-	UNUSED(number);
-	UNREACHABLE_WITH_MSG("TODO");
+	BigInt result = bigint_helper_positive_zero();
+	result.positive = true;
+	result.numbers[0] = number;
+
+	return result;
 }
 
 NODISCARD BigInt bigint_from_signed_number(int64_t number) {
-	UNUSED(number);
-	UNREACHABLE_WITH_MSG("TODO");
+	BigInt result = bigint_helper_positive_zero();
+
+	if(number < 0LL) {
+		result.positive = false;
+		// overflow, when using - on int64_t
+		if(number < -LLONG_MAX) {
+			result.numbers[0] = (uint64_t)(-(number + 1LL)) + 1ULL;
+		} else {
+			result.numbers[0] = (uint64_t)(-number);
+		}
+	} else {
+		result.positive = true;
+		result.numbers[0] = number;
+	}
+
+	return result;
 }
 
 void free_bigint(BigInt* big_int) {
@@ -371,7 +389,7 @@ void free_bigint(BigInt* big_int) {
 	}
 }
 
-void free_bigint_without_reset(BigIntImpl big_int) {
+void free_bigint_without_reset(BigIntC big_int) {
 	if(big_int.numbers != NULL) {
 		free(big_int.numbers);
 	}

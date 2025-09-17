@@ -12,10 +12,10 @@
 
 struct BigInt {
   private:
-	BigIntImpl m_c_value;
+	BigIntC m_c_value;
 
   public:
-	BigInt(BigIntImpl&& c_value) noexcept : m_c_value{ c_value } {
+	BigInt(BigIntC&& c_value) noexcept : m_c_value{ c_value } {
 
 		c_value.numbers = nullptr;
 		c_value.number_count = 0;
@@ -63,9 +63,9 @@ struct BigInt {
 		return *this;
 	}
 
-	[[nodiscard]] operator const BigIntImpl&() const { return m_c_value; }
+	[[nodiscard]] operator const BigIntC&() const { return m_c_value; }
 
-	[[nodiscard]] const BigIntImpl& underlying() const { return m_c_value; }
+	[[nodiscard]] const BigIntC& underlying() const { return m_c_value; }
 
 	[[nodiscard]] uint8_t operator<=>(const BigInt& value2) const {
 		return bigint_compare_bigint(this->m_c_value, value2.m_c_value);
@@ -214,8 +214,8 @@ struct BigInt {
 };
 
 namespace std {
-template <> struct hash<BigIntImpl> {
-	std::size_t operator()(const BigIntImpl& value) const noexcept {
+template <> struct hash<BigIntC> {
+	std::size_t operator()(const BigIntC& value) const noexcept {
 		std::size_t hash = std::hash<bool>()(value.positive);
 
 		hash = hash ^ value.number_count;
@@ -232,7 +232,7 @@ template <> struct hash<BigIntImpl> {
 
 template <> struct hash<BigInt> {
 	std::size_t operator()(const BigInt& value) const noexcept {
-		return std::hash<BigIntImpl>()(value.underlying());
+		return std::hash<BigIntC>()(value.underlying());
 	}
 };
 

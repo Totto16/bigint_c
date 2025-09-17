@@ -1,7 +1,9 @@
 
+
 #include <bigint_c.h>
 
 #include "../helper/helper.hpp"
+#include "../helper/printer.hpp"
 
 #include <gtest/gtest.h>
 
@@ -155,5 +157,33 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 		BigIntTest cpp_result = BigIntTest(test);
 
 		EXPECT_EQ(c_result, cpp_result) << "Input string: " << test;
+	}
+}
+
+TEST(BigInt, IntegerToBigIntU) {
+	std::vector<uint64_t> tests{ 4351325ULL, 0ULL, 1313131ULL,
+		                         std::numeric_limits<uint64_t>::max() };
+
+	for(const uint64_t& test : tests) {
+
+		BigInt c_result = bigint_from_unsigned_number(test);
+
+		BigIntTest cpp_result = BigIntTest(test);
+
+		EXPECT_EQ(c_result, cpp_result) << "Input number: " << test;
+	}
+}
+
+TEST(BigInt, IntegerToBigIntI) {
+	std::vector<int64_t> tests{ 4351325LL, 0ULL, -1313131LL, std::numeric_limits<int64_t>::max(),
+		                        std::numeric_limits<int64_t>::min() };
+
+	for(const int64_t& test : tests) {
+
+		BigInt c_result = bigint_from_signed_number(test);
+
+		BigIntTest cpp_result = BigIntTest(test);
+
+		EXPECT_EQ(c_result, cpp_result) << "Input number: " << test;
 	}
 }

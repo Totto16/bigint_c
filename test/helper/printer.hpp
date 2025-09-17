@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-void PrintTo(const BigIntCPP& value, std::ostream* os) {
+void PrintTo(const BigIntTest& value, std::ostream* os) {
 
 	if(value.positive()) {
 		*os << "+ ";
@@ -24,7 +24,7 @@ void PrintTo(const BigIntCPP& value, std::ostream* os) {
 
 void PrintTo(const BigInt& value, std::ostream* os) {
 
-	BigIntCPP value_cpp = BigIntCPP(value);
+	BigIntTest value_cpp = BigIntTest(value);
 
 	PrintTo(value_cpp, os);
 }
@@ -34,7 +34,7 @@ std::ostream& operator<<(std::ostream& os, const BigInt& value) {
 	return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const BigIntCPP& value) {
+std::ostream& operator<<(std::ostream& os, const BigIntTest& value) {
 	PrintTo(value, &os);
 	return os;
 }

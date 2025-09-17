@@ -12,10 +12,10 @@ typedef struct {
 	bool positive;
 	uint64_t* numbers;
 	size_t number_count;
-} BigIntImpl;
+} BigIntC;
 
-#ifndef BIGINT_USE_CPP
-typedef BigIntImpl BigInt;
+#ifndef __cplusplus
+typedef BigIntC BigInt;
 
 #endif
 
@@ -30,7 +30,7 @@ typedef ConstStr MaybeBigIntError;
 typedef struct {
 	bool error;
 	union {
-		BigIntImpl result;
+		BigIntC result;
 		MaybeBigIntError error;
 	} data;
 } MaybeBigInt;
@@ -39,7 +39,7 @@ typedef struct {
 
 NODISCARD bool maybe_bigint_is_error(MaybeBigInt maybe_big_int);
 
-NODISCARD BigIntImpl maybe_bigint_get_value(MaybeBigInt maybe_big_int);
+NODISCARD BigIntC maybe_bigint_get_value(MaybeBigInt maybe_big_int);
 
 NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
 
@@ -59,19 +59,19 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
  */
 NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str);
 
-NODISCARD BigIntImpl bigint_from_unsigned_number(uint64_t number);
+NODISCARD BigIntC bigint_from_unsigned_number(uint64_t number);
 
-NODISCARD BigIntImpl bigint_from_signed_number(int64_t number);
+NODISCARD BigIntC bigint_from_signed_number(int64_t number);
 
-void free_bigint(BigIntImpl* big_int);
+void free_bigint(BigIntC* big_int);
 
-void free_bigint_without_reset(BigIntImpl big_int);
+void free_bigint_without_reset(BigIntC big_int);
 
-NODISCARD Str bigint_to_string(BigIntImpl big_int);
+NODISCARD Str bigint_to_string(BigIntC big_int);
 
-NODISCARD BigIntImpl bigint_add_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+NODISCARD BigIntC bigint_add_bigint(BigIntC big_int1, BigIntC big_int2);
 
-NODISCARD BigIntImpl bigint_sub_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+NODISCARD BigIntC bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2);
 
 /**
  * @brief This compares two bigints for equality, this is faster than comparing them, as this may
@@ -81,7 +81,7 @@ NODISCARD BigIntImpl bigint_sub_bigint(BigIntImpl big_int1, BigIntImpl big_int2)
  * @param big_int2
  * @return bool
  */
-NODISCARD bool bigint_eq_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2);
 
 /**
  * @brief This compares two bigints, return 0 if they are equal, -1 if the first one is less then
@@ -91,4 +91,4 @@ NODISCARD bool bigint_eq_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
  * @param big_int2
  * @return 0, -1 or 1
  */
-NODISCARD uint8_t bigint_compare_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+NODISCARD uint8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);
