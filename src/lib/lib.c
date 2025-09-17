@@ -97,7 +97,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
 	if(bcd_digits.count == 0) {
-		UNREACHABLE_WITH_MSG("not initialized BigInt correctly");
+		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly");
 	}
 
 	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
@@ -175,7 +175,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 
 			for(size_t i = bcd_digits.count; i > bcd_processed_fully_amount; --i) {
 
-				// 2.1 If value >= 8 subtract 3 from value
+				// 2.1 If value >= 8 then subtract 3 from value
 
 				BCDDigit value = bcd_digits.bcd_digits[i - 1];
 
@@ -261,6 +261,17 @@ NODISCARD static inline bool helper_is_digit(StrType value) {
 	return value >= '0' && value <= '9';
 }
 
+NODISCARD static uint8_t helper_char_to_digit(StrType value) {
+	return value - '0';
+}
+
+NODISCARD static StrType helper_digit_to_char_checked(uint8_t value) {
+
+	ASSERT(value < 9, "value is not a valid digit");
+
+	return (StrType)((StrType)value + '0');
+}
+
 NODISCARD static inline bool helper_is_separator(StrType value) {
 	// valid separators are /[_',.]/
 	return value == '_' || value == '\'' || value == ',' || value == '.';
@@ -316,7 +327,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 		StrType value = str[i];
 
 		if(helper_is_digit(value)) {
-			helper_add_value_to_bcd_digits(&bcd_digits, value - '0');
+			helper_add_value_to_bcd_digits(&bcd_digits, helper_char_to_digit(value));
 		} else if(helper_is_separator(value)) {
 			if(start) {
 				// not allowed
@@ -396,14 +407,177 @@ void free_bigint_without_reset(BigIntC big_int) {
 	}
 }
 
-NODISCARD Str bigint_to_string(BigInt big_int) {
+NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 
+	BigIntC result = { .positive = big_int.positive,
+		               .numbers = NULL,
+		               .number_count = big_int.number_count };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	memcpy(result.numbers, big_int.numbers, sizeof(uint64_t) * big_int.number_count);
+
+	return result;
+}
+
+NODISCARD static size_t bigint_helper_bits_of_number_used(uint64_t number) {
+
+	uint64_t temp = number;
+	size_t result = 0;
+
+	while(temp != U64(0)) {
+		temp = temp >> 1;
+		++result;
+	}
+
+	return result;
+}
+
+NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC source) {
+
+	// using double dabble, see
+	// https://en.wikipedia.org/wiki/Double_dabble
+
+	if(source.number_count == 0) {
+		UNREACHABLE_WITH_MSG("not initialized BigInt correctly");
+	}
+
+	// reverse the source so that the bits are aligned
+	{
+		for(size_t i = 0; i < source.number_count / 2; ++i) {
+			uint64_t temp = source.numbers[i];
+			source.numbers[i] = source.numbers[source.number_count - 1 - i];
+
+			source.numbers[source.number_count - 1 - i] = temp;
+		}
+	}
+
+	const size_t last_number_bit_amount = bigint_helper_bits_of_number_used(
+	    source.numbers[0]); // range 0 -64 0 should never be here, as then i should have remove it
+	                        // earlier (remove leading zeroes!)
+
+	// but it is here when the value is just 0 ("0")
+	// TODO: handle that case
+	ASSERT(last_number_bit_amount != 0, "last number has to have at least one bit of information");
+
+	// calculate the amount of input bits
+	const size_t total_input_bits = source.number_count * BIGINT_BIT_COUNT_FOR_BCD_ALG;
+
+	// setup working variables
 	BCDDigits bcd_digits = { .bcd_digits = NULL, .count = 0, .capacity = 0 };
 
-	UNUSED(bcd_digits);
-	UNUSED(big_int);
+	size_t current_bit =
+	    BIGINT_BIT_COUNT_FOR_BCD_ALG -
+	    last_number_bit_amount; // range 0 - 63 at start, later 0 -> total_input_bits -1
 
-	return "";
+	size_t pushed_bits = 0;
+
+	while(current_bit < total_input_bits) {
+
+		{ // 1. For each bcd_digit
+
+			for(size_t i = 0; i < bcd_digits.count; ++i) {
+
+				// 2.1. If value >= 5 then add 3 to value
+
+				BCDDigit value = bcd_digits.bcd_digits[i];
+
+				if(value >= 5) {
+					bcd_digits.bcd_digits[i] = bcd_digits.bcd_digits[i] + 3;
+				}
+			}
+		}
+
+		{ // 2. shift left by one
+
+			{ // 2.1. shift every bcd_output to the left
+			  // ( not in 8 but in 4 bit shifts), for
+			  // convience we shift to the right in the 4 bit array elements
+
+				// 2.1.1. if we need a new bcd_digit, allocate it and set it to 0
+				if((pushed_bits % BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG) == 0) {
+					helper_add_value_to_bcd_digits(&bcd_digits, 0);
+				}
+
+				{ // 2.1.2 shift the first bit (4. bit) of every number into the next one
+
+					for(size_t i = bcd_digits.count; i != 0; --i) {
+
+						BCDDigit value = bcd_digits.bcd_digits[i];
+
+						uint8_t first_bit = (value >> (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) & 0x01;
+
+						if(i == bcd_digits.count) {
+							ASSERT((first_bit == 0), "the first bit of the first bcd_digit has to "
+							                         "be 0, as this was just created empty or "
+							                         "should only get the value after this shift");
+						} else {
+							if(first_bit != 0) {
+								bcd_digits.bcd_digits[i] = bcd_digits.bcd_digits[i] | first_bit;
+							}
+						}
+
+						// shift to the left, but only keep 4 bits
+						bcd_digits.bcd_digits[i - 1] =
+						    (bcd_digits.bcd_digits[i - 1] << 1) &
+						    (((BCDDigit)1 << BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG) - (BCDDigit)1);
+					}
+				}
+			}
+
+			{ // 2.2 shift first input bit into the bcd_result
+
+				size_t input_index = current_bit / BIGINT_BIT_COUNT_FOR_BCD_ALG;
+
+				size_t input_u64_index = current_bit % BIGINT_BIT_COUNT_FOR_BCD_ALG;
+
+				uint8_t first_bit = (source.numbers[input_index] >> input_u64_index) & 0x01;
+
+				if(first_bit != 0) {
+					bcd_digits.bcd_digits[0] = bcd_digits.bcd_digits[0] | first_bit;
+				}
+			}
+		}
+
+		// increment current_bit and pushed_bits
+		++current_bit;
+		++pushed_bits;
+	}
+
+	return bcd_digits;
+}
+NODISCARD Str bigint_to_string(BigInt big_int) {
+
+	BigInt copy = bigint_helper_get_full_copy(big_int);
+
+	BCDDigits bcd_digits = bigint_helper_get_bcd_digits_from_bigint(copy);
+
+	free_bigint(&copy);
+
+	// format bcd_digits into a string, note that the bcd_digits are stored reversed
+
+	size_t sign_amount = big_int.positive ? 0 : 1;
+
+	Str str = malloc(sizeof(StrType) * (bcd_digits.count + 1 + sign_amount));
+
+	if(str == NULL) {
+		free_bcd_digits(bcd_digits);
+		return NULL;
+	}
+
+	str[bcd_digits.count + sign_amount] = '\0';
+
+	if(!big_int.positive) {
+		str[0] = '-';
+	}
+
+	for(size_t i = 0; i < bcd_digits.count; ++i) {
+
+		str[sign_amount + i] =
+		    helper_digit_to_char_checked(bcd_digits.bcd_digits[bcd_digits.count - i - 1]);
+	}
+
+	return str;
 }
 
 NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
