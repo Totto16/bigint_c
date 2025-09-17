@@ -91,4 +91,4 @@ NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2);
  * @param big_int2
  * @return 0, -1 or 1
  */
-NODISCARD uint8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);
+NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);

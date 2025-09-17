@@ -44,6 +44,8 @@ struct BigInt {
 
 	BigInt(int64_t value) noexcept { m_c_value = bigint_from_signed_number(value); }
 
+	// TODO: make a constexpress literal in c++
+
 	[[nodiscard]] static std::expected<BigInt, std::string>
 	get_from_string(const std::string& str) noexcept {
 		MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
@@ -99,8 +101,14 @@ struct BigInt {
 	[[nodiscard]] const BigIntC& underlying() const { return m_c_value; }
 #endif
 
-	[[nodiscard]] uint8_t operator<=>(const BigInt& value2) const {
-		return bigint_compare_bigint(this->m_c_value, value2.m_c_value);
+	[[nodiscard]] std::strong_ordering operator<=>(const BigInt& value2) const {
+		int8_t value = bigint_compare_bigint(this->m_c_value, value2.m_c_value);
+
+		if(value == 0) {
+			return std::strong_ordering::equal;
+		}
+
+		return value > 0 ? std::strong_ordering::greater : std::strong_ordering::less;
 	}
 
 	[[nodiscard]] bool operator==(const BigInt& value2) const {

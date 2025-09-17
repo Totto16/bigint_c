@@ -440,8 +440,75 @@ NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
 	return true;
 }
 
-NODISCARD uint8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
-	UNUSED(big_int1);
-	UNUSED(big_int2);
-	UNREACHABLE_WITH_MSG("TODO");
+NODISCARD static int8_t cmp_reverse(int8_t value) {
+	if(value == 0) {
+		return 0;
+	}
+
+	if(value > 0) {
+		return -1;
+	}
+
+	return 1;
+}
+
+#define CMP_FIRST_ONE_IS_LESS ((int8_t)-1)
+#define CMP_FIRST_ONE_IS_GREATER ((int8_t)1)
+#define CMP_ARE_EQUAL ((int8_t)0)
+
+NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
+
+	if(!big_int1.positive && big_int2.positive) {
+
+		//- 0 is equals to + 0
+		if(big_int1.number_count == 1 && big_int2.number_count == 1) {
+			if(big_int1.numbers[0] == 0 && big_int2.numbers[0] == 0) {
+				return CMP_ARE_EQUAL;
+			}
+		}
+
+		return CMP_FIRST_ONE_IS_LESS;
+	}
+
+	if(big_int1.positive && !big_int2.positive) {
+
+		//- 0 is equals to + 0
+		if(big_int1.number_count == 1 && big_int2.number_count == 1) {
+			if(big_int1.numbers[0] == 0 && big_int2.numbers[0] == 0) {
+				return CMP_ARE_EQUAL;
+			}
+		}
+
+		return CMP_FIRST_ONE_IS_GREATER;
+	}
+
+	if(!big_int1.positive && !big_int2.positive) {
+
+		//-x <=> -y ==  cmp_reverse (x <=> y)
+
+		big_int1.positive = true;
+		return cmp_reverse(bigint_compare_bigint(big_int1, big_int2));
+	}
+
+	if(big_int1.number_count < big_int2.number_count) {
+		return CMP_FIRST_ONE_IS_LESS;
+	}
+
+	if(big_int1.number_count > big_int2.number_count) {
+		return CMP_FIRST_ONE_IS_GREATER;
+	}
+
+	for(size_t i = big_int1.number_count; i != 0; --i) {
+		uint64_t num1 = big_int1.numbers[i];
+		uint64_t num2 = big_int2.numbers[i];
+		if(num1 < num2) {
+			return CMP_FIRST_ONE_IS_LESS;
+		}
+
+		if(num1 > num2) {
+			return CMP_FIRST_ONE_IS_GREATER;
+		}
+	}
+
+	return CMP_ARE_EQUAL;
 }

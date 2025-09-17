@@ -177,3 +177,41 @@ TEST(BigInt, IntegerToBigIntI) {
 		EXPECT_EQ(c_result, cpp_result) << "Input number: " << test;
 	}
 }
+
+TEST(BigInt, IntegerEqComparison) {
+	using TestType = std::tuple<BigInt, BigInt, bool>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(BigInt{ (int64_t)-1LL },
+	                                                         BigInt{ (uint64_t)1ULL }, false));
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(BigInt{ (int64_t)-1LL },
+	                                                         BigInt{ (int64_t)-2LL }, false));
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(BigInt{ (uint64_t)1ULL },
+	                                                         BigInt{ (uint64_t)2ULL }, false));
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(
+	    BigInt::get_from_string("351326324642346363634634634636363").value(),
+	    BigInt{ (uint64_t)2ULL }, false));
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    false));
+
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    true));
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(BigInt{ (int64_t)-1LL },
+	                                                         BigInt{ (int64_t)-1LL }, true));
+	tests.emplace_back(std::make_tuple<BigInt, BigInt, bool>(BigInt{ (uint64_t)2ULL },
+	                                                         BigInt{ (uint64_t)2ULL }, true));
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const bool actual_result = value1 == value2;
+
+		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
