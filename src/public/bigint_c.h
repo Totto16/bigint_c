@@ -10,4 +10,7 @@ extern "C" {
 
 #ifdef __cplusplus
 }
+
+#include "../lib/lib_cpp.hpp"
+
 #endif

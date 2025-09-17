@@ -2,12 +2,11 @@
 #include <bigint_c.h>
 
 #include "../helper/helper.hpp"
-#include "../helper/printer.hpp"
 
 #include <gtest/gtest.h>
 
 TEST(BigInt, ParseError1) {
-	MaybeBigInt maybe_big_int = bigint_from_string("error");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("error");
 
 	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
 
@@ -17,7 +16,7 @@ TEST(BigInt, ParseError1) {
 }
 
 TEST(BigInt, ParseError2) {
-	MaybeBigInt maybe_big_int = bigint_from_string("-");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-");
 
 	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
 
@@ -27,7 +26,7 @@ TEST(BigInt, ParseError2) {
 }
 
 TEST(BigInt, ParseError3) {
-	MaybeBigInt maybe_big_int = bigint_from_string("+");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("+");
 
 	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
 
@@ -37,7 +36,7 @@ TEST(BigInt, ParseError3) {
 }
 
 TEST(BigInt, ParseError4) {
-	MaybeBigInt maybe_big_int = bigint_from_string("");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("");
 
 	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
 
@@ -47,7 +46,7 @@ TEST(BigInt, ParseError4) {
 }
 
 TEST(BigInt, ParseError5) {
-	MaybeBigInt maybe_big_int = bigint_from_string("_0");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("_0");
 
 	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
 
@@ -57,7 +56,7 @@ TEST(BigInt, ParseError5) {
 }
 
 TEST(BigInt, ParseError6) {
-	MaybeBigInt maybe_big_int = bigint_from_string("!0");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("!0");
 
 	EXPECT_TRUE(maybe_bigint_is_error(maybe_big_int));
 
@@ -67,73 +66,63 @@ TEST(BigInt, ParseError6) {
 }
 
 TEST(BigInt, ParseSuccess1) {
-	MaybeBigInt maybe_big_int = bigint_from_string("+0");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("+0");
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
 	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
-	BigIntCPP result = BigIntCPP(true, { 0ULL });
+	BigIntTest result = BigIntTest(true, { 0ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(big_int);
 }
 
 TEST(BigInt, ParseSuccess2) {
-	MaybeBigInt maybe_big_int = bigint_from_string("-1");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-1");
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
 	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
-	BigIntCPP result = BigIntCPP(false, { 1ULL });
+	BigIntTest result = BigIntTest(false, { 1ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(big_int);
 }
 
 TEST(BigInt, ParseSuccess3) {
-	MaybeBigInt maybe_big_int = bigint_from_string("-1_0");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-1_0");
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
 	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
-	BigIntCPP result = BigIntCPP(false, { 10ULL });
+	BigIntTest result = BigIntTest(false, { 10ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(big_int);
 }
 
 TEST(BigInt, ParseSuccess4) {
-	MaybeBigInt maybe_big_int = bigint_from_string("+0021");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("+0021");
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
 	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
-	BigIntCPP result = BigIntCPP(true, { 21ULL });
+	BigIntTest result = BigIntTest(true, { 21ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(big_int);
 }
 
 TEST(BigInt, ParseSuccess5) {
-	MaybeBigInt maybe_big_int = bigint_from_string("-10_00'00.000,00");
+	MaybeBigInt maybe_big_int = maybe_bigint_from_string("-10_00'00.000,00");
 
 	EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
 	BigInt big_int = maybe_bigint_get_value(maybe_big_int);
 
-	BigIntCPP result = BigIntCPP(false, { 10000000000ULL });
+	BigIntTest result = BigIntTest(false, { 10000000000ULL });
 
 	EXPECT_EQ(big_int, result);
-
-	free_bigint(big_int);
 }
 
 TEST(BigInt, ParseSuccessLargeNumbers) {
@@ -157,16 +146,14 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 
 	for(const std::string& test : tests) {
 
-		MaybeBigInt maybe_big_int = bigint_from_string(test.c_str());
+		MaybeBigInt maybe_big_int = maybe_bigint_from_string(test.c_str());
 
 		EXPECT_FALSE(maybe_bigint_is_error(maybe_big_int));
 
 		BigInt c_result = maybe_bigint_get_value(maybe_big_int);
 
-		BigIntCPP cpp_result = BigIntCPP(test);
+		BigIntTest cpp_result = BigIntTest(test);
 
 		EXPECT_EQ(c_result, cpp_result) << "Input string: " << test;
-
-		free_bigint(c_result);
 	}
 }

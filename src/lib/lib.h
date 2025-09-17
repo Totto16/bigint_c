@@ -12,7 +12,12 @@ typedef struct {
 	bool positive;
 	uint64_t* numbers;
 	size_t number_count;
-} BigInt;
+} BigIntImpl;
+
+#ifndef __cplusplus
+typedef BigIntImpl BigInt;
+
+#endif
 
 typedef char StrType;
 
@@ -25,7 +30,7 @@ typedef ConstStr MaybeBigIntError;
 typedef struct {
 	bool error;
 	union {
-		BigInt result;
+		BigIntImpl result;
 		MaybeBigIntError error;
 	} data;
 } MaybeBigInt;
@@ -34,7 +39,7 @@ typedef struct {
 
 NODISCARD bool maybe_bigint_is_error(MaybeBigInt maybe_big_int);
 
-NODISCARD BigInt maybe_bigint_get_value(MaybeBigInt maybe_big_int);
+NODISCARD BigIntImpl maybe_bigint_get_value(MaybeBigInt maybe_big_int);
 
 NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
 
@@ -52,8 +57,20 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigInt maybe_big_int);
  * @param str
  * @return MaybeBigInt
  */
-NODISCARD MaybeBigInt bigint_from_string(ConstStr str);
+NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str);
 
-void free_bigint(BigInt big_int);
+NODISCARD BigIntImpl bigint_from_unsigned_number(uint64_t number);
 
-NODISCARD Str bigint_to_string(BigInt big_int);
+NODISCARD BigIntImpl bigint_from_signed_number(int64_t number);
+
+void free_bigint(BigIntImpl* big_int);
+
+void free_bigint_without_reset(BigIntImpl big_int);
+
+NODISCARD Str bigint_to_string(BigIntImpl big_int);
+
+NODISCARD BigIntImpl bigint_add_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+
+NODISCARD BigIntImpl bigint_sub_bigint(BigIntImpl big_int1, BigIntImpl big_int2);
+
+NODISCARD uint8_t bigint_compare_bigint(BigIntImpl big_int1, BigIntImpl big_int2);

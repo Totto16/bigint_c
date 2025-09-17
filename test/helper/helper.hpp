@@ -7,25 +7,25 @@
 #include <string>
 #include <vector>
 
-struct BigIntCPP {
+struct BigIntTest {
   private:
 	bool m_positive;
 	std::vector<uint64_t> m_values;
 
   public:
-	BigIntCPP(bool positive, std::vector<uint64_t> values);
+	BigIntTest(bool positive, std::vector<uint64_t> values) noexcept;
 
-	explicit BigIntCPP(const BigInt& big_int_c);
-	explicit BigIntCPP(const std::string& str);
+	explicit BigIntTest(const BigInt& big_int_c) noexcept;
+	explicit BigIntTest(const std::string& str);
 
-	BigIntCPP(const BigIntCPP&) = delete;
-	BigIntCPP& operator=(const BigIntCPP&) = delete;
-	BigIntCPP(BigIntCPP&& big_int) noexcept;
-	BigIntCPP& operator=(BigIntCPP&& big_int) noexcept;
+	BigIntTest(const BigIntTest&) = delete;
+	BigIntTest& operator=(const BigIntTest&) = delete;
+	BigIntTest(BigIntTest&& big_int) noexcept;
+	BigIntTest& operator=(BigIntTest&& big_int) noexcept;
 
 	[[nodiscard]] bool positive() const;
 	[[nodiscard]] const std::vector<uint64_t>& values() const;
 };
 
 // helper thought just for the tests
-[[nodiscard]] bool operator==(const BigInt& value1, const BigIntCPP& value2);
+[[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2);

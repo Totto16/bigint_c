@@ -235,7 +235,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 		}
 	}
 
-	free_bigint(temp);
+	free_bigint(&temp);
 }
 
 static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
@@ -267,7 +267,7 @@ NODISCARD static inline bool helper_is_separator(StrType value) {
 	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
-NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
+NODISCARD MaybeBigInt maybe_bigint_from_string(ConstStr str) {
 
 	BigInt result = bigint_helper_positive_zero();
 
@@ -276,7 +276,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 	// bigint regex: /^[+-]?[0-9][0-9_',.]*$/
 
 	if(str_len == 0) {
-		free_bigint(result);
+		free_bigint(&result);
 		return (MaybeBigInt){ .error = true,
 			                  .data = { .error = (MaybeBigIntError) "empty string is not valid" } };
 	}
@@ -288,7 +288,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 		++i;
 
 		if(str_len == 1) {
-			free_bigint(result);
+			free_bigint(&result);
 			return (MaybeBigInt){
 				.error = true, .data = { .error = (MaybeBigIntError) "'-' alone is not valid" }
 			};
@@ -299,7 +299,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 		++i;
 
 		if(str_len == 1) {
-			free_bigint(result);
+			free_bigint(&result);
 			return (MaybeBigInt){
 				.error = true, .data = { .error = (MaybeBigIntError) "'+' alone is not valid" }
 			};
@@ -320,7 +320,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 		} else if(helper_is_separator(value)) {
 			if(start) {
 				// not allowed
-				free_bigint(result);
+				free_bigint(&result);
 				free_bcd_digits(bcd_digits);
 				// TODO:report position and character
 				return (MaybeBigInt){
@@ -331,7 +331,7 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 			// skip this separator
 			continue;
 		} else {
-			free_bigint(result);
+			free_bigint(&result);
 			free_bcd_digits(bcd_digits);
 			// TODO:report position and character
 			return (MaybeBigInt){ .error = true,
@@ -352,13 +352,55 @@ NODISCARD MaybeBigInt bigint_from_string(ConstStr str) {
 	return (MaybeBigInt){ .error = false, .data = { .result = result } };
 }
 
-void free_bigint(BigInt big_int) {
+NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
+	UNUSED(number);
+	UNREACHABLE_WITH_MSG("TODO");
+}
+
+NODISCARD BigInt bigint_from_signed_number(int64_t number) {
+	UNUSED(number);
+	UNREACHABLE_WITH_MSG("TODO");
+}
+
+void free_bigint(BigInt* big_int) {
+	if(big_int == NULL) {
+		return;
+	}
+
+	if(big_int->numbers != NULL) {
+		free(big_int->numbers);
+		big_int->numbers = NULL;
+	}
+}
+
+void free_bigint_without_reset(BigIntImpl big_int) {
 	if(big_int.numbers != NULL) {
 		free(big_int.numbers);
 	}
 }
 
 NODISCARD Str bigint_to_string(BigInt big_int) {
+
+	BCDDigits bcd_digits = { .bcd_digits = NULL, .count = 0, .capacity = 0 };
+
+	UNUSED(bcd_digits);
 	UNUSED(big_int);
-	UNREACHABLE();
+
+	return "";
+}
+
+NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
+	UNUSED(big_int1);
+	UNUSED(big_int2);
+
+	UNREACHABLE_WITH_MSG("TODO");
+
+	// 	__uint128_t i = U64(1) + U64(1);
+	// depending on compiler, either use i128, asm if on x86_64 or arm64 / or standard c way!
+}
+
+NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
+	UNUSED(big_int1);
+	UNUSED(big_int2);
+	UNREACHABLE_WITH_MSG("TODO");
 }
