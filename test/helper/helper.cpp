@@ -1,5 +1,6 @@
 
 
+#define BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 #include "./helper.hpp"
 
 #include <gmp.h>
@@ -36,6 +37,8 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 [[nodiscard]] const std::vector<uint64_t>& BigIntTest::values() const {
 	return m_values;
 }
+
+// helper thought just for the tests
 
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2) {

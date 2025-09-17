@@ -11,6 +11,24 @@
 #include <stdexcept>
 #include <string>
 
+namespace std {
+template <> struct hash<BigIntC> {
+	std::size_t operator()(const BigIntC& value) const noexcept {
+		std::size_t hash = std::hash<bool>()(value.positive);
+
+		hash = hash ^ value.number_count;
+
+		// see: https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector
+		for(size_t i = 0; i < value.number_count; ++i) {
+			hash = hash ^
+			       std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+		}
+
+		return hash;
+	}
+};
+} // namespace std
+
 struct BigInt {
   private:
 	BigIntC m_c_value;
@@ -75,9 +93,11 @@ struct BigInt {
 		return *this;
 	}
 
+#ifdef BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 	[[nodiscard]] operator const BigIntC&() const { return m_c_value; }
 
 	[[nodiscard]] const BigIntC& underlying() const { return m_c_value; }
+#endif
 
 	[[nodiscard]] uint8_t operator<=>(const BigInt& value2) const {
 		return bigint_compare_bigint(this->m_c_value, value2.m_c_value);
@@ -219,33 +239,18 @@ struct BigInt {
 	}
 
 	[[nodiscard]] std::string to_string() const {
-		return std::string{ bigint_to_string(this->underlying()) };
+		return std::string{ bigint_to_string(m_c_value) };
 	}
 
 	[[nodiscard]] explicit operator std::string() { return this->to_string(); }
+
+	[[nodiscard]] std::size_t hash() const { return std::hash<BigIntC>()(m_c_value); }
 };
 
 namespace std {
-template <> struct hash<BigIntC> {
-	std::size_t operator()(const BigIntC& value) const noexcept {
-		std::size_t hash = std::hash<bool>()(value.positive);
-
-		hash = hash ^ value.number_count;
-
-		// see: https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector
-		for(size_t i = 0; i < value.number_count; ++i) {
-			hash = hash ^
-			       std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
-		}
-
-		return hash;
-	}
-};
 
 template <> struct hash<BigInt> {
-	std::size_t operator()(const BigInt& value) const noexcept {
-		return std::hash<BigIntC>()(value.underlying());
-	}
+	std::size_t operator()(const BigInt& value) const noexcept { return value.hash(); }
 };
 
 std::string to_string(const BigInt& value);
