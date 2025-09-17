@@ -21,6 +21,10 @@ struct BigInt {
 		c_value.number_count = 0;
 	}
 
+	BigInt(uint64_t value) noexcept { m_c_value = bigint_from_unsigned_number(value); }
+
+	BigInt(int64_t value) noexcept { m_c_value = bigint_from_signed_number(value); }
+
 	explicit BigInt(const std::string& str) {
 		MaybeBigInt result = maybe_bigint_from_string(str.c_str());
 
@@ -31,7 +35,7 @@ struct BigInt {
 		m_c_value = maybe_bigint_get_value(result);
 	}
 
-	~BigInt() {
+	~BigInt() noexcept {
 		if(m_c_value.numbers != nullptr) {
 			free(m_c_value.numbers);
 		}
@@ -80,4 +84,125 @@ struct BigInt {
 	[[nodiscard]] bool operator<=(const BigInt& value2) const { return (*this <=> value2) <= 0; }
 
 	[[nodiscard]] bool operator<(const BigInt& value2) const { return (*this <=> value2) < 0; }
+
+	[[nodiscard]] bool operator+(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator-(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator*(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator/(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator%(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator^(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator-() {
+		// TODO
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator+=(const BigInt& value2) {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator-=(const BigInt& value2) {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator*=(const BigInt& value2) {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator/=(const BigInt& value2) {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator%=(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator^=(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] std::ostream& operator<<(std::ostream& os) const {
+		// TODO
+		UNUSED(os);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] std::istream& operator>>(std::istream& is) const {
+		// TODO
+		UNUSED(is);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator>>=(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] bool operator<<=(const BigInt& value2) const {
+		// TODO
+		UNUSED(value2);
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator++() {
+		// TODO
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt& operator--() {
+		// TODO
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt operator++(int) {
+		// TODO
+		UNREACHABLE_WITH_MSG("TODO");
+	}
+
+	[[nodiscard]] BigInt operator--(int) {
+		// TODO
+		UNREACHABLE_WITH_MSG("TODO");
+	}
 };
