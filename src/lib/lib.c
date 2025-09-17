@@ -421,3 +421,27 @@ NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
 	UNUSED(big_int2);
 	UNREACHABLE_WITH_MSG("TODO");
 }
+
+NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
+	if(big_int1.positive != big_int2.positive) {
+		return false;
+	}
+
+	if(big_int1.number_count != big_int2.number_count) {
+		return false;
+	}
+
+	for(size_t i = 0; i < big_int1.number_count; ++i) {
+		if(big_int1.numbers[i] != big_int2.numbers[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+NODISCARD uint8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
+	UNUSED(big_int1);
+	UNUSED(big_int2);
+	UNREACHABLE_WITH_MSG("TODO");
+}
