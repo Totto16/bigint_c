@@ -246,7 +246,7 @@ static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
 		return;
 	}
 
-	for(size_t i = big_int->number_count; i != 0; --i) {
+	for(size_t i = big_int->number_count; i > 1; --i) {
 		if(big_int->numbers[i - 1] == 0) {
 			--(big_int->number_count);
 		} else {
