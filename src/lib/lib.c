@@ -267,7 +267,7 @@ NODISCARD static uint8_t helper_char_to_digit(StrType value) {
 
 NODISCARD static StrType helper_digit_to_char_checked(uint8_t value) {
 
-	ASSERT(value < 9, "value is not a valid digit");
+	ASSERT(value <= 9, "value is not a valid digit");
 
 	return (StrType)((StrType)value + '0');
 }
@@ -458,7 +458,7 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 	// but it is here when the value is just 0 ("0")
 	// TODO: handle that case
-	ASSERT(last_number_bit_amount != 0, "last number has to have at least one bit of information");
+	ASSERT(last_number_bit_amount != 0, "first number has to have at least one bit of information");
 
 	// calculate the amount of input bits
 	const size_t total_input_bits = source.number_count * BIGINT_BIT_COUNT_FOR_BCD_ALG;
@@ -469,8 +469,6 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 	size_t current_bit =
 	    BIGINT_BIT_COUNT_FOR_BCD_ALG -
 	    last_number_bit_amount; // range 0 - 63 at start, later 0 -> total_input_bits -1
-
-	size_t pushed_bits = 0;
 
 	while(current_bit < total_input_bits) {
 
@@ -491,19 +489,40 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 		{ // 2. shift left by one
 
 			{ // 2.1. shift every bcd_output to the left
-			  // ( not in 8 but in 4 bit shifts), for
-			  // convience we shift to the right in the 4 bit array elements
+				// ( not in 8 but in 4 bit shifts), for
+				// convience we shift to the right in the array elements as the order is [0., 1. ]
+				// and we need to shift from the 0. left to the 1.
 
-				// 2.1.1. if we need a new bcd_digit, allocate it and set it to 0
-				if((pushed_bits % BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG) == 0) {
-					helper_add_value_to_bcd_digits(&bcd_digits, 0);
+				{ // 2.1.1. if we need a new bcd_digit, allocate it and set it to 0
+
+					bool needs_new_digit = false;
+
+					{ // 2.1.1.1. determine if we need a new bcd_digit
+
+						// 2.1.1.2. if no digits i present, we need a new one
+						if(bcd_digits.count == 0) {
+							needs_new_digit = true;
+						} else {
+							// 2.1.1.3. we need a new one, if the next shift would overflow!
+							BCDDigit value = bcd_digits.bcd_digits[bcd_digits.count - 1];
+							uint8_t first_bit =
+							    (value >> (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) & 0x01;
+							if(first_bit != 0) {
+								needs_new_digit = true;
+							}
+						}
+					}
+
+					if(needs_new_digit) {
+						helper_add_value_to_bcd_digits(&bcd_digits, 0);
+					}
 				}
 
 				{ // 2.1.2 shift the first bit (4. bit) of every number into the next one
 
 					for(size_t i = bcd_digits.count; i != 0; --i) {
 
-						BCDDigit value = bcd_digits.bcd_digits[i];
+						BCDDigit value = bcd_digits.bcd_digits[i - 1];
 
 						uint8_t first_bit = (value >> (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) & 0x01;
 
@@ -529,19 +548,22 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 				size_t input_index = current_bit / BIGINT_BIT_COUNT_FOR_BCD_ALG;
 
-				size_t input_u64_index = current_bit % BIGINT_BIT_COUNT_FOR_BCD_ALG;
+				size_t input_u64_index =
+				    BIGINT_BIT_COUNT_FOR_BCD_ALG - (current_bit % BIGINT_BIT_COUNT_FOR_BCD_ALG) - 1;
+
+				ASSERT(input_index < source.number_count, "input index would index out of bounds");
 
 				uint8_t first_bit = (source.numbers[input_index] >> input_u64_index) & 0x01;
 
+				ASSERT(bcd_digits.count > 0, "bcd_digits has to be initialized");
 				if(first_bit != 0) {
 					bcd_digits.bcd_digits[0] = bcd_digits.bcd_digits[0] | first_bit;
 				}
 			}
 		}
 
-		// increment current_bit and pushed_bits
+		// increment current_bit
 		++current_bit;
-		++pushed_bits;
 	}
 
 	return bcd_digits;
