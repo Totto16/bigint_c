@@ -612,6 +612,7 @@ NODISCARD static size_t helper_max(size_t a, size_t b) {
 #if defined(__SIZEOF_INT128__)
 
 typedef __uint128_t uint128_t;
+typedef __int128_t int128_t;
 
 NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
                                                                               BigInt big_int2) {
@@ -652,6 +653,55 @@ NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(Bi
 	return result;
 }
 
+NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
+                                                                              BigInt big_int2) {
+
+	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	{ // 1. perform the actual subtraction
+
+		int64_t borrow = (int64_t)0LL;
+
+		for(size_t i = 0; i < result.number_count; ++i) {
+
+			int128_t temp = (int128_t)0LL;
+
+			if(i < big_int1.number_count) {
+				temp = (int128_t)big_int1.numbers[i];
+			}
+
+			if(i < big_int2.number_count) {
+				temp = temp - (int128_t)big_int2.numbers[i];
+			}
+
+			if(borrow != 0) {
+				temp = temp - borrow;
+			}
+
+			// check if we need to adjust temp and set the borrow
+			if(temp >= 0) {
+				borrow = (int64_t)0LL;
+			} else {
+				temp = ((int128_t)1 << 64) + temp;
+				borrow = (int64_t)0LL;
+			}
+
+			result.numbers[i] = (uint64_t)temp;
+		}
+
+		ASSERT(borrow == 0,
+		       "The borrow at the end has to be zero, otherwise we would have an overflow");
+	}
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
+
 #endif
 
 NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
@@ -659,6 +709,7 @@ NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt 
 #if defined(__SIZEOF_INT128__)
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
+#error "TODO"
 // TODO: use asm if on x86_64 or arm64 / or standard c way!
 #endif
 }
@@ -695,10 +746,43 @@ NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 	return result;
 }
 
+NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+
+#if defined(__SIZEOF_INT128__)
+	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
+#else
+#error "TODO"
+#endif
+}
+
 NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
-	UNUSED(big_int1);
-	UNUSED(big_int2);
-	UNREACHABLE_WITH_MSG("TODO: bigint_sub_bigint");
+
+	if(big_int1.positive && big_int2.positive) {
+		return bigint_sub_bigint_both_positive(big_int1, big_int2);
+	}
+
+	if(big_int1.positive && !big_int2.positive) {
+		// +a - -b = +a + +b
+		big_int2.positive = true;
+		return bigint_add_bigint(big_int1, big_int2);
+	}
+
+	if(!big_int1.positive && big_int2.positive) {
+		// -a - +b = -a + -b
+		big_int2.positive = false;
+		return bigint_add_bigint(big_int1, big_int2);
+	}
+
+	// both are negative
+
+	// -a - -b = -a + +b = +b - +a
+
+	big_int1.positive = true;
+	big_int2.positive = true;
+
+	BigInt result = bigint_sub_bigint_both_positive(big_int2, big_int1);
+
+	return result;
 }
 
 NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
