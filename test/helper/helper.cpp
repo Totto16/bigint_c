@@ -118,13 +118,21 @@ static mpz_t* get_gmp_value_from_bigint(const BigIntTest& test) {
 // see https://gmplib.org/manual/Concept-Index for gmp docs
 BigIntTest::BigIntTest(const std::string& str) : m_values{} {
 
+	// preprocess the string, to allow the same syntax as in the c library
+	std::string cleaned_str = str;
+	std::erase_if(cleaned_str, [](char digit) -> bool {
+		// Remove special characters like separators and also the "+" sign, as gmp doesn't allow that 
+		return BigIntTest::is_special_separator(digit) || digit == '+';
+	});
+
 	mpz_t bigint;
 	mpz_init(bigint);
 
 	// Parse the decimal string into the big integer
-	if(mpz_set_str(bigint, str.c_str(), 10) != 0) {
+	if(mpz_set_str(bigint, cleaned_str.c_str(), 10) != 0) {
 		mpz_clear(bigint);
-		throw std::runtime_error("Failed to parse bigint string");
+		throw std::runtime_error("Failed to parse bigint string: " + str +
+		                         " (cleaned: " + cleaned_str + ")");
 	}
 
 	initialize_bigint_from_gmp(*this, std::move(bigint));
@@ -176,4 +184,8 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	free(number);
 
 	return str;
+}
+
+[[nodiscard]] bool BigIntTest::is_special_separator(char value) {
+	return value == '_' || value == '\'' || value == ',' || value == '.';
 }

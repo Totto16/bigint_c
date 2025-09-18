@@ -31,6 +31,8 @@ struct BigIntTest {
 	[[nodiscard]] const std::vector<uint64_t>& values() const;
 
 	[[nodiscard]] std::string to_string() const;
+
+	[[nodiscard]] static bool is_special_separator(char value);
 };
 
 // helper thought just for the tests

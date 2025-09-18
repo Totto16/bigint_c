@@ -621,7 +621,7 @@ static bool has_no_special_chars(const std::string& input) {
 
 		if(value >= '0' && value <= '9') {
 			continue;
-		} else if(value == '_' || value == '\'' || value == ',' || value == '.') {
+		} else if(BigIntTest::is_special_separator(value)) {
 			return false;
 		} else {
 			throw std::runtime_error("unexpected value in bigint string");
