@@ -1,6 +1,6 @@
 
 
-#define BIGINT_C_HIDE_C_LIB_FNS_AND_TYPES_IN_CPP
+#define BIGINT_C_CPP_HIDE_C_LIB_FNS_AND_TYPES_IN_CPP
 #include <bigint_c.h>
 
 #include <gtest/gtest.h>

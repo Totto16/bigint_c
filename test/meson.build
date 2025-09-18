@@ -8,9 +8,10 @@ test_deps += dependency('gmp')
 
 test_deps += bigint_c_dep
 
-test_src = files('entry.cpp')
+test_src = []
 
 subdir('helper')
+subdir('src')
 
 test_files = [
     'initialization_cpp.cpp',
