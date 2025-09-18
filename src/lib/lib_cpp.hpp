@@ -261,7 +261,9 @@ template <> struct hash<BigInt> {
 	std::size_t operator()(const BigInt& value) const noexcept { return value.hash(); }
 };
 
-std::string to_string(const BigInt& value);
+inline std::string to_string(const BigInt& value) {
+	return value.to_string();
+}
 
 } // namespace std
 

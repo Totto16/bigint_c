@@ -669,3 +669,17 @@ TEST(BigInt, IntegerToString) {
 		}
 	}
 }
+
+TEST(BigInt, IntegerToStringStd) {
+
+	std::string test = "-13250891325632415132851327653205672349642764295634279051326750329653285642"
+	                   "516950265784258";
+
+	BigInt big_int = BigInt::get_from_string(test.c_str()).value();
+
+	BigIntTest cpp_result = BigIntTest(test);
+
+	std::string bigint_c_str = std::to_string(big_int);
+
+	EXPECT_EQ(test, bigint_c_str) << "Input string: " << test;
+}
