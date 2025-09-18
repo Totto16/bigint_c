@@ -67,6 +67,8 @@ void free_bigint(BigIntC* big_int);
 
 void free_bigint_without_reset(BigIntC big_int);
 
+NODISCARD BigIntC bigint_copy(BigIntC big_int);
+
 NODISCARD Str bigint_to_string(BigIntC big_int);
 
 NODISCARD BigIntC bigint_add_bigint(BigIntC big_int1, BigIntC big_int2);

@@ -420,6 +420,10 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 	return result;
 }
 
+NODISCARD BigIntC bigint_copy(BigIntC big_int) {
+	return bigint_helper_get_full_copy(big_int);
+}
+
 NODISCARD static size_t bigint_helper_bits_of_number_used(uint64_t number) {
 
 	uint64_t temp = number;

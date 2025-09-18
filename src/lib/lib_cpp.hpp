@@ -7,6 +7,7 @@
 
 #include "./lib.h"
 
+#include <compare>
 #include <expected>
 #include <stdexcept>
 #include <string>
@@ -122,6 +123,8 @@ struct BigInt {
 	[[nodiscard]] explicit operator std::string();
 
 	[[nodiscard]] std::size_t hash() const;
+
+	[[nodiscard]] BigInt copy() const;
 };
 
 namespace std {
@@ -373,6 +376,13 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return std::hash<BigIntC>()(m_c_value);
 }
 
+[[nodiscard]] BigInt BigInt::copy() const {
+
+	BigIntC copy = bigint_copy(this->m_c_value);
+
+	return BigInt(std::move(copy));
+}
+
 std::string std::to_string(const BigInt& value) {
 	return value.to_string();
 }
@@ -396,5 +406,6 @@ std::string std::to_string(const BigInt& value) {
 #define bigint_sub_bigint undef
 #define bigint_eq_bigint undef
 #define bigint_compare_bigint undef
+#define bigint_copy undef
 
 #endif
