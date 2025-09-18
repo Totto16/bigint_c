@@ -683,3 +683,67 @@ TEST(BigInt, IntegerToStringStd) {
 
 	EXPECT_EQ(test, bigint_c_str) << "Input string: " << test;
 }
+
+TEST(BigInt, IntegerAddition) {
+	using TestType = std::tuple<BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL });
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	                   BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-2131215135135132515135").value());
+	tests.emplace_back(BigInt::get_from_string("-1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("-1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-2131215135135").value());
+	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	                   BigInt::get_from_string("+2131215135135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
+	                   BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
+	                   BigInt::get_from_string("-0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 + value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) + BigIntTest(value2);
+
+		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}

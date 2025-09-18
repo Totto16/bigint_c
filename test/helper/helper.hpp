@@ -33,6 +33,10 @@ struct BigIntTest {
 	[[nodiscard]] std::string to_string() const;
 
 	[[nodiscard]] static bool is_special_separator(char value);
+
+	[[nodiscard]] BigIntTest operator+(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest operator-(const BigIntTest& value2) const;
 };
 
 // helper thought just for the tests

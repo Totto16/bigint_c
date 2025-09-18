@@ -75,9 +75,9 @@ struct BigInt {
 
 	[[nodiscard]] bool operator<(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator+(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator+(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator-(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator-(const BigInt& value2) const;
 
 	[[nodiscard]] bool operator*(const BigInt& value2) const;
 
@@ -240,16 +240,17 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return (*this <=> value2) < 0;
 }
 
-[[nodiscard]] bool BigInt::operator+(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+[[nodiscard]] BigInt BigInt::operator+(const BigInt& value2) const {
+
+	BigIntC result = bigint_add_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] bool BigInt::operator-(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+[[nodiscard]] BigInt BigInt::operator-(const BigInt& value2) const {
+	BigIntC result = bigint_sub_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] bool BigInt::operator*(const BigInt& value2) const {

@@ -602,20 +602,103 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 	return str;
 }
 
+NODISCARD static size_t helper_max(size_t a, size_t b) {
+	if(a > b) {
+		return a;
+	}
+	return b;
+}
+
+#if defined(__SIZEOF_INT128__)
+
+typedef __uint128_t uint128_t;
+
+NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
+                                                                              BigInt big_int2) {
+
+	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	{ // 1. perform the actual addition
+
+		uint64_t carry = U64(0);
+
+		for(size_t i = 0; i < result.number_count; ++i) {
+
+			uint128_t sum = (uint128_t)carry;
+
+			if(i < big_int1.number_count) {
+				sum = sum + (uint128_t)big_int1.numbers[i];
+			}
+
+			if(i < big_int2.number_count) {
+				sum = sum + (uint128_t)big_int2.numbers[i];
+			}
+
+			result.numbers[i] = (uint64_t)sum;
+
+			carry = (uint64_t)(sum >> 64);
+		}
+
+		ASSERT(carry == 0,
+		       "The carry at the end has to be zero, otherwise we would have an overflow");
+	}
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
+
+#endif
+
+NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+
+#if defined(__SIZEOF_INT128__)
+	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
+#else
+// TODO: use asm if on x86_64 or arm64 / or standard c way!
+#endif
+}
+
 NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
-	UNUSED(big_int1);
-	UNUSED(big_int2);
 
-	UNREACHABLE_WITH_MSG("TODO");
+	if(big_int1.positive && big_int2.positive) {
+		return bigint_add_bigint_both_positive(big_int1, big_int2);
+	}
 
-	// 	__uint128_t i = U64(1) + U64(1);
-	// depending on compiler, either use i128, asm if on x86_64 or arm64 / or standard c way!
+	if(big_int1.positive && !big_int2.positive) {
+		// +a + -b = +a - +b
+		big_int2.positive = true;
+		return bigint_sub_bigint(big_int1, big_int2);
+	}
+
+	if(!big_int1.positive && big_int2.positive) {
+		// -a + +b = +b - +a
+		big_int1.positive = true;
+		return bigint_sub_bigint(big_int2, big_int1);
+	}
+
+	// both are negative
+
+	// -a + -b = - ( +a + +b )
+
+	big_int1.positive = true;
+	big_int2.positive = true;
+
+	BigInt result = bigint_add_bigint_both_positive(big_int1, big_int2);
+
+	result.positive = false;
+
+	return result;
 }
 
 NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
 	UNUSED(big_int1);
 	UNUSED(big_int2);
-	UNREACHABLE_WITH_MSG("TODO");
+	UNREACHABLE_WITH_MSG("TODO: bigint_sub_bigint");
 }
 
 NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {

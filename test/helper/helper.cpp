@@ -91,10 +91,53 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	test = BigIntTest(positive, std::move(values));
 }
 
-static mpz_t* get_gmp_value_from_bigint(const BigIntTest& test) {
+namespace {
 
-	mpz_t* bigint = (mpz_t*)malloc(sizeof(mpz_t));
-	mpz_init(*bigint);
+class MPZWrapper {
+  private:
+	mpz_t* m_value;
+
+  public:
+	MPZWrapper() {
+		m_value = (mpz_t*)malloc(sizeof(mpz_t));
+		mpz_init(*m_value);
+	}
+
+	MPZWrapper(const MPZWrapper&) = delete;
+	MPZWrapper& operator=(const MPZWrapper&) = delete;
+
+	[[nodiscard]] const mpz_t& get() const { return *m_value; }
+	[[nodiscard]] const mpz_t& operator*() const { return *m_value; }
+
+	[[nodiscard]] mpz_t& get() { return *m_value; }
+	[[nodiscard]] mpz_t& operator*() { return *m_value; }
+
+	~MPZWrapper() {
+		if(m_value != nullptr) {
+			mpz_clear(*m_value);
+			free(m_value);
+		}
+	}
+
+	MPZWrapper(MPZWrapper&& number) noexcept : m_value{ number.m_value } {
+		number.m_value = nullptr;
+	}
+
+	MPZWrapper& operator=(MPZWrapper&& number) noexcept {
+
+		if(this != &number) {
+			this->m_value = number.m_value;
+			number.m_value = nullptr;
+		}
+		return *this;
+	}
+};
+
+} // namespace
+
+static MPZWrapper get_gmp_value_from_bigint(const BigIntTest& test) {
+
+	MPZWrapper bigint{};
 
 	int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
 	int endian = 0; // host endian
@@ -121,7 +164,8 @@ BigIntTest::BigIntTest(const std::string& str) : m_values{} {
 	// preprocess the string, to allow the same syntax as in the c library
 	std::string cleaned_str = str;
 	std::erase_if(cleaned_str, [](char digit) -> bool {
-		// Remove special characters like separators and also the "+" sign, as gmp doesn't allow that 
+		// Remove special characters like separators and also the "+" sign, as gmp doesn't allow
+		// that
 		return BigIntTest::is_special_separator(digit) || digit == '+';
 	});
 
@@ -156,7 +200,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 }
 
 [[nodiscard]] std::string BigIntTest::to_string() const {
-	mpz_t* number = get_gmp_value_from_bigint(*this);
+	MPZWrapper number = get_gmp_value_from_bigint(*this);
 
 	size_t needed_size =
 	    mpz_sizeinbase(*number, 10) + 2; // one for the eventual "-" and one for the 0 terminator
@@ -164,28 +208,59 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	char* buffer = (char*)malloc(needed_size * sizeof(char));
 
 	if(buffer == nullptr) {
-		mpz_clear(*number);
-		free(number);
 		throw std::runtime_error("string conversion error");
 	}
 
 	char* result = mpz_get_str(buffer, 10, *number);
 
 	if(result == nullptr) {
-		mpz_clear(*number);
-		free(number);
+
 		throw std::runtime_error("string conversion error");
 	}
 
 	std::string str{ result };
 
 	free(result);
-	mpz_clear(*number);
-	free(number);
 
 	return str;
 }
 
 [[nodiscard]] bool BigIntTest::is_special_separator(char value) {
 	return value == '_' || value == '\'' || value == ',' || value == '.';
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator+(const BigIntTest& value2) const {
+
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_add(result_number, *number1, *number2);
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator-(const BigIntTest& value2) const {
+
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_sub(result_number, *number1, *number2);
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
 }
