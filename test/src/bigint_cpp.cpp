@@ -1,4 +1,5 @@
 
 
 #define BIGINT_C_CPP_IMPLEMENTATION
+#define BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 #include <bigint_c.h>
