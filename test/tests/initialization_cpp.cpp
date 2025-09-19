@@ -588,8 +588,7 @@ TEST(BigInt, IntegerGteComparison) {
 TEST(BigInt, IntegerNegate) {
 	std::vector<std::pair<BigInt, BigInt>> tests{};
 
-	tests.emplace_back(BigInt::get_from_string("+0").value(),
-	                   BigInt::get_from_string("0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("-1").value());
@@ -716,10 +715,8 @@ TEST(BigInt, IntegerAddition) {
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
 
-	tests.emplace_back(BigInt::get_from_string("0").value(),
-	                   BigInt::get_from_string("+0").value());
-	tests.emplace_back(BigInt::get_from_string("+0").value(),
-	                   BigInt::get_from_string("0").value());
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("-2131215135135132515135").value());
@@ -743,6 +740,27 @@ TEST(BigInt, IntegerAddition) {
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2LL });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    BigInt{ (uint64_t)2LL });
+
+	tests.emplace_back(BigInt{ (uint64_t)2LL }, BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2LL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                    std::numeric_limits<uint64_t>::max(),
+	                                                    std::numeric_limits<uint64_t>::max(),
+	                                                    std::numeric_limits<uint64_t>::max(),
+	                                                    std::numeric_limits<uint64_t>::max() });
 
 	std::vector<BigInt> numbers{};
 

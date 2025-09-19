@@ -11,6 +11,7 @@
 #include <expected>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace std {
 template <> struct hash<BigIntC> {
@@ -40,6 +41,17 @@ struct BigInt {
 	BigInt(uint64_t value) noexcept;
 
 	BigInt(int64_t value) noexcept;
+
+	template <typename... Args>
+	    requires(sizeof...(Args) >= 2) &&
+	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
+	BigInt(Args... args) noexcept {
+
+		std::vector<uint64_t> values = { static_cast<uint64_t>(args)... };
+		// Use values...
+		m_c_value = bigint_from_raw_parts(true, values.data(), values.size());
+	}
+
 	// TODO: make a constexpres literal in c++
 
 	[[nodiscard]] static std::expected<BigInt, std::string>
@@ -407,5 +419,6 @@ std::string std::to_string(const BigInt& value) {
 #define bigint_eq_bigint undef
 #define bigint_compare_bigint undef
 #define bigint_copy undef
+#define bigint_from_raw_parts undef
 
 #endif

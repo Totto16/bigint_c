@@ -63,6 +63,8 @@ NODISCARD BigIntC bigint_from_unsigned_number(uint64_t number);
 
 NODISCARD BigIntC bigint_from_signed_number(int64_t number);
 
+NODISCARD BigIntC bigint_from_raw_parts(bool positive, uint64_t* numbers, size_t size);
+
 void free_bigint(BigIntC* big_int);
 
 void free_bigint_without_reset(BigIntC big_int);

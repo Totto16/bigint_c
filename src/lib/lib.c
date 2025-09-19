@@ -415,6 +415,30 @@ NODISCARD BigInt bigint_from_signed_number(int64_t number) {
 	return result;
 }
 
+NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
+
+	BigIntC result = { .positive = big_int.positive,
+		               .numbers = NULL,
+		               .number_count = big_int.number_count };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	memcpy(result.numbers, big_int.numbers, sizeof(uint64_t) * big_int.number_count);
+
+	return result;
+}
+
+NODISCARD BigIntC bigint_from_raw_parts(bool positive, uint64_t* numbers, size_t size) {
+
+	BigIntC dummy = { .positive = positive, .numbers = numbers, .number_count = size };
+
+	BigIntC result = bigint_helper_get_full_copy(dummy);
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
+
 void free_bigint(BigInt* big_int) {
 	if(big_int == NULL) {
 		return;
@@ -430,19 +454,6 @@ void free_bigint_without_reset(BigIntC big_int) {
 	if(big_int.numbers != NULL) {
 		free(big_int.numbers);
 	}
-}
-
-NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
-
-	BigIntC result = { .positive = big_int.positive,
-		               .numbers = NULL,
-		               .number_count = big_int.number_count };
-
-	bigint_helper_realloc_to_new_size(&result);
-
-	memcpy(result.numbers, big_int.numbers, sizeof(uint64_t) * big_int.number_count);
-
-	return result;
 }
 
 NODISCARD BigIntC bigint_copy(BigIntC big_int) {
@@ -597,6 +608,7 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 	return bcd_digits;
 }
+
 NODISCARD Str bigint_to_string(BigInt big_int) {
 
 	BigInt copy = bigint_helper_get_full_copy(big_int);
