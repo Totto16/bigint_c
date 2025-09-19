@@ -660,6 +660,8 @@ NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(Bi
 NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
                                                                               BigInt big_int2) {
 
+	// NOTE: here it is assumed, that  a > b
+
 	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
 
 	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
@@ -750,13 +752,33 @@ NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 	return result;
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+NODISCARD static BigInt bigint_sub_bigint_both_positive_impl(BigInt big_int1, BigInt big_int2) {
 
 #if defined(__SIZEOF_INT128__)
 	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
 #error "TODO"
 #endif
+}
+
+NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+
+	// check in which direction we need to perform the subtraction
+	int8_t compared = bigint_compare_bigint(big_int1, big_int2);
+
+	if(compared == 0) {
+		return bigint_helper_positive_zero();
+	}
+
+	if(compared > 0) {
+		return bigint_sub_bigint_both_positive_impl(big_int1, big_int2);
+	}
+
+	// +a - +b where b > a = - ( +b - +a)
+	BigIntC result = bigint_sub_bigint_both_positive_impl(big_int2, big_int1);
+
+	result.positive = false;
+	return result;
 }
 
 NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
