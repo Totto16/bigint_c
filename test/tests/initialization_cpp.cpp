@@ -677,6 +677,22 @@ TEST(BigInt, IntegerToString) {
 	}
 }
 
+TEST(BigInt, IntegerBulkInitialization) {
+
+	BigInt test_positive{ std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max() };
+
+	std::string bigint_c_str = test_positive.to_string_hex(true, true, false, true);
+
+	EXPECT_EQ(
+	    bigint_c_str,
+	    "0xFFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF")
+	    << "Input value: " << test_positive;
+}
+
 TEST(BigInt, IntegerToStringStd) {
 
 	std::string test = "-13250891325632415132851327653205672349642764295634279051326750329653285642"
