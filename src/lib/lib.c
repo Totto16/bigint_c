@@ -281,9 +281,24 @@ NODISCARD static uint8_t helper_char_to_digit(StrType value) {
 
 NODISCARD static StrType helper_digit_to_char_checked(uint8_t value) {
 
-	ASSERT(value <= 9, "value is not a valid digit");
+	ASSERT(value < 10, "value is not a valid digit");
 
 	return (StrType)((StrType)value + '0');
+}
+
+NODISCARD static StrType helper_digit_to_hex_char_checked(uint8_t value, bool uppercase) {
+
+	ASSERT(value < 0x10, "value is not a valid hex digit");
+
+	if(value < 10) {
+		return (StrType)((StrType)value + '0');
+	}
+
+	if(uppercase) {
+		return (StrType)((StrType)(value - (uint8_t)10) + 'A');
+	}
+
+	return (StrType)((StrType)(value - (uint8_t)10) + 'a');
 }
 
 NODISCARD static inline bool helper_is_separator(StrType value) {
@@ -611,6 +626,10 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 NODISCARD Str bigint_to_string(BigInt big_int) {
 
+	if(big_int.number_count == 0) {
+		return NULL;
+	}
+
 	BigInt copy = bigint_helper_get_full_copy(big_int);
 
 	BCDDigits bcd_digits = bigint_helper_get_bcd_digits_from_bigint(copy);
@@ -619,28 +638,131 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 
 	// format bcd_digits into a string, note that the bcd_digits are stored reversed
 
-	size_t sign_amount = big_int.positive ? 0 : 1;
+	size_t string_size = bcd_digits.count;
 
-	Str str = malloc(sizeof(StrType) * (bcd_digits.count + 1 + sign_amount));
+	if(!big_int.positive) {
+		string_size = string_size + 1;
+	}
+
+	Str str = malloc(sizeof(StrType) * (string_size + 1));
 
 	if(str == NULL) {
 		free_bcd_digits(bcd_digits);
 		return NULL;
 	}
 
-	str[bcd_digits.count + sign_amount] = '\0';
+	str[string_size] = '\0';
+
+	size_t i = 0;
 
 	if(!big_int.positive) {
-		str[0] = '-';
+		str[i] = '-';
+		++i;
 	}
 
-	for(size_t i = 0; i < bcd_digits.count; ++i) {
+	const size_t offset = string_size - bcd_digits.count;
 
-		str[sign_amount + i] =
-		    helper_digit_to_char_checked(bcd_digits.bcd_digits[bcd_digits.count - i - 1]);
+	for(; i < string_size; ++i) {
+
+		size_t digits_index = offset + bcd_digits.count - i - 1;
+		ASSERT(digits_index < bcd_digits.count, "string conversion overflowed bcd_digits");
+
+		str[i] = helper_digit_to_char_checked(bcd_digits.bcd_digits[digits_index]);
 	}
 
 	return str;
+}
+
+#define SIZEOF_HEX_PREFIX 2UL
+#define HEX_PREFIX "0x"
+#define SIZEOF_BYTE_AS_HEX_STR 2UL
+#define SIZEOF_VALUE_AS_HEX_STR (SIZEOF_BYTE_AS_HEX_STR * 8UL)
+
+NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
+                                   bool trim_first_number, bool uppercase) {
+
+	if(big_int.number_count == 0) {
+		return NULL;
+	}
+
+	size_t string_size = big_int.number_count * SIZEOF_VALUE_AS_HEX_STR;
+
+	if(!big_int.positive) {
+		string_size = string_size + 1;
+	}
+
+	if(prefix) {
+		string_size = string_size + SIZEOF_HEX_PREFIX;
+	}
+
+	if(add_gaps) {
+		string_size = string_size + (big_int.number_count == 0 ? 0 : (big_int.number_count - 1));
+	}
+
+	Str str = malloc(sizeof(StrType) * (string_size + 1));
+
+	if(str == NULL) {
+		return NULL;
+	}
+
+	str[string_size] = '\0';
+
+	size_t i = 0;
+
+	if(!big_int.positive) {
+		str[i] = '-';
+		++i;
+	}
+
+	if(prefix) {
+		for(size_t j = 0; j < SIZEOF_HEX_PREFIX; ++j) {
+			str[i] = HEX_PREFIX[j];
+			++i;
+		}
+	}
+
+	size_t current_number = 0;
+
+	for(; i < string_size && current_number < big_int.number_count; ++current_number) {
+
+		uint64_t number = big_int.numbers[current_number];
+
+		size_t start_point = 0;
+
+		if(trim_first_number) {
+			if(current_number == 0) {
+				const size_t bits_used = bigint_helper_bits_of_number_used(number);
+				start_point = (64 - bits_used) / 4;
+			}
+		}
+
+		for(size_t j = start_point; j < SIZEOF_VALUE_AS_HEX_STR; ++i, ++j) {
+			uint8_t digit = (number >> ((64 - ((j + 1) * 4)))) & 0x0F;
+			str[i] = helper_digit_to_hex_char_checked(digit, uppercase);
+		}
+
+		if(add_gaps && current_number + 1 < big_int.number_count) {
+			str[i] = ' ';
+			++i;
+		}
+	}
+
+	ASSERT(current_number == big_int.number_count, "for loop exited too early");
+	ASSERT(i <= string_size, "string size was not enough or for loop implementation error");
+
+	// if we trim the first number, the end of the string is sooner, so set the 0 byte there
+	str[i] = '\0';
+
+	return str;
+}
+
+NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
+                                   bool trim_first_number) {
+	UNUSED(big_int);
+	UNUSED(prefix);
+	UNUSED(add_gaps);
+	UNUSED(trim_first_number);
+	UNREACHABLE_WITH_MSG("TODO");
 }
 
 NODISCARD static size_t helper_max(size_t a, size_t b) {

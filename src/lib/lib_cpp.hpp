@@ -132,6 +132,13 @@ struct BigInt {
 
 	[[nodiscard]] std::string to_string() const;
 
+	[[nodiscard]] std::string to_string_hex(bool prefix = true, bool add_gaps = false,
+	                                        bool trim_first_number = true,
+	                                        bool uppercase = true) const;
+
+	[[nodiscard]] std::string to_string_bin(bool prefix = true, bool add_gaps = false,
+	                                        bool trim_first_number = true) const;
+
 	[[nodiscard]] explicit operator std::string();
 
 	[[nodiscard]] std::size_t hash() const;
@@ -380,6 +387,17 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return std::string{ bigint_to_string(m_c_value) };
 }
 
+[[nodiscard]] std::string BigInt::to_string_hex(bool prefix, bool add_gaps, bool trim_first_number,
+                                                bool uppercase) const {
+	return std::string{ bigint_to_string_hex(m_c_value, prefix, add_gaps, trim_first_number,
+		                                     uppercase) };
+}
+
+[[nodiscard]] std::string BigInt::to_string_bin(bool prefix, bool add_gaps,
+                                                bool trim_first_number) const {
+	return std::string{ bigint_to_string_bin(m_c_value, prefix, add_gaps, trim_first_number) };
+}
+
 [[nodiscard]] BigInt::operator std::string() {
 	return this->to_string();
 }
@@ -403,22 +421,26 @@ std::string std::to_string(const BigInt& value) {
 
 #ifdef BIGINT_C_CPP_HIDE_C_LIB_FNS_AND_TYPES_IN_CPP
 
-#define BigIntC undef
-#define MaybeBigIntC undef
-#define maybe_bigint_is_error undef
-#define maybe_bigint_get_value undef
-#define maybe_bigint_get_error undef
-#define maybe_bigint_from_string undef
-#define bigint_from_unsigned_number undef
-#define bigint_from_signed_number undef
-#define free_bigint undef
-#define free_bigint_without_reset undef
-#define bigint_to_string undef
-#define bigint_add_bigint undef
-#define bigint_sub_bigint undef
-#define bigint_eq_bigint undef
-#define bigint_compare_bigint undef
-#define bigint_copy undef
-#define bigint_from_raw_parts undef
+#define UNDEF #error "UNDEFINED"
+
+#define BigIntC UNDEF
+#define MaybeBigIntC UNDEF
+#define maybe_bigint_is_error UNDEF
+#define maybe_bigint_get_value UNDEF
+#define maybe_bigint_get_error UNDEF
+#define maybe_bigint_from_string UNDEF
+#define bigint_from_unsigned_number UNDEF
+#define bigint_from_signed_number UNDEF
+#define free_bigint UNDEF
+#define free_bigint_without_reset UNDEF
+#define bigint_to_string UNDEF
+#define bigint_add_bigint UNDEF
+#define bigint_sub_bigint UNDEF
+#define bigint_eq_bigint UNDEF
+#define bigint_compare_bigint UNDEF
+#define bigint_copy UNDEF
+#define bigint_from_raw_parts UNDEF
+#define bigint_to_string_hex UNDEF
+#define bigint_to_string_bin UNDEF
 
 #endif

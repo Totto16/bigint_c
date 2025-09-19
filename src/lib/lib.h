@@ -73,6 +73,12 @@ NODISCARD BigIntC bigint_copy(BigIntC big_int);
 
 NODISCARD Str bigint_to_string(BigIntC big_int);
 
+NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
+                                   bool trim_first_number, bool uppercase);
+
+NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
+                                   bool trim_first_number);
+
 NODISCARD BigIntC bigint_add_bigint(BigIntC big_int1, BigIntC big_int2);
 
 NODISCARD BigIntC bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2);
