@@ -57,6 +57,14 @@ TEST(BigInt, ParseError6) {
 	EXPECT_EQ(maybe_big_int.error(), "invalid character");
 }
 
+TEST(BigInt, ParseError7) {
+	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-0");
+
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
+
+	EXPECT_EQ(maybe_big_int.error(), "-0 is not allowed");
+}
+
 TEST(BigInt, ParseSuccess1) {
 	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+0");
 
@@ -274,9 +282,9 @@ TEST(BigInt, IntegerGeneralComparison) {
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL },
 	                   std::strong_ordering::equal);
 
-	tests.emplace_back(BigInt::get_from_string("-0").value(), BigInt::get_from_string("+0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
 	                   std::strong_ordering::equal);
-	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value(),
 	                   std::strong_ordering::equal);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
@@ -294,14 +302,14 @@ TEST(BigInt, IntegerGeneralComparison) {
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
 	                   BigInt::get_from_string("-2131215135135").value(),
 	                   std::strong_ordering::greater);
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value(),
 	                   std::strong_ordering::less);
 
 	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
 	                   BigInt::get_from_string("+0").value(), std::strong_ordering::less);
 	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("-0").value(), std::strong_ordering::greater);
+	                   BigInt::get_from_string("0").value(), std::strong_ordering::greater);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value(),
@@ -344,9 +352,9 @@ TEST(BigInt, IntegerLtComparison) {
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, false);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, false);
 
-	tests.emplace_back(BigInt::get_from_string("-0").value(), BigInt::get_from_string("+0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
 	                   false);
-	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value(),
 	                   false);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
@@ -361,13 +369,13 @@ TEST(BigInt, IntegerLtComparison) {
 
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
 	                   BigInt::get_from_string("-2131215135135").value(), false);
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value(), true);
 
 	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
 	                   BigInt::get_from_string("+0").value(), true);
 	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("-0").value(), false);
+	                   BigInt::get_from_string("0").value(), false);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value(), true);
@@ -409,9 +417,9 @@ TEST(BigInt, IntegerLteComparison) {
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, true);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, true);
 
-	tests.emplace_back(BigInt::get_from_string("-0").value(), BigInt::get_from_string("+0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
 	                   true);
-	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value(),
 	                   true);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
@@ -426,13 +434,13 @@ TEST(BigInt, IntegerLteComparison) {
 
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
 	                   BigInt::get_from_string("-2131215135135").value(), false);
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value(), true);
 
 	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
 	                   BigInt::get_from_string("+0").value(), true);
 	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("-0").value(), false);
+	                   BigInt::get_from_string("0").value(), false);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value(), true);
@@ -474,9 +482,9 @@ TEST(BigInt, IntegerGtComparison) {
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, false);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, false);
 
-	tests.emplace_back(BigInt::get_from_string("-0").value(), BigInt::get_from_string("+0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
 	                   false);
-	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value(),
 	                   false);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
@@ -491,13 +499,13 @@ TEST(BigInt, IntegerGtComparison) {
 
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
 	                   BigInt::get_from_string("-2131215135135").value(), true);
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value(), false);
 
 	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
 	                   BigInt::get_from_string("+0").value(), false);
 	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("-0").value(), true);
+	                   BigInt::get_from_string("0").value(), true);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value(), false);
@@ -539,9 +547,9 @@ TEST(BigInt, IntegerGteComparison) {
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, true);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, true);
 
-	tests.emplace_back(BigInt::get_from_string("-0").value(), BigInt::get_from_string("+0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
 	                   true);
-	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value(),
 	                   true);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
@@ -556,13 +564,13 @@ TEST(BigInt, IntegerGteComparison) {
 
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
 	                   BigInt::get_from_string("-2131215135135").value(), true);
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value(), false);
 
 	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
 	                   BigInt::get_from_string("+0").value(), false);
 	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("-0").value(), true);
+	                   BigInt::get_from_string("0").value(), true);
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value(), false);
@@ -581,7 +589,7 @@ TEST(BigInt, IntegerNegate) {
 	std::vector<std::pair<BigInt, BigInt>> tests{};
 
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
-	                   BigInt::get_from_string("-0").value());
+	                   BigInt::get_from_string("0").value());
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("-1").value());
@@ -708,10 +716,10 @@ TEST(BigInt, IntegerAddition) {
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
 
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+0").value());
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
-	                   BigInt::get_from_string("-0").value());
+	                   BigInt::get_from_string("0").value());
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("-2131215135135132515135").value());
@@ -725,13 +733,13 @@ TEST(BigInt, IntegerAddition) {
 
 	tests.emplace_back(BigInt::get_from_string("+0").value(),
 	                   BigInt::get_from_string("-2131215135135").value());
-	tests.emplace_back(BigInt::get_from_string("-0").value(),
+	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value());
 
 	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
 	                   BigInt::get_from_string("+0").value());
 	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("-0").value());
+	                   BigInt::get_from_string("0").value());
 
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value());
@@ -743,7 +751,7 @@ TEST(BigInt, IntegerAddition) {
 	numbers.emplace_back((int64_t)3);
 	numbers.emplace_back((int64_t)2);
 	numbers.emplace_back(BigInt::get_from_string("+0").value());
-	numbers.emplace_back(BigInt::get_from_string("-0").value());
+	numbers.emplace_back(BigInt::get_from_string("0").value());
 	numbers.emplace_back((int64_t)-2);
 	numbers.emplace_back((int64_t)-3);
 	numbers.emplace_back((int64_t)-5);

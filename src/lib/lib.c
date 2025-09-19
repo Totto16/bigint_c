@@ -39,7 +39,7 @@ static void bigint_helper_realloc_to_new_size(BigInt* big_int) {
 	big_int->numbers = new_numbers;
 }
 
-static BigInt bigint_helper_positive_zero(void) {
+static BigInt bigint_helper_zero(void) {
 
 	BigInt result = { .positive = true, .numbers = NULL, .number_count = 1 };
 
@@ -243,6 +243,12 @@ static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
 	}
 
 	if(big_int->number_count == 1) {
+#ifndef NDEBUG
+		if(big_int->numbers[0] == 0) {
+			ASSERT(big_int->positive, "0 can't be negative");
+		}
+#endif
+
 		return;
 	}
 
@@ -253,6 +259,14 @@ static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
 			break;
 		}
 	}
+
+#ifndef NDEBUG
+	if(big_int->number_count == 1) {
+		if(big_int->numbers[0] == 0) {
+			ASSERT(big_int->positive, "0 can't be negative");
+		}
+	}
+#endif
 
 	bigint_helper_realloc_to_new_size(big_int);
 }
@@ -279,7 +293,7 @@ NODISCARD static inline bool helper_is_separator(StrType value) {
 
 NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
-	BigInt result = bigint_helper_positive_zero();
+	BigInt result = bigint_helper_zero();
 
 	size_t str_len = strlen(str);
 
@@ -358,13 +372,24 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	free_bcd_digits(bcd_digits);
 
+	if(result.number_count == 1) {
+		if(result.numbers[0] == 0) {
+			if(!result.positive) {
+				free_bigint(&result);
+				return (MaybeBigIntC){
+					.error = true, .data = { .error = (MaybeBigIntError) "-0 is not allowed" }
+				};
+			}
+		}
+	}
+
 	bigint_helper_remove_leading_zeroes(&result);
 
 	return (MaybeBigIntC){ .error = false, .data = { .result = result } };
 }
 
 NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
-	BigInt result = bigint_helper_positive_zero();
+	BigInt result = bigint_helper_zero();
 	result.positive = true;
 	result.numbers[0] = number;
 
@@ -372,7 +397,7 @@ NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
 }
 
 NODISCARD BigInt bigint_from_signed_number(int64_t number) {
-	BigInt result = bigint_helper_positive_zero();
+	BigInt result = bigint_helper_zero();
 
 	if(number < 0LL) {
 		result.positive = false;
@@ -767,7 +792,7 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt 
 	int8_t compared = bigint_compare_bigint(big_int1, big_int2);
 
 	if(compared == 0) {
-		return bigint_helper_positive_zero();
+		return bigint_helper_zero();
 	}
 
 	if(compared > 0) {
@@ -905,6 +930,12 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 }
 
 void bigint_negate(BigIntC* big_int) {
+
+	if(big_int->number_count == 1) {
+		if(big_int->numbers[0] == 0) {
+			return;
+		}
+	}
 
 	big_int->positive = !big_int->positive;
 }
