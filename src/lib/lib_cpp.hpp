@@ -9,6 +9,8 @@
 
 #include <compare>
 #include <expected>
+#include <ios>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -113,6 +115,17 @@ struct BigInt {
 	[[nodiscard]] BigInt& operator%=(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt& operator^=(const BigInt& value2) const;
+
+	// custom io manipulators for formatting BigInts
+	static const decltype(std::ios_base::oct) bin =
+	    std::ios_base::oct; // oct is not supported by this lib, so we can use that base for bin,
+	                        // default for base is dec, so this is not set
+
+	static const decltype(std::ios_base::oct) add_gaps =
+	    std::ios_base::showpoint; // showpoint is not set by default
+
+	static const decltype(std::ios_base::oct) trim_first_number =
+	    std::ios_base::skipws; // skipws is set by default
 
 	[[nodiscard]] std::ostream& operator<<(std::ostream& os) const;
 
@@ -345,9 +358,34 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 }
 
 [[nodiscard]] std::ostream& BigInt::operator<<(std::ostream& os) const {
-	// TODO
-	UNUSED(os);
-	UNREACHABLE_WITH_MSG("TODO");
+	std::ios_base::fmtflags flags = os.flags();
+
+	bool prefix = (flags & std::ios_base::showbase) != 0;
+
+	bool trim_first_number = (flags & BigInt::trim_first_number) != 0;
+
+	bool add_gaps = (flags & BigInt::add_gaps) != 0;
+
+	if((flags & std::ios_base::basefield) == std::ios_base::hex) {
+
+		bool uppercase = (flags & std::ios_base::uppercase) != 0;
+
+		char* temp =
+		    bigint_to_string_hex(m_c_value, prefix, add_gaps, trim_first_number, uppercase);
+		os << temp;
+		free(temp);
+
+	} else if((flags & std::ios_base::basefield) == BigInt::bin) {
+		char* temp = bigint_to_string_bin(m_c_value, prefix, add_gaps, trim_first_number);
+		os << temp;
+		free(temp);
+	} else {
+		char* temp = bigint_to_string(m_c_value);
+		os << temp;
+		free(temp);
+	}
+
+	return os;
 }
 
 [[nodiscard]] std::istream& BigInt::operator>>(std::istream& is) const {
