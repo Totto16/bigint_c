@@ -691,6 +691,147 @@ TEST(BigInt, IntegerToStringStd) {
 	EXPECT_EQ(test, bigint_c_str) << "Input string: " << test;
 }
 
+TEST(BigInt, IntegertoHexString) {
+	struct HexOption {
+		bool prefix;
+		bool add_gaps;
+		bool trim_first_number;
+		bool uppercase;
+	};
+	using HexTests = std::pair<HexOption, std::string>;
+	using TestType = std::tuple<BigInt, std::vector<HexTests>>;
+
+	std::vector<TestType> tests{};
+
+	std::vector<HexTests> test_one{
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+		  "-0x2 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+		  "-0x2 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+		  "-0x0000000000000002 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = false },
+		  "-0x0000000000000002 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+		  "-0x2155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = false },
+		  "-0x2155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = true },
+		  "-0x0000000000000002155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = false },
+		  "-0x0000000000000002155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+		  "-2 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+		  "-2 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+		  "-0000000000000002 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = false },
+		  "-0000000000000002 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+		  "-2155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = false },
+		  "-2155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = true },
+		  "-0000000000000002155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = false },
+		  "-0000000000000002155b5c319bad3101" },
+	};
+
+	tests.emplace_back(BigInt::get_from_string("-384324_132132_3123123_3").value(),
+	                   std::move(test_one));
+
+	std::vector<HexTests> test_two{
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+		  "0x2 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+		  "0x2 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+		  "0x0000000000000002 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = false },
+		  "0x0000000000000002 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+		  "0x2155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = false },
+		  "0x2155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = true },
+		  "0x0000000000000002155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = false },
+		  "0x0000000000000002155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+		  "2 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+		  "2 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+		  "0000000000000002 155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = false },
+		  "0000000000000002 155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+		  "2155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = false },
+		  "2155b5c319bad3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = true },
+		  "0000000000000002155B5C319BAD3101" },
+		{ HexOption{
+		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = false },
+		  "0000000000000002155b5c319bad3101" },
+	};
+
+	tests.emplace_back(BigInt::get_from_string("+384324_132132_3123123_3").value(),
+	                   std::move(test_two));
+
+	for(const TestType& test : tests) {
+
+		const auto& [big_int, hex_tests] = test;
+
+		for(const auto& hex_test : hex_tests) {
+
+			const auto& [option, expected_result] = hex_test;
+
+			const auto& [prefix, add_gaps, trim_first_number, uppercase] = option;
+
+			std::string actual_result =
+			    big_int.to_string_hex(prefix, add_gaps, trim_first_number, uppercase);
+
+			EXPECT_EQ(actual_result, expected_result)
+			    << "Input value: " << big_int << "options: " << (prefix ? "prefix" : "no-prefix")
+			    << " " << (add_gaps ? "add_gaps" : "no-gaps") << " "
+			    << (trim_first_number ? "trim_first_number" : "no-trim") << " "
+			    << (uppercase ? "uppercase" : " lowercase");
+		}
+	}
+}
 
 TEST(BigInt, IntegerBulkInitialization) {
 

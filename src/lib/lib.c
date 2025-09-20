@@ -725,16 +725,16 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 		}
 	}
 
-	size_t current_number = 0;
+	size_t current_number = big_int.number_count;
 
-	for(; i < string_size && current_number < big_int.number_count; ++current_number) {
+	for(; i < string_size && current_number != 0; --current_number) {
 
-		uint64_t number = big_int.numbers[current_number];
+		uint64_t number = big_int.numbers[current_number - 1];
 
 		size_t start_point = 0;
 
 		if(trim_first_number) {
-			if(current_number == 0) {
+			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
 				start_point = (64 - bits_used) / 4;
 			}
@@ -745,13 +745,13 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 			str[i] = helper_digit_to_hex_char_checked(digit, uppercase);
 		}
 
-		if(add_gaps && current_number + 1 < big_int.number_count) {
+		if(add_gaps && current_number != 1) {
 			str[i] = ' ';
 			++i;
 		}
 	}
 
-	ASSERT(current_number == big_int.number_count, "for loop exited too early");
+	ASSERT(current_number == 0, "for loop exited too early");
 	ASSERT(i <= string_size, "string size was not enough or for loop implementation error");
 
 	// if we trim the first number, the end of the string is sooner, so set the 0 byte there
