@@ -54,3 +54,11 @@ TEST(BigIntCFuncs, HexStrReturnsNullOnInvalidInput) {
 
 	EXPECT_EQ(str, nullptr);
 }
+
+TEST(BigIntCFuncs, BinStrReturnsNullOnInvalidInput) {
+
+	BigIntC big_int_c = { .positive = true, .numbers = nullptr, .number_count = 0 };
+	char* str = bigint_to_string_bin(big_int_c, true, true, true);
+
+	EXPECT_EQ(str, nullptr);
+}
