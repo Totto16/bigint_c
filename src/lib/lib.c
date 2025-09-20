@@ -308,6 +308,8 @@ NODISCARD static inline bool helper_is_separator(StrType value) {
 	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
+// TODO: add separate functions for parsing from bin and hex, and also one, that detects it based on
+// prefix  (none means dec)
 NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	BigInt result = bigint_helper_zero();
@@ -630,6 +632,7 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 	return bcd_digits;
 }
 
+// TODO: support also some options, as for to_string_hex and to_string_bin
 NODISCARD Str bigint_to_string(BigInt big_int) {
 
 	if(big_int.number_count == 0) {
