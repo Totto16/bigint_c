@@ -501,7 +501,7 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 	if(source.number_count == 0) {                                // GCOVR_EXCL_BR_LINE
 		UNREACHABLE_WITH_MSG("not initialized BigInt correctly"); // GCOVR_EXCL_LINE
-	}
+	} // GCOVR_EXCL_LINE
 
 	// reverse the source so that the bits are aligned
 	{
@@ -652,9 +652,9 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 
 	Str str = malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) {
-		free_bcd_digits(bcd_digits);
-		return NULL;
+	if(str == NULL) {                // GCOVR_EXCL_BR_LINE
+		free_bcd_digits(bcd_digits); // GCOVR_EXCL_LINE
+		return NULL;                 // GCOVR_EXCL_LINE
 	}
 
 	str[string_size] = '\0';
@@ -689,8 +689,8 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
                                    bool trim_first_number, bool uppercase) {
 
-	if(big_int.number_count == 0) { // GCOVR_EXCL_BR_LINE
-		return NULL;                // GCOVR_EXCL_LINE
+	if(big_int.number_count == 0) {
+		return NULL;
 	}
 
 	size_t string_size = big_int.number_count * SIZEOF_VALUE_AS_HEX_STR;
@@ -709,8 +709,8 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 
 	Str str = malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) {
-		return NULL;
+	if(str == NULL) { // GCOVR_EXCL_BR_LINE
+		return NULL;  // GCOVR_EXCL_LINE
 	}
 
 	str[string_size] = '\0';

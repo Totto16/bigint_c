@@ -10,23 +10,47 @@
 
 TEST(BigIntCFuncs, FreeAllowsNull) {
 
-	// checks that no assertion or similar occurs
-	auto temp = []() {
-		free_bigint(nullptr);
-		std::exit(0);
-	};
-
-	EXPECT_EXIT(temp(), testing::ExitedWithCode(0), testing::Eq(""));
+	free_bigint(nullptr);
+	SUCCEED();
 }
 
 TEST(BigIntCFuncs, InvalidNumbersFree) {
 
-	// checks that no assertion or similar occurs
-	auto temp = []() {
-		BigIntC big_int_c = { .positive = true, .numbers = NULL, .number_count = 0 };
-		free_bigint(&big_int_c);
-		std::exit(0);
-	};
+	BigIntC big_int_c = { .positive = true, .numbers = nullptr, .number_count = 0 };
+	free_bigint_without_reset(big_int_c);
+	free_bigint(&big_int_c);
 
-	EXPECT_EXIT(temp(), testing::ExitedWithCode(0), testing::Eq(""));
+	EXPECT_EQ(big_int_c.numbers, nullptr);
+}
+
+TEST(BigIntCFuncs, FreeBehaviour1) {
+
+	BigIntC big_int_c = bigint_from_unsigned_number(1ULL);
+	free_bigint(&big_int_c);
+
+	EXPECT_EQ(big_int_c.numbers, nullptr);
+}
+
+TEST(BigIntCFuncs, FreeBehaviour2) {
+
+	BigIntC big_int_c = bigint_from_unsigned_number(1ULL);
+	free_bigint_without_reset(big_int_c);
+
+	EXPECT_NE(big_int_c.numbers, nullptr);
+}
+
+TEST(BigIntCFuncs, StrReturnsNullOnInvalidInput) {
+
+	BigIntC big_int_c = { .positive = true, .numbers = nullptr, .number_count = 0 };
+	char* str = bigint_to_string(big_int_c);
+
+	EXPECT_EQ(str, nullptr);
+}
+
+TEST(BigIntCFuncs, HexStrReturnsNullOnInvalidInput) {
+
+	BigIntC big_int_c = { .positive = true, .numbers = nullptr, .number_count = 0 };
+	char* str = bigint_to_string_hex(big_int_c, true, true, true, true);
+
+	EXPECT_EQ(str, nullptr);
 }
