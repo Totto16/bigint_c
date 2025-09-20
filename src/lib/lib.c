@@ -860,7 +860,7 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(Bi
 				borrow = (int64_t)0LL;
 			} else {
 				temp = ((int128_t)1 << 64) + temp;
-				borrow = (int64_t)0LL;
+				borrow = (int64_t)1LL;
 			}
 
 			result.numbers[i] = (uint64_t)temp;
