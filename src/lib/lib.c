@@ -1017,44 +1017,33 @@ NODISCARD static int8_t cmp_reverse(int8_t value) {
 
 NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 
-	if(!big_int1.positive && big_int2.positive) {
-
-		//- 0 is equals to + 0
-		if(big_int1.number_count == 1 && big_int2.number_count == 1) {
-			if(big_int1.numbers[0] == 0 && big_int2.numbers[0] == 0) {
-				return CMP_ARE_EQUAL;
-			}
+	if(!big_int1.positive) {
+		if(big_int2.positive) {
+			// -a < +b
+			return CMP_FIRST_ONE_IS_LESS;
 		}
 
-		return CMP_FIRST_ONE_IS_LESS;
-	}
-
-	if(big_int1.positive && !big_int2.positive) {
-
-		//- 0 is equals to + 0
-		if(big_int1.number_count == 1 && big_int2.number_count == 1) {
-			if(big_int1.numbers[0] == 0 && big_int2.numbers[0] == 0) {
-				return CMP_ARE_EQUAL;
-			}
-		}
-
-		return CMP_FIRST_ONE_IS_GREATER;
-	}
-
-	if(!big_int1.positive && !big_int2.positive) {
-
-		//-x <=> -y ==  cmp_reverse (x <=> y)
+		//-a <=> -b ==  cmp_reverse (+a <=> +b)
 
 		big_int1.positive = true;
 		big_int2.positive = true;
 		return cmp_reverse(bigint_compare_bigint(big_int1, big_int2));
 	}
 
+	if(!big_int2.positive) {
+		// +a > -b
+		return CMP_FIRST_ONE_IS_GREATER;
+	}
+
+	// +x <=> +b, needs to be calculated
+
 	if(big_int1.number_count < big_int2.number_count) {
+		// only valid, if normalized (no leading zeros)
 		return CMP_FIRST_ONE_IS_LESS;
 	}
 
 	if(big_int1.number_count > big_int2.number_count) {
+		// only valid, if normalized (no leading zeros)
 		return CMP_FIRST_ONE_IS_GREATER;
 	}
 
