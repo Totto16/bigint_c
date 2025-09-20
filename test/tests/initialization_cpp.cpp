@@ -193,6 +193,8 @@ TEST(BigInt, IntegerEqComparison) {
 
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL }, false);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL }, false);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL }, false);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL }, false);
 	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL }, false);
 	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
 	                   BigInt{ (uint64_t)2ULL }, false);
@@ -225,6 +227,8 @@ TEST(BigInt, IntegerNeqComparison) {
 
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL }, true);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL }, true);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL }, true);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL }, true);
 	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL }, true);
 	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
 	                   BigInt{ (uint64_t)2ULL }, true);
@@ -279,6 +283,10 @@ TEST(BigInt, IntegerGeneralComparison) {
 	    std::strong_ordering::greater);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL },
 	                   std::strong_ordering::equal);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL },
+	                   std::strong_ordering::greater);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL },
+	                   std::strong_ordering::less);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL },
 	                   std::strong_ordering::equal);
 
@@ -350,6 +358,8 @@ TEST(BigInt, IntegerLtComparison) {
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
 	    false);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, false);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL }, false);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL }, true);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, false);
 
 	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
@@ -415,6 +425,8 @@ TEST(BigInt, IntegerLteComparison) {
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
 	    false);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, true);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL }, false);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL }, true);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, true);
 
 	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
@@ -480,6 +492,8 @@ TEST(BigInt, IntegerGtComparison) {
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
 	    true);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, false);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL }, true);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL }, false);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, false);
 
 	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
@@ -545,6 +559,8 @@ TEST(BigInt, IntegerGteComparison) {
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
 	    true);
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL }, true);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL }, true);
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL }, false);
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL }, true);
 
 	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value(),
@@ -993,6 +1009,8 @@ TEST(BigInt, IntegerAddition) {
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
 	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL });
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
 
 	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
