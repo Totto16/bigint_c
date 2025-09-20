@@ -32,9 +32,10 @@ static void bigint_helper_realloc_to_new_size(BigInt* big_int) {
 
 	uint64_t* new_numbers = realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
 
-	if(new_numbers == NULL) {
-		UNREACHABLE_WITH_MSG("realloc failed, no error handling implemented here");
-	}
+	if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
+		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE
+		    "realloc failed, no error handling implemented here");
+	} // GCOVR_EXCL_LINE
 
 	big_int->numbers = new_numbers;
 }
@@ -76,9 +77,10 @@ static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 
 		BCDDigit* new_bcd_digits = realloc(digits->bcd_digits, sizeof(BCDDigit) * new_size);
 
-		if(new_bcd_digits == NULL) {
-			UNREACHABLE_WITH_MSG("realloc failed, no error handling implemented here");
-		}
+		if(new_bcd_digits == NULL) { // GCOVR_EXCL_BR_LINE
+			UNREACHABLE_WITH_MSG(    // GCOVR_EXCL_LINE
+			    "realloc failed, no error handling implemented here");
+		} // GCOVR_EXCL_LINE
 
 		digits->capacity = new_size;
 		digits->bcd_digits = new_bcd_digits;
@@ -96,9 +98,9 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 	// using reverse double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
-	if(bcd_digits.count == 0) {
-		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly");
-	}
+	if(bcd_digits.count == 0) {                                       // GCOVR_EXCL_BR_LINE
+		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE
+	} // GCOVR_EXCL_LINE
 
 	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
 	// normal bigints
@@ -238,9 +240,9 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 }
 
 static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
-	if(big_int->number_count == 0) {
-		UNREACHABLE_WITH_MSG("big_int has to have at least one number!");
-	}
+	if(big_int->number_count == 0) {                                      // GCOVR_EXCL_BR_LINE
+		UNREACHABLE_WITH_MSG("big_int has to have at least one number!"); // GCOVR_EXCL_LINE
+	} // GCOVR_EXCL_LINE
 
 	if(big_int->number_count == 1) {
 #ifndef NDEBUG
@@ -497,8 +499,8 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 	// using double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble
 
-	if(source.number_count == 0) {
-		UNREACHABLE_WITH_MSG("not initialized BigInt correctly");
+	if(source.number_count == 0) {                                // GCOVR_EXCL_BR_LINE
+		UNREACHABLE_WITH_MSG("not initialized BigInt correctly"); // GCOVR_EXCL_LINE
 	}
 
 	// reverse the source so that the bits are aligned
@@ -685,8 +687,8 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
                                    bool trim_first_number, bool uppercase) {
 
-	if(big_int.number_count == 0) {
-		return NULL;
+	if(big_int.number_count == 0) { // GCOVR_EXCL_BR_LINE
+		return NULL;                // GCOVR_EXCL_LINE
 	}
 
 	size_t string_size = big_int.number_count * SIZEOF_VALUE_AS_HEX_STR;
