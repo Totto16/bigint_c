@@ -118,9 +118,13 @@ struct BigInt {
 
 	[[nodiscard]] std::istream& operator>>(std::istream& is) const;
 
-	[[nodiscard]] bool operator>>=(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator<<(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator<<=(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator>>(const BigInt& value2) const;
+
+	[[nodiscard]] BigInt& operator>>=(const BigInt& value2);
+
+	[[nodiscard]] BigInt& operator<<=(const BigInt& value2);
 
 	[[nodiscard]] BigInt& operator++();
 
@@ -352,13 +356,25 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	UNREACHABLE_WITH_MSG("TODO");
 }
 
-[[nodiscard]] bool BigInt::operator>>=(const BigInt& value2) const {
+[[nodiscard]] BigInt BigInt::operator<<(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
 	UNREACHABLE_WITH_MSG("TODO");
 }
 
-[[nodiscard]] bool BigInt::operator<<=(const BigInt& value2) const {
+[[nodiscard]] BigInt BigInt::operator>>(const BigInt& value2) const {
+	// TODO
+	UNUSED(value2);
+	UNREACHABLE_WITH_MSG("TODO");
+}
+
+[[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
+	// TODO
+	UNUSED(value2);
+	UNREACHABLE_WITH_MSG("TODO");
+}
+
+[[nodiscard]] BigInt& BigInt::operator<<=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
 	UNREACHABLE_WITH_MSG("TODO");
