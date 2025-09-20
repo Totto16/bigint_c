@@ -703,113 +703,234 @@ TEST(BigInt, IntegertoHexString) {
 
 	std::vector<TestType> tests{};
 
-	std::vector<HexTests> test_one{
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
-		  "-0x2 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
-		  "-0x2 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
-		  "-0x0000000000000002 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = false },
-		  "-0x0000000000000002 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
-		  "-0x2155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = false },
-		  "-0x2155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = true },
-		  "-0x0000000000000002155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = false },
-		  "-0x0000000000000002155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
-		  "-2 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = false },
-		  "-2 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = true },
-		  "-0000000000000002 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = false },
-		  "-0000000000000002 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = true },
-		  "-2155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = false },
-		  "-2155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = true },
-		  "-0000000000000002155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = false },
-		  "-0000000000000002155b5c319bad3101" },
-	};
+	{
+		std::vector<HexTests> test_one{
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+			  "-0x2 155B5C319BAD3101" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+			  "-0x2 155b5c319bad3101" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+			  "-0x0000000000000002 155B5C319BAD3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "-0x0000000000000002 155b5c319bad3101" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+			  "-0x2155B5C319BAD3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "-0x2155b5c319bad3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "-0x0000000000000002155B5C319BAD3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "-0x0000000000000002155b5c319bad3101" },
+			{ HexOption{
+			      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+			  "-2 155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "-2 155b5c319bad3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "-0000000000000002 155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "-0000000000000002 155b5c319bad3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = true },
+			  "-2155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "-2155b5c319bad3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "-0000000000000002155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "-0000000000000002155b5c319bad3101" },
+		};
 
-	tests.emplace_back(BigInt::get_from_string("-384324_132132_3123123_3").value(),
-	                   std::move(test_one));
+		tests.emplace_back(BigInt::get_from_string("-384324_132132_3123123_3").value(),
+		                   std::move(test_one));
 
-	std::vector<HexTests> test_two{
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
-		  "0x2 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
-		  "0x2 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
-		  "0x0000000000000002 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = false },
-		  "0x0000000000000002 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
-		  "0x2155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = false },
-		  "0x2155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = true },
-		  "0x0000000000000002155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = true, .add_gaps = false, .trim_first_number = false, .uppercase = false },
-		  "0x0000000000000002155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
-		  "2 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = false },
-		  "2 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = true },
-		  "0000000000000002 155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = true, .trim_first_number = false, .uppercase = false },
-		  "0000000000000002 155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = true },
-		  "2155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = true, .uppercase = false },
-		  "2155b5c319bad3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = true },
-		  "0000000000000002155B5C319BAD3101" },
-		{ HexOption{
-		      .prefix = false, .add_gaps = false, .trim_first_number = false, .uppercase = false },
-		  "0000000000000002155b5c319bad3101" },
-	};
+		std::vector<HexTests> test_two{
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+			  "0x2 155B5C319BAD3101" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+			  "0x2 155b5c319bad3101" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+			  "0x0000000000000002 155B5C319BAD3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "0x0000000000000002 155b5c319bad3101" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+			  "0x2155B5C319BAD3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "0x2155b5c319bad3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "0x0000000000000002155B5C319BAD3101" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "0x0000000000000002155b5c319bad3101" },
+			{ HexOption{
+			      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+			  "2 155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "2 155b5c319bad3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "0000000000000002 155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "0000000000000002 155b5c319bad3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = true },
+			  "2155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "2155b5c319bad3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "0000000000000002155B5C319BAD3101" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "0000000000000002155b5c319bad3101" },
+		};
 
-	tests.emplace_back(BigInt::get_from_string("+384324_132132_3123123_3").value(),
-	                   std::move(test_two));
+		tests.emplace_back(BigInt::get_from_string("+384324_132132_3123123_3").value(),
+		                   std::move(test_two));
+
+		std::vector<HexTests> test_three{
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+			  "0xDEADBEEF" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = true, .uppercase = false },
+			  "0xdeadbeef" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = true, .trim_first_number = false, .uppercase = true },
+			  "0x00000000DEADBEEF" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "0x00000000deadbeef" },
+			{ HexOption{
+			      .prefix = true, .add_gaps = false, .trim_first_number = true, .uppercase = true },
+			  "0xDEADBEEF" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "0xdeadbeef" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "0x00000000DEADBEEF" },
+			{ HexOption{ .prefix = true,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "0x00000000deadbeef" },
+			{ HexOption{
+			      .prefix = false, .add_gaps = true, .trim_first_number = true, .uppercase = true },
+			  "DEADBEEF" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "deadbeef" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "00000000DEADBEEF" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = true,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "00000000deadbeef" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = true },
+			  "DEADBEEF" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = true,
+			             .uppercase = false },
+			  "deadbeef" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = true },
+			  "00000000DEADBEEF" },
+			{ HexOption{ .prefix = false,
+			             .add_gaps = false,
+			             .trim_first_number = false,
+			             .uppercase = false },
+			  "00000000deadbeef" },
+		};
+
+		tests.emplace_back(BigInt{ (uint64_t)0xDEADBEEFULL }, std::move(test_three));
+	}
 
 	for(const TestType& test : tests) {
 

@@ -704,7 +704,7 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 	}
 
 	if(add_gaps) {
-		string_size = string_size + (big_int.number_count == 0 ? 0 : (big_int.number_count - 1));
+		string_size = string_size + (big_int.number_count - 1);
 	}
 
 	Str str = malloc(sizeof(StrType) * (string_size + 1));
