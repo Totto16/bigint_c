@@ -14,7 +14,7 @@ subdir('helper')
 subdir('src')
 
 test_files = [
-    'initialization_cpp.cpp',
+    'normal.cpp',
     'raw_c_tests.cpp',
 ]
 
