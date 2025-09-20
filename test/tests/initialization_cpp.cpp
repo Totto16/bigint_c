@@ -677,22 +677,6 @@ TEST(BigInt, IntegerToString) {
 	}
 }
 
-TEST(BigInt, IntegerBulkInitialization) {
-
-	BigInt test_positive{ std::numeric_limits<uint64_t>::max(),
-		                  std::numeric_limits<uint64_t>::max(),
-		                  std::numeric_limits<uint64_t>::max(),
-		                  std::numeric_limits<uint64_t>::max(),
-		                  std::numeric_limits<uint64_t>::max() };
-
-	std::string bigint_c_str = test_positive.to_string_hex(true, true, false, true);
-
-	EXPECT_EQ(
-	    bigint_c_str,
-	    "0xFFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF")
-	    << "Input value: " << test_positive;
-}
-
 TEST(BigInt, IntegerToStringStd) {
 
 	std::string test = "-13250891325632415132851327653205672349642764295634279051326750329653285642"
@@ -705,6 +689,24 @@ TEST(BigInt, IntegerToStringStd) {
 	std::string bigint_c_str = std::to_string(big_int);
 
 	EXPECT_EQ(test, bigint_c_str) << "Input string: " << test;
+}
+
+
+TEST(BigInt, IntegerBulkInitialization) {
+
+	BigInt test_positive{ (uint64_t)1ULL,
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max(),
+		                  std::numeric_limits<uint64_t>::max() };
+
+	std::string bigint_c_str = test_positive.to_string_hex(true, true, true, true);
+
+	EXPECT_EQ(
+	    bigint_c_str,
+	    "0x1 FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF")
+	    << "Input value: " << test_positive;
 }
 
 TEST(BigInt, IntegerAddition) {

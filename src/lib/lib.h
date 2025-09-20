@@ -63,7 +63,17 @@ NODISCARD BigIntC bigint_from_unsigned_number(uint64_t number);
 
 NODISCARD BigIntC bigint_from_signed_number(int64_t number);
 
-NODISCARD BigIntC bigint_from_raw_parts(bool positive, uint64_t* numbers, size_t size);
+/**
+ * @brief Constructs a bigint from the logical array of numbers
+ *        note, that the order is like in string form most significant digits first, not like in the
+ * stored order, which is implementation defined (it is least significant first as of the time of
+ * writing)
+ *
+ * @param numbers
+ * @param size
+ * @return BigIntC - the result
+ */
+NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size);
 
 void free_bigint(BigIntC* big_int);
 

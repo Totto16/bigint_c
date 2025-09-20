@@ -443,11 +443,15 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 	return result;
 }
 
-NODISCARD BigIntC bigint_from_raw_parts(bool positive, uint64_t* numbers, size_t size) {
+NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size) {
 
-	BigIntC dummy = { .positive = positive, .numbers = numbers, .number_count = size };
+	BigIntC result = { .positive = true, .numbers = NULL, .number_count = size };
 
-	BigIntC result = bigint_helper_get_full_copy(dummy);
+	bigint_helper_realloc_to_new_size(&result);
+
+	for(size_t i = 0; i < size; ++i) {
+		result.numbers[size - i - 1] = numbers[i];
+	}
 
 	bigint_helper_remove_leading_zeroes(&result);
 

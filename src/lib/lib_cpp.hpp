@@ -49,7 +49,7 @@ struct BigInt {
 
 		std::vector<uint64_t> values = { static_cast<uint64_t>(args)... };
 		// Use values...
-		m_c_value = bigint_from_raw_parts(true, values.data(), values.size());
+		m_c_value = bigint_from_list_of_numbers(values.data(), values.size());
 	}
 
 	// TODO: make a constexpres literal in c++
@@ -439,7 +439,7 @@ std::string std::to_string(const BigInt& value) {
 #define bigint_eq_bigint UNDEF
 #define bigint_compare_bigint UNDEF
 #define bigint_copy UNDEF
-#define bigint_from_raw_parts UNDEF
+#define bigint_from_list_of_numbers UNDEF
 #define bigint_to_string_hex UNDEF
 #define bigint_to_string_bin UNDEF
 
