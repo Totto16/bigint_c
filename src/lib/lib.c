@@ -676,6 +676,8 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 		str[i] = helper_digit_to_char_checked(bcd_digits.bcd_digits[digits_index]);
 	}
 
+	free_bcd_digits(bcd_digits);
+
 	return str;
 }
 

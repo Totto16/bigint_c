@@ -195,7 +195,7 @@ BigInt::BigInt(const std::string& str) {
 
 BigInt::~BigInt() noexcept {
 	if(m_c_value.numbers != nullptr) {
-		free(m_c_value.numbers);
+		free_bigint(&m_c_value);
 	}
 }
 

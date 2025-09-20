@@ -15,6 +15,7 @@ subdir('src')
 
 test_files = [
     'initialization_cpp.cpp',
+    'raw_c_tests.cpp',
 ]
 
 add_languages('cpp',required:true, native:false)
