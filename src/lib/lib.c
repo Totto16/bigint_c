@@ -889,17 +889,19 @@ NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt 
 
 NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 
-	if(big_int1.positive && big_int2.positive) {
-		return bigint_add_bigint_both_positive(big_int1, big_int2);
-	}
+	if(big_int1.positive) {
 
-	if(big_int1.positive && !big_int2.positive) {
+		if(big_int2.positive) {
+			// +a + +b
+			return bigint_add_bigint_both_positive(big_int1, big_int2);
+		}
+
 		// +a + -b = +a - +b
 		big_int2.positive = true;
 		return bigint_sub_bigint(big_int1, big_int2);
 	}
 
-	if(!big_int1.positive && big_int2.positive) {
+	if(big_int2.positive) {
 		// -a + +b = +b - +a
 		big_int1.positive = true;
 		return bigint_sub_bigint(big_int2, big_int1);
@@ -950,17 +952,18 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt 
 
 NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
 
-	if(big_int1.positive && big_int2.positive) {
-		return bigint_sub_bigint_both_positive(big_int1, big_int2);
-	}
+	if(big_int1.positive) {
+		if(big_int2.positive) {
+			//+a - +b
+			return bigint_sub_bigint_both_positive(big_int1, big_int2);
+		}
 
-	if(big_int1.positive && !big_int2.positive) {
 		// +a - -b = +a + +b
 		big_int2.positive = true;
 		return bigint_add_bigint(big_int1, big_int2);
 	}
 
-	if(!big_int1.positive && big_int2.positive) {
+	if(big_int2.positive) {
 		// -a - +b = -a + -b
 		big_int2.positive = false;
 		return bigint_add_bigint(big_int1, big_int2);
