@@ -18,7 +18,7 @@ void PrintTo(const BigIntTest& value, std::ostream* os) {
 		if(i != 0) {
 			*os << ", ";
 		}
-		*os << value.values().at(i);
+		*os << value.values().at(value.values().size() - i - 1);
 	}
 	*os << "\n";
 }

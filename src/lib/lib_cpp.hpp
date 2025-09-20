@@ -22,8 +22,8 @@ template <> struct hash<BigIntC> {
 
 		// see: https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector
 		for(size_t i = 0; i < value.number_count; ++i) {
-			hash = hash ^
-			       std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) + (hash >> 2);
+			hash = hash ^ (std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) +
+			               (hash >> 2));
 		}
 
 		return hash;
@@ -383,19 +383,28 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	// TODO
 	UNREACHABLE_WITH_MSG("TODO");
 }
+
 [[nodiscard]] std::string BigInt::to_string() const {
-	return std::string{ bigint_to_string(m_c_value) };
+	char* temp = bigint_to_string(m_c_value);
+	std::string result{ temp };
+	free(temp);
+	return result;
 }
 
 [[nodiscard]] std::string BigInt::to_string_hex(bool prefix, bool add_gaps, bool trim_first_number,
                                                 bool uppercase) const {
-	return std::string{ bigint_to_string_hex(m_c_value, prefix, add_gaps, trim_first_number,
-		                                     uppercase) };
+	char* temp = bigint_to_string_hex(m_c_value, prefix, add_gaps, trim_first_number, uppercase);
+	std::string result{ temp };
+	free(temp);
+	return result;
 }
 
 [[nodiscard]] std::string BigInt::to_string_bin(bool prefix, bool add_gaps,
                                                 bool trim_first_number) const {
-	return std::string{ bigint_to_string_bin(m_c_value, prefix, add_gaps, trim_first_number) };
+	char* temp = bigint_to_string_bin(m_c_value, prefix, add_gaps, trim_first_number);
+	std::string result{ temp };
+	free(temp);
+	return result;
 }
 
 [[nodiscard]] BigInt::operator std::string() {
