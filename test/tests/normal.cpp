@@ -970,6 +970,112 @@ TEST(BigInt, IntegertoHexString) {
 	}
 }
 
+TEST(BigInt, IntegertoBinString) {
+	struct BinOption {
+		bool prefix;
+		bool add_gaps;
+		bool trim_first_number;
+	};
+	using BinTests = std::pair<BinOption, std::string>;
+	using TestType = std::tuple<BigInt, std::vector<BinTests>>;
+
+	std::vector<TestType> tests{};
+
+	{
+		std::vector<BinTests> test_one{
+			{ BinOption{ .prefix = true, .add_gaps = true, .trim_first_number = true },
+			  "-0b10 0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = true, .add_gaps = true, .trim_first_number = false },
+			  "-0b0000000000000000000000000000000000000000000000000000000000000010 "
+			  "0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = true, .add_gaps = false, .trim_first_number = true },
+			  "-0b100001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = true, .add_gaps = false, .trim_first_number = false },
+			  "-0b000000000000000000000000000000000000000000000000000000000000001000010101010110110"
+			  "10111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = true, .trim_first_number = true },
+			  "-10 0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = true, .trim_first_number = false },
+			  "-0000000000000000000000000000000000000000000000000000000000000010 "
+			  "0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = false, .trim_first_number = true },
+			  "-100001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = false, .trim_first_number = false },
+			  "-00000000000000000000000000000000000000000000000000000000000000100001010101011011010"
+			  "111000011000110011011101011010011000100000001" },
+		};
+
+		tests.emplace_back(BigInt::get_from_string("-384324_132132_3123123_3").value(),
+		                   std::move(test_one));
+
+		std::vector<BinTests> test_two{
+			{ BinOption{ .prefix = true, .add_gaps = true, .trim_first_number = true },
+			  "0b10 0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = true, .add_gaps = true, .trim_first_number = false },
+			  "0b0000000000000000000000000000000000000000000000000000000000000010 "
+			  "0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = true, .add_gaps = false, .trim_first_number = true },
+			  "0b100001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = true, .add_gaps = false, .trim_first_number = false },
+			  "0b0000000000000000000000000000000000000000000000000000000000000010000101010101101101"
+			  "0111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = true, .trim_first_number = true },
+			  "10 0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = true, .trim_first_number = false },
+			  "0000000000000000000000000000000000000000000000000000000000000010 "
+			  "0001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = false, .trim_first_number = true },
+			  "100001010101011011010111000011000110011011101011010011000100000001" },
+			{ BinOption{ .prefix = false, .add_gaps = false, .trim_first_number = false },
+			  "000000000000000000000000000000000000000000000000000000000000001000010101010110110101"
+			  "11000011000110011011101011010011000100000001" },
+		};
+
+		tests.emplace_back(BigInt::get_from_string("+384324_132132_3123123_3").value(),
+		                   std::move(test_two));
+
+		std::vector<BinTests> test_three{
+			{ BinOption{ .prefix = true, .add_gaps = true, .trim_first_number = true },
+			  "0b11011110101011011011111011101111" },
+			{ BinOption{ .prefix = true, .add_gaps = true, .trim_first_number = false },
+			  "0b0000000000000000000000000000000011011110101011011011111011101111" },
+			{ BinOption{ .prefix = true, .add_gaps = false, .trim_first_number = true },
+			  "0b11011110101011011011111011101111" },
+			{ BinOption{ .prefix = true, .add_gaps = false, .trim_first_number = false },
+			  "0b0000000000000000000000000000000011011110101011011011111011101111" },
+			{ BinOption{ .prefix = false, .add_gaps = true, .trim_first_number = true },
+			  "11011110101011011011111011101111" },
+			{ BinOption{ .prefix = false, .add_gaps = true, .trim_first_number = false },
+			  "0000000000000000000000000000000011011110101011011011111011101111" },
+			{ BinOption{ .prefix = false, .add_gaps = false, .trim_first_number = true },
+			  "11011110101011011011111011101111" },
+			{ BinOption{ .prefix = false, .add_gaps = false, .trim_first_number = false },
+			  "0000000000000000000000000000000011011110101011011011111011101111" },
+		};
+
+		tests.emplace_back(BigInt{ (uint64_t)0xDEADBEEFULL }, std::move(test_three));
+	}
+
+	for(const TestType& test : tests) {
+
+		const auto& [big_int, bin_tests] = test;
+
+		for(const auto& bin_test : bin_tests) {
+
+			const auto& [option, expected_result] = bin_test;
+
+			const auto& [prefix, add_gaps, trim_first_number] = option;
+
+			std::string actual_result = big_int.to_string_bin(prefix, add_gaps, trim_first_number);
+
+			EXPECT_EQ(actual_result, expected_result)
+			    << "Input value: " << big_int << "options: " << (prefix ? "prefix" : "no-prefix")
+			    << " " << (add_gaps ? "add_gaps" : "no-gaps") << " "
+			    << (trim_first_number ? "trim_first_number" : "no-trim");
+		}
+	}
+}
+
 TEST(BigInt, IntegerBulkInitialization) {
 
 	BigInt test_positive{ (uint64_t)1ULL,

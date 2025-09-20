@@ -741,6 +741,7 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
 				start_point = (64 - bits_used) / 4;
+				ASSERT(start_point < SIZEOF_VALUE_AS_HEX_STR, "start_point was too high");
 			}
 		}
 
@@ -764,13 +765,87 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 	return str;
 }
 
+#define SIZEOF_BIN_PREFIX 2UL
+#define BIN_PREFIX "0b"
+#define SIZEOF_BYTE_AS_BIN_STR 8UL
+#define SIZEOF_VALUE_AS_BIN_STR (SIZEOF_BYTE_AS_BIN_STR * 8UL)
+
 NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
                                    bool trim_first_number) {
-	UNUSED(big_int);
-	UNUSED(prefix);
-	UNUSED(add_gaps);
-	UNUSED(trim_first_number);
-	UNREACHABLE_WITH_MSG("TODO");
+	if(big_int.number_count == 0) {
+		return NULL;
+	}
+
+	size_t string_size = big_int.number_count * SIZEOF_VALUE_AS_BIN_STR;
+
+	if(!big_int.positive) {
+		string_size = string_size + 1;
+	}
+
+	if(prefix) {
+		string_size = string_size + SIZEOF_BIN_PREFIX;
+	}
+
+	if(add_gaps) {
+		string_size = string_size + (big_int.number_count - 1);
+	}
+
+	Str str = malloc(sizeof(StrType) * (string_size + 1));
+
+	if(str == NULL) { // GCOVR_EXCL_BR_LINE
+		return NULL;  // GCOVR_EXCL_LINE
+	}
+
+	str[string_size] = '\0';
+
+	size_t i = 0;
+
+	if(!big_int.positive) {
+		str[i] = '-';
+		++i;
+	}
+
+	if(prefix) {
+		for(size_t j = 0; j < SIZEOF_BIN_PREFIX; ++j) {
+			str[i] = BIN_PREFIX[j];
+			++i;
+		}
+	}
+
+	size_t current_number = big_int.number_count;
+
+	for(; i < string_size && current_number != 0; --current_number) {
+
+		uint64_t number = big_int.numbers[current_number - 1];
+
+		size_t start_point = 0;
+
+		if(trim_first_number) {
+			if(current_number == big_int.number_count) {
+				const size_t bits_used = bigint_helper_bits_of_number_used(number);
+				start_point = 64 - bits_used;
+				ASSERT(start_point < SIZEOF_VALUE_AS_BIN_STR, "start_point was too high");
+			}
+		}
+
+		for(size_t j = start_point; j < SIZEOF_VALUE_AS_BIN_STR; ++i, ++j) {
+			uint8_t digit = (number >> ((64 - ((j + 1))))) & 0x01;
+			str[i] = digit == 0 ? '0' : '1';
+		}
+
+		if(add_gaps && current_number != 1) {
+			str[i] = ' ';
+			++i;
+		}
+	}
+
+	ASSERT(current_number == 0, "for loop exited too early");
+	ASSERT(i <= string_size, "string size was not enough or for loop implementation error");
+
+	// if we trim the first number, the end of the string is sooner, so set the 0 byte there
+	str[i] = '\0';
+
+	return str;
 }
 
 NODISCARD static size_t helper_max(size_t a, size_t b) {
