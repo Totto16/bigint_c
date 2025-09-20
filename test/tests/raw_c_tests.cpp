@@ -16,7 +16,7 @@ TEST(BigIntCFuncs, FreeAllowsNull) {
 		std::exit(0);
 	};
 
-	EXPECT_EXIT(temp(), testing::ExitedWithCode(0), "");
+	EXPECT_EXIT(temp(), testing::ExitedWithCode(0), testing::Eq(""));
 }
 
 TEST(BigIntCFuncs, InvalidNumbersFree) {
@@ -28,5 +28,5 @@ TEST(BigIntCFuncs, InvalidNumbersFree) {
 		std::exit(0);
 	};
 
-	EXPECT_EXIT(temp(), testing::ExitedWithCode(0), "");
+	EXPECT_EXIT(temp(), testing::ExitedWithCode(0), testing::Eq(""));
 }
