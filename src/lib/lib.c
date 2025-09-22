@@ -689,6 +689,7 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 #define SIZEOF_BYTE_AS_HEX_STR 2UL
 #define SIZEOF_VALUE_AS_HEX_STR (SIZEOF_BYTE_AS_HEX_STR * 8UL)
 
+//TODO: add option to show + when it is positive!	add ability to choose gap character, use struct to not pass a million booleans around!
 NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
                                    bool trim_first_number, bool uppercase) {
 

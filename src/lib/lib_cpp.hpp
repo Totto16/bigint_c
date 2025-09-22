@@ -201,13 +201,13 @@ BigInt::get_from_string(const std::string& str) noexcept {
 }
 
 BigInt::BigInt(const std::string& str) {
-	MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
+	std::expected<BigInt, std::string> result = BigInt::get_from_string(str);
 
-	if(maybe_bigint_is_error(result)) {
-		throw std::runtime_error(std::string{ maybe_bigint_get_error(result) });
+	if(!result.has_value()) {
+		throw std::runtime_error(result.error());
 	}
 
-	m_c_value = maybe_bigint_get_value(result);
+	m_c_value = std::move(result.value());
 }
 
 BigInt::~BigInt() noexcept {

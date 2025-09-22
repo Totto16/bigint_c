@@ -1,7 +1,13 @@
 test_deps = deps
 
-test_deps += dependency('gtest', version:'>=1.17.0')
-test_deps += dependency('gmock', version:'>=1.17.0')
+test_deps += dependency(
+    'gtest',
+    version: '>=1.17.0',
+)
+test_deps += dependency(
+    'gmock',
+    version: '>=1.17.0',
+)
 
 test_deps += dependency('gmp')
 
@@ -13,12 +19,13 @@ test_src = []
 subdir('helper')
 subdir('src')
 
-test_files = [
-    'normal.cpp',
-    'raw_c_tests.cpp',
-]
+test_files = ['normal.cpp', 'raw_c_tests.cpp', 'cpp_only_tests.cpp']
 
-add_languages('cpp',required:true, native:false)
+add_languages(
+    'cpp',
+    required: true,
+    native: false,
+)
 
 foreach file : test_files
     file_name = file.split('.')[-2]
