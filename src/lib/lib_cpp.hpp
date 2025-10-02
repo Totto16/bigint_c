@@ -71,7 +71,7 @@ struct BigInt {
 	BigInt& operator=(BigInt&& big_int) noexcept;
 
 #ifdef BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
-	[[nodiscard]] operator const BigIntC&() const;
+	[[nodiscard]] explicit operator const BigIntC&() const;
 
 	[[nodiscard]] const BigIntC& underlying() const;
 #endif
@@ -197,7 +197,7 @@ BigInt::get_from_string(const std::string& str) noexcept {
 		return std::unexpected<std::string>{ std::string{ maybe_bigint_get_error(result) } };
 	}
 
-	return maybe_bigint_get_value(result);
+	return std::expected<BigInt, std::string>{ maybe_bigint_get_value(result) };
 }
 
 BigInt::BigInt(const std::string& str) {
@@ -207,7 +207,7 @@ BigInt::BigInt(const std::string& str) {
 		throw std::runtime_error(result.error());
 	}
 
-	m_c_value = std::move(result.value());
+	*this = std::move(result.value());
 }
 
 BigInt::~BigInt() noexcept {

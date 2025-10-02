@@ -65,6 +65,13 @@ TEST(BigInt, ParseError7) {
 	EXPECT_EQ(maybe_big_int.error(), "-0 is not allowed");
 }
 
+TEST(BigInt, ParseError8) {
+
+	auto fun = []() { BigInt big_int = BigInt{ "ffgh" }; };
+
+	EXPECT_THROW(fun(), std::runtime_error);
+}
+
 TEST(BigInt, ParseSuccess1) {
 	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+0");
 
@@ -123,6 +130,16 @@ TEST(BigInt, ParseSuccess5) {
 	BigIntTest result = BigIntTest(false, { 10000000000ULL });
 
 	EXPECT_EQ(big_int, result);
+}
+
+TEST(BigInt, ParseSuccess6) {
+
+	// calls destructor at the end of the scope
+	{
+		BigInt big_int = BigInt{ "+0" };
+	}
+
+	SUCCEED();
 }
 
 TEST(BigInt, ParseSuccessLargeNumbers) {
