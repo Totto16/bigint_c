@@ -33,6 +33,28 @@ template <> struct hash<BigIntC> {
 };
 } // namespace std
 
+namespace bigint {
+
+class ParseError final : public std::runtime_error {
+  private:
+	MaybeBigIntError m_c_error;
+
+  public:
+	explicit ParseError(MaybeBigIntError error);
+
+	ParseError(ConstStr message, size_t index);
+
+	ParseError(ConstStr message, size_t index, StrType symbol);
+
+	[[nodiscard]] const char* message() const noexcept;
+
+	[[nodiscard]] size_t index() const noexcept;
+
+	[[nodiscard]] std::optional<char> symbol() const noexcept;
+};
+
+} // namespace bigint
+
 struct BigInt {
   private:
 	BigIntC m_c_value;
@@ -56,7 +78,7 @@ struct BigInt {
 
 	// TODO: make a constexpres literal in c++
 
-	[[nodiscard]] static std::expected<BigInt, std::string>
+	[[nodiscard]] static std::expected<BigInt, bigint::ParseError>
 	get_from_string(const std::string& str) noexcept;
 
 	explicit BigInt(const std::string& str);
@@ -175,6 +197,46 @@ std::string to_string(const BigInt& value);
 
 #ifdef BIGINT_C_CPP_IMPLEMENTATION
 
+static std::string get_parse_error_message(MaybeBigIntError error) {
+	std::string result = error.message;
+
+	result += ": index ";
+	result += std::to_string(error.index);
+
+	if(error.symbol == NO_SYMBOL) {
+		result += " symbol '";
+		result += error.symbol;
+		result += "'";
+	}
+
+	return result;
+}
+
+bigint::ParseError::ParseError(MaybeBigIntError error)
+    : std::runtime_error{ get_parse_error_message(error) }, m_c_error{ error } {}
+
+bigint::ParseError::ParseError(ConstStr message, size_t index)
+    : ParseError{ MaybeBigIntError{ .message = message, .index = index, .symbol = NO_SYMBOL } } {}
+
+bigint::ParseError::ParseError(ConstStr message, size_t index, StrType symbol)
+    : ParseError{ MaybeBigIntError{ .message = message, .index = index, .symbol = symbol } } {}
+
+[[nodiscard]] const char* bigint::ParseError::message() const noexcept {
+	return m_c_error.message;
+}
+
+[[nodiscard]] size_t bigint::ParseError::index() const noexcept {
+	return m_c_error.index;
+}
+
+[[nodiscard]] std::optional<char> bigint::ParseError::symbol() const noexcept {
+	if(m_c_error.symbol == NO_SYMBOL) {
+		return std::nullopt;
+	}
+
+	return m_c_error.symbol;
+}
+
 BigInt::BigInt(BigIntC&& c_value) noexcept : m_c_value{ c_value } {
 
 	c_value.numbers = nullptr;
@@ -189,22 +251,23 @@ BigInt::BigInt(int64_t value) noexcept {
 	m_c_value = bigint_from_signed_number(value);
 }
 
-[[nodiscard]] std::expected<BigInt, std::string>
+[[nodiscard]] std::expected<BigInt, bigint::ParseError>
 BigInt::get_from_string(const std::string& str) noexcept {
 	MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
 
 	if(maybe_bigint_is_error(result)) {
-		return std::unexpected<std::string>{ std::string{ maybe_bigint_get_error(result) } };
+		return std::unexpected<bigint::ParseError>{ bigint::ParseError{
+			maybe_bigint_get_error(result) } };
 	}
 
-	return std::expected<BigInt, std::string>{ maybe_bigint_get_value(result) };
+	return std::expected<BigInt, bigint::ParseError>{ maybe_bigint_get_value(result) };
 }
 
 BigInt::BigInt(const std::string& str) {
-	std::expected<BigInt, std::string> result = BigInt::get_from_string(str);
+	std::expected<BigInt, bigint::ParseError> result = BigInt::get_from_string(str);
 
 	if(!result.has_value()) {
-		throw std::runtime_error(result.error());
+		throw result.error();
 	}
 
 	*this = std::move(result.value());
@@ -488,6 +551,8 @@ std::string std::to_string(const BigInt& value) {
 
 #define BigIntC UNDEF
 #define MaybeBigIntC UNDEF
+#define MaybeBigIntError UNDEF
+#undef NO_SYMBOL
 #define maybe_bigint_is_error UNDEF
 #define maybe_bigint_get_value UNDEF
 #define maybe_bigint_get_error UNDEF
