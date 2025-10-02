@@ -25,7 +25,13 @@ typedef const StrType* ConstStr;
 
 typedef StrType* Str;
 
-typedef ConstStr MaybeBigIntError;
+typedef struct {
+	ConstStr message;
+	size_t index;
+	StrType symbol;
+} MaybeBigIntError;
+
+#define NO_SYMBOL '\0'
 
 typedef struct {
 	bool error;

@@ -320,9 +320,12 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	if(str_len == 0) {
 		free_bigint(&result);
-		return (MaybeBigIntC){
-			.error = true, .data = { .error = (MaybeBigIntError) "empty string is not valid" }
-		};
+		return (MaybeBigIntC){ .error = true,
+			                   .data = { .error = (MaybeBigIntError){
+			                                 .message = "empty string is not valid",
+			                                 .index = 0,
+			                                 .symbol = NO_SYMBOL,
+			                             } } };
 	}
 
 	size_t i = 0;
@@ -333,9 +336,12 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 		if(str_len == 1) {
 			free_bigint(&result);
-			return (MaybeBigIntC){
-				.error = true, .data = { .error = (MaybeBigIntError) "'-' alone is not valid" }
-			};
+			return (MaybeBigIntC){ .error = true,
+				                   .data = { .error = (MaybeBigIntError){
+				                                 .message = "'-' alone is not valid",
+				                                 .index = 1,
+				                                 .symbol = NO_SYMBOL,
+				                             } } };
 		}
 
 	} else if(str[0] == '+') {
@@ -344,9 +350,12 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 		if(str_len == 1) {
 			free_bigint(&result);
-			return (MaybeBigIntC){
-				.error = true, .data = { .error = (MaybeBigIntError) "'+' alone is not valid" }
-			};
+			return (MaybeBigIntC){ .error = true,
+				                   .data = { .error = (MaybeBigIntError){
+				                                 .message = "'+' alone is not valid",
+				                                 .index = 1,
+				                                 .symbol = NO_SYMBOL,
+				                             } } };
 		}
 	} else {
 		result.positive = true;
@@ -366,20 +375,25 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 				// not allowed
 				free_bigint(&result);
 				free_bcd_digits(bcd_digits);
-				// TODO:report position and character
-				return (MaybeBigIntC){
-					.error = true,
-					.data = { .error = (MaybeBigIntError) "separator not allowed at the start" }
-				};
+				return (
+				    MaybeBigIntC){ .error = true,
+					               .data = { .error = (MaybeBigIntError){
+					                             .message = "separator not allowed at the start",
+					                             .index = i,
+					                             .symbol = value,
+					                         } } };
 			}
 			// skip this separator
 			continue;
 		} else {
 			free_bigint(&result);
 			free_bcd_digits(bcd_digits);
-			// TODO:report position and character
 			return (MaybeBigIntC){ .error = true,
-				                   .data = { .error = (MaybeBigIntError) "invalid character" } };
+				                   .data = { .error = (MaybeBigIntError){
+				                                 .message = "invalid character",
+				                                 .index = i,
+				                                 .symbol = value,
+				                             } } };
 		}
 
 		if(start) {
@@ -395,9 +409,12 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 		if(result.numbers[0] == 0) {
 			if(!result.positive) {
 				free_bigint(&result);
-				return (MaybeBigIntC){
-					.error = true, .data = { .error = (MaybeBigIntError) "-0 is not allowed" }
-				};
+				return (MaybeBigIntC){ .error = true,
+					                   .data = { .error = (MaybeBigIntError){
+					                                 .message = "-0 is not allowed",
+					                                 .index = i,
+					                                 .symbol = NO_SYMBOL,
+					                             } } };
 			}
 		}
 	}
@@ -516,8 +533,8 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 	}
 
 	const size_t last_number_bit_amount = bigint_helper_bits_of_number_used(
-	    source.numbers[0]); // range 0 -64 0 should never be here, as then i should have remove it
-	                        // earlier (remove leading zeroes!)
+	    source.numbers[0]); // range 0 -64 0 should never be here, as then i should have remove
+	                        // it earlier (remove leading zeroes!)
 
 	// but it is here when the value is just 0 ("0")
 	// TODO: handle that case
@@ -553,8 +570,8 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 			{ // 2.1. shift every bcd_output to the left
 				// ( not in 8 but in 4 bit shifts), for
-				// convience we shift to the right in the array elements as the order is [0., 1. ]
-				// and we need to shift from the 0. left to the 1.
+				// convience we shift to the right in the array elements as the order is [0., 1.
+				// ] and we need to shift from the 0. left to the 1.
 
 				{ // 2.1.1. if we need a new bcd_digit, allocate it and set it to 0
 
@@ -689,7 +706,8 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 #define SIZEOF_BYTE_AS_HEX_STR 2UL
 #define SIZEOF_VALUE_AS_HEX_STR (SIZEOF_BYTE_AS_HEX_STR * 8UL)
 
-//TODO: add option to show + when it is positive!	add ability to choose gap character, use struct to not pass a million booleans around!
+// TODO: add option to show + when it is positive!	add ability to choose gap character, use
+// struct to not pass a million booleans around!
 NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
                                    bool trim_first_number, bool uppercase) {
 
