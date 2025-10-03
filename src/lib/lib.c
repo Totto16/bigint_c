@@ -339,7 +339,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 			return (MaybeBigIntC){ .error = true,
 				                   .data = { .error = (MaybeBigIntError){
 				                                 .message = "'-' alone is not valid",
-				                                 .index = 1,
+				                                 .index = 0,
 				                                 .symbol = NO_SYMBOL,
 				                             } } };
 		}
@@ -353,7 +353,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 			return (MaybeBigIntC){ .error = true,
 				                   .data = { .error = (MaybeBigIntError){
 				                                 .message = "'+' alone is not valid",
-				                                 .index = 1,
+				                                 .index = 0,
 				                                 .symbol = NO_SYMBOL,
 				                             } } };
 		}

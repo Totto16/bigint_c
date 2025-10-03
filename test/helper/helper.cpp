@@ -62,6 +62,19 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 	return true;
 }
 
+[[nodiscard]] bool bigint::operator==(const bigint::ParseError& error1,
+                                      const bigint::ParseError& error2) {
+	if(error1.index() != error2.index()) {
+		return false;
+	}
+
+	if(error1.symbol() != error2.symbol()) {
+		return false;
+	}
+
+	return (std::string{ error1.message() } == std::string{ error2.message() });
+}
+
 static constexpr uint8_t CHUNK_BITS = 64;
 
 static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {

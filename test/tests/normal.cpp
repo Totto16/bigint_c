@@ -10,59 +10,60 @@
 #include "../helper/printer.hpp"
 
 TEST(BigInt, ParseError1) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("error");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("error");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "invalid character");
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "invalid character", 0, 'e' }));
 }
 
 TEST(BigInt, ParseError2) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("-");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "'-' alone is not valid");
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "'-' alone is not valid", 0 }));
 }
 
 TEST(BigInt, ParseError3) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("+");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "'+' alone is not valid");
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "'+' alone is not valid", 0 }));
 }
 
 TEST(BigInt, ParseError4) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "empty string is not valid");
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "empty string is not valid", 0 }));
 }
 
 TEST(BigInt, ParseError5) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("_0");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("_0");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "separator not allowed at the start");
+	EXPECT_EQ(maybe_big_int.error(),
+	          (bigint::ParseError{ "separator not allowed at the start", 0, '_' }));
 }
 
 TEST(BigInt, ParseError6) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("!0");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("!0");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "invalid character");
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "invalid character", 0, '!' }));
 }
 
 TEST(BigInt, ParseError7) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-0");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("-0");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasError());
 
-	EXPECT_EQ(maybe_big_int.error(), "-0 is not allowed");
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "-0 is not allowed", 2 }));
 }
 
 TEST(BigInt, ParseError8) {
@@ -72,8 +73,17 @@ TEST(BigInt, ParseError8) {
 	EXPECT_THROW(fun(), std::runtime_error);
 }
 
+TEST(BigInt, ParseError9) {
+	std::expected<BigInt, bigint::ParseError> maybe_big_int =
+	    BigInt::get_from_string("004394235723!?");
+
+	ASSERT_THAT(maybe_big_int, ExpectedHasError());
+
+	EXPECT_EQ(maybe_big_int.error(), (bigint::ParseError{ "invalid character", 12, '!' }));
+}
+
 TEST(BigInt, ParseSuccess1) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+0");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("+0");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
@@ -85,7 +95,7 @@ TEST(BigInt, ParseSuccess1) {
 }
 
 TEST(BigInt, ParseSuccess2) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-1");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("-1");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
@@ -97,7 +107,7 @@ TEST(BigInt, ParseSuccess2) {
 }
 
 TEST(BigInt, ParseSuccess3) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-1_0");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("-1_0");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
@@ -109,7 +119,7 @@ TEST(BigInt, ParseSuccess3) {
 }
 
 TEST(BigInt, ParseSuccess4) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("+0021");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string("+0021");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
@@ -121,7 +131,8 @@ TEST(BigInt, ParseSuccess4) {
 }
 
 TEST(BigInt, ParseSuccess5) {
-	std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string("-10_00'00.000,00");
+	std::expected<BigInt, bigint::ParseError> maybe_big_int =
+	    BigInt::get_from_string("-10_00'00.000,00");
 
 	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 
@@ -163,7 +174,7 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 
 	for(const std::string& test : tests) {
 
-		std::expected<BigInt, std::string> maybe_big_int = BigInt::get_from_string(test);
+		std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string(test);
 
 		ASSERT_THAT(maybe_big_int, ExpectedHasValue());
 

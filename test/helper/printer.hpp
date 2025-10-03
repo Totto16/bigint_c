@@ -40,13 +40,9 @@ std::ostream& operator<<(std::ostream& os, const BigIntTest& value) {
 	return os;
 }
 
-namespace
+namespace std {
 
-    std
-
-{
-
-// make helper::expected printable
+// make std::expected and std::optional printable
 template <typename T, typename S> void PrintTo(const expected<T, S>& value, std::ostream* os) {
 	if(value.has_value()) {
 		*os << "<Expected.Value>: " << ::testing::PrintToString<T>(value.value());
@@ -57,8 +53,30 @@ template <typename T, typename S> void PrintTo(const expected<T, S>& value, std:
 
 template <typename T, typename S>
 std::ostream& operator<<(std::ostream& os, const expected<T, S>& value) {
-	PrintTo<T, S>(value);
+	PrintTo<T, S>(value, &os);
+	return os;
+}
+
+template <typename T> void PrintTo(const optional<T>& value, std::ostream* os) {
+	if(value.has_value()) {
+		*os << "<Optional.Value>: " << ::testing::PrintToString<T>(value.value());
+	} else {
+		*os << "<Optional.Empty>";
+	}
+}
+
+template <typename T> std::ostream& operator<<(std::ostream& os, const optional<T>& value) {
+	PrintTo<T>(value, &os);
 	return os;
 }
 
 } // namespace std
+
+namespace bigint {
+
+void PrintTo(const ParseError& value, std::ostream* os) {
+
+	*os << "ParseError: " << value.message() << ": " << value.index() << " '" << value.symbol()
+	    << "'";
+}
+} // namespace bigint
