@@ -7,6 +7,8 @@
 
 #include "../lib.h"
 
+#include "./literal.hpp"
+
 #include <compare>
 #include <expected>
 #include <ios>
@@ -75,8 +77,6 @@ struct BigInt {
 		// Use values...
 		m_c_value = bigint_from_list_of_numbers(values.data(), values.size());
 	}
-
-	// TODO: make a constexpres literal in c++
 
 	[[nodiscard]] static std::expected<BigInt, bigint::ParseError>
 	get_from_string(const std::string& str) noexcept;
