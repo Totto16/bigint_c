@@ -51,7 +51,7 @@ TEST(BigInt, IntegerHash) {
 	ASSERT_EQ(ints.find(b), ints.end());
 }
 
-TEST(BigInt, BigIntLiteral) {
+TEST(BigInt, BigIntLiteral1) {
 
 	std::string test = "-13250891325632415132851327653205672349642764295634279051326750329653285642"
 	                   "516950265784258";
@@ -63,8 +63,27 @@ TEST(BigInt, BigIntLiteral) {
 	    "516950265784258"_n;
 
 	// as BigInt always needs allocations, the final value is constructed at runtime, but only a
-	// malloc and memcpy needs to be done, so it's fatser than parsing, as that is done at compile
-	// time.
+	// malloc and memcpy needs to be done, so it's fatser than parsing, as that is done at
+	// compile time.
+	const BigInt runtime_converted_literal = cpp_literal;
+
+	EXPECT_EQ(big_int, runtime_converted_literal) << "Input string: " << test;
+}
+
+TEST(BigInt, BigIntLiteral2) {
+	std::string test = "-13250891325632415132851327653205672349642764295634279051326750329653285642"
+	                   "516950265784258"
+	                   "12235335";
+
+	BigInt big_int = BigInt::get_from_string(test).value();
+
+	constexpr const BigIntConstExpr cpp_literal =
+	    "-13250891325632415132851327653205672349642764295634279051326750329653285642516950265784258"
+	    "12235335"_n;
+
+	// as BigInt always needs allocations, the final value is constructed at runtime, but only a
+	// malloc and memcpy needs to be done, so it's fatser than parsing, as that is done at
+	// compile time.
 	const BigInt runtime_converted_literal = cpp_literal;
 
 	EXPECT_EQ(big_int, runtime_converted_literal) << "Input string: " << test;

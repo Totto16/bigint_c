@@ -41,7 +41,12 @@ namespace { // NOLINT(cert-dcl59-cpp,google-build-namespaces)
 
 namespace const_constants {
 
+// maximal value for uint64_t is 18446744073709551615 so 20 digits, so we say per 19 digits we
+// need one number, we need to ceil it
 constexpr size_t uint64_t_str_size_max = 20;
+// in some cases we need 2 more uint64_t values, that get stripped off by the leadinf zero remover
+// at the end, but are needed in the middle of the algorithm, to be safe, we add an additional 1
+constexpr size_t padding_for_bcd_algorihtm = 2;
 
 } // namespace const_constants
 
@@ -55,7 +60,11 @@ consteval size_t get_maximum_uint64_numbers_for_string_length(size_t string_leng
 	// maximal value for uint64_t is 18446744073709551615 so 20 digits, so we say per 19 digits we
 	// need one number, we need to ceil it
 
-	return consteval_ceil_div(string_length, const_constants::uint64_t_str_size_max - 1);
+	// in some cases we need 2 more uint64_t values, that get stripped off by the leadinf zero
+	// remover
+	// at the end, but are needed in the middle of the algorithm, to be safe, we add an additional 1
+	return consteval_ceil_div(string_length, const_constants::uint64_t_str_size_max - 1) +
+	       const_constants::padding_for_bcd_algorihtm + 1;
 }
 
 consteval bool consteval_is_digit(StrType value) {
@@ -216,8 +225,8 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 		big_int.numbers.resize(temp.numbers.size());
 
 		// align the resulting uint64_t's e.g. if we would align to 6 bytes:
-		// [100101,01xxxx] -> [yyyy10,010101], where x may be any bit, (but is 0 in practice), y is
-		// always 0
+		// [100101,01xxxx] -> [yyyy10,010101], where x may be any bit, (but is 0 in practice), y
+		// is always 0
 
 		{ // 3.1 align the temp values
 
@@ -376,9 +385,16 @@ template <const_utils::ConstString S> consteval auto operator""_n() {
 
 static_assert("112412412351515313515"_n == "+112_412_412_351_515_313_515"_n);
 
-/* static_assert("#ABCDEF"_c == "#ABCDEFFF"_c);
-static_assert("hsv(0, 0, 0)"_c == "hsva(0, 0, 0, 0xFF)"_c);
-static_assert("rgb(0, 0, 0)"_c == "rgba(0, 0, 0, 0xFF)"_c);
-static_assert("rgb(0xAB, 0xCD, 0xEF)"_c == "rgb(171, 205, 239)"_c);
-static_assert("hsv(0, 0, 0.79)"_c == "#C9C9C9"_c);
+static_assert("+112412412351515313515_____2___2___2"_n != "-12"_n);
+static_assert("-13425264"_n != "+3523462422372356536723675467456753546735467435674536735467354"_n);
+static_assert("-13425264"_n != "+0"_n);
+static_assert("-13425264"_n == "-1_3_4_2_5_2_6_4"_n);
+
+// note: for this test we need more consteval steps
+//  Clang: -fconstexpr-steps=<number>
+//  GCC: -fconstexpr-depth=<number>
+
+/* static_assert(
+"-13425264"_n !=
+"-3785236794684657956237952359752367925497467945237452345283452384523784235423584235482378523723742342634768234867348762823423467237463674687838346324236785623852365"_n);
  */
