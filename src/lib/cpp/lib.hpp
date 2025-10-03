@@ -98,6 +98,29 @@ struct BigInt {
 
 	BigInt& operator=(BigInt&& big_int) noexcept;
 
+	template <size_t N> BigInt(const BigIntConstExpr<N>& big_int) {
+
+		BigIntC c_value = { .positive = big_int.positive,
+			                .numbers = nullptr,
+			                .number_count = big_int.numbers.size() };
+
+		uint64_t* const new_numbers =
+		    (uint64_t*)realloc(c_value.numbers, sizeof(uint64_t) * c_value.number_count);
+
+		if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
+			UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE
+			    "realloc failed, no error handling implemented here");
+		} // GCOVR_EXCL_LINE
+
+		c_value.numbers = new_numbers;
+
+		for(size_t i = 0; i < c_value.number_count; ++i) {
+			c_value.numbers[i] = big_int.numbers[i];
+		}
+
+		this->m_c_value = c_value;
+	}
+
 #ifdef BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 	[[nodiscard]] explicit operator const BigIntC&() const;
 

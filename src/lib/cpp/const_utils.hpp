@@ -4,6 +4,7 @@
 // TODO
 // #include "./utils.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <type_traits>
 
@@ -102,6 +103,86 @@ struct Expected {
 		CONSTEVAL_STATIC_ASSERT((not has_value()), "error() call on Expected without error");
 
 		return m_error;
+	}
+};
+
+// A string that can be used as a template parameter.
+template <std::size_t N> struct ConstString {
+	char str[N]{};
+
+	static constexpr std::size_t size = N - 1;
+
+	consteval ConstString() {}
+	consteval ConstString(const char (&new_str)[N]) {
+		if(new_str[N - 1] != '\0') {
+			CONSTEVAL_STATIC_ASSERT(false, "Expected null terminated array (CString)");
+		};
+		std::copy_n(new_str, size, str);
+	}
+};
+
+template <typename T, size_t N> struct VectorLike {
+  private:
+	std::array<T, N> values;
+	size_t m_size;
+
+	// capacity is N
+
+  public:
+	using value_type = T;
+
+	[[nodiscard]] constexpr size_t size() const { return this->m_size; }
+
+	[[nodiscard]] constexpr size_t capacity() const { return N; }
+
+	constexpr void push_back(T value) {
+		if(m_size >= N) {
+			CONSTEVAL_STATIC_ASSERT(false, "Have no more capacity in const 'vector'");
+		}
+
+		values.at(m_size) = value;
+		m_size++;
+	}
+
+	constexpr void emplace_back(T&& value) {
+		if(m_size >= N) {
+			CONSTEVAL_STATIC_ASSERT(false, "Have no more capacity in const 'vector'");
+		}
+
+		values.at(m_size) = std::move(value);
+		m_size++;
+	}
+
+	constexpr const T& operator[](size_t index) const {
+		if(index >= m_size) {
+			CONSTEVAL_STATIC_ASSERT(false, "index out of bound in const 'vector'");
+		}
+
+		return values.at(index);
+	}
+
+	constexpr T& operator[](size_t index) {
+		if(index >= m_size) {
+			CONSTEVAL_STATIC_ASSERT(false, "index out of bound in const 'vector'");
+		}
+
+		return values.at(index);
+	}
+
+	constexpr void resize(size_t new_size) {
+		if(new_size > N) {
+			CONSTEVAL_STATIC_ASSERT(false, "Can't allocate that much in const 'vector'");
+		}
+
+		m_size = new_size;
+	}
+
+	constexpr void pop_back() {
+		if(m_size == 0) {
+			CONSTEVAL_STATIC_ASSERT(false, "Can't pop an empty const 'vector'");
+		}
+
+		m_size--;
 	}
 };
 

@@ -2,478 +2,374 @@
 
 #include "./const_utils.hpp"
 
+#include <array>
+#include <cstdint>
 #include <limits>
 #include <string>
 
 template <size_t N> struct BigIntConstExpr {
   public:
 	bool positive;
-	// a constexpr constructible type with N uint64_t values, but only number_count are actually
-	// valid, as we have to statically allocate more when creating this type, so that it may have
-	// less values (e.g. when separators are in the number, as we estimate the value based on the
-	// inital string length)
-	std::array<uint64_t, N> numbers;
-	size_t number_count;
-
-	// TODO: make constexpr friendly
+	const_utils::VectorLike<uint64_t, N> numbers;
 
 	template <size_t N2>
 	[[nodiscard]] constexpr bool operator==(const BigIntConstExpr<N2>& value2) const {
 
-		if(this->number_count != value2.number_count) {
+		if(this->positive != value2.positive) {
 			return false;
 		}
 
-		// TODO
-		return false;
+		if(this->numbers.size() != value2.numbers.size()) {
+			return false;
+		}
+
+		for(size_t i = 0; i < this->numbers.size(); ++i) {
+			if(this->numbers[i] != value2.numbers[i]) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 };
+
+using BCDDigit = uint8_t;
+
+template <size_t N> using BCDDigitsConstExpr = const_utils::VectorLike<BCDDigit, N>;
 
 namespace { // NOLINT(cert-dcl59-cpp,google-build-namespaces)
 
 namespace const_constants {
 
-// offsets in C strings for hex rgb and rgba
-/* constexpr std::size_t red_offset = 1;
-constexpr std::size_t green_offset = 3;
-constexpr std::size_t blue_offset = 5;
-constexpr std::size_t alpha_offset = 7;
-constexpr std::size_t hex_rgb_size = alpha_offset;
-constexpr std::size_t hex_rgba_size = 9;
- */
+constexpr size_t uint64_t_str_size_max = 20;
+
 } // namespace const_constants
-/*
-// decode a decimal number
-[[nodiscard]] constexpr const_utils::Expected<u8, std::string> single_decimal_number(char input) {
-    if(input >= '0' && input <= '9') {
-        return const_utils::Expected<u8, std::string>::good_result(static_cast<u8>(input - '0'));
-    }
 
-    return const_utils::Expected<u8, std::string>::error_result(
-        "the input must be a valid decimal character");
+namespace {
+consteval size_t consteval_ceil_div(size_t input, size_t divider) {
+	return (input + divider - 1) / divider;
 }
 
-// decode a single_hex_number
-[[nodiscard]] constexpr const_utils::Expected<u8, std::string> single_hex_number(char input) {
-    if(input >= '0' && input <= '9') {
-        return const_utils::Expected<u8, std::string>::good_result(static_cast<u8>(input - '0'));
-    }
+consteval size_t get_maximum_uint64_numbers_for_string_length(size_t string_length) {
 
-    if(input >= 'A' && input <= 'F') {
-        return const_utils::Expected<u8, std::string>::good_result(
-            static_cast<u8>(input - 'A' + 10));
-    }
+	// maximal value for uint64_t is 18446744073709551615 so 20 digits, so we say per 19 digits we
+	// need one number, we need to ceil it
 
-    if(input >= 'a' && input <= 'f') {
-        return const_utils::Expected<u8, std::string>::good_result(
-            static_cast<u8>(input - 'a' + 10));
-    }
-
-    return const_utils::Expected<u8, std::string>::error_result(
-        "the input must be a valid hex character");
+	return consteval_ceil_div(string_length, const_constants::uint64_t_str_size_max - 1);
 }
 
-// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-
-// decode a single 2 digit color value in hex
-[[nodiscard]] constexpr const_utils::Expected<u8, std::string>
-single_hex_color_value(const char* input) {
-
-    const auto first = single_hex_number(input[0]);
-
-    PROPAGATE(first, u8, std::string);
-
-    const auto second = single_hex_number(input[1]);
-
-    PROPAGATE(second, u8, std::string);
-
-    return const_utils::Expected<u8, std::string>::good_result((first.value() << 4) |
-                                                               second.value());
+consteval bool consteval_is_digit(StrType value) {
+	return value >= '0' && value <= '9';
 }
 
-template <typename T> using CharIteratorResult = std::pair<T, const char*>;
-
-using DoubleReturnValue = CharIteratorResult<double>;
-
-// decode a single color value as double
-[[nodiscard]] constexpr const_utils::Expected<DoubleReturnValue, std::string>
-single_double_color_value(const char* value) {
-
-    double result{ 0.0 };
-    bool after_comma = false;
-    double pow_of_10 = 1.0;
-
-    for(std::size_t i = 0;; ++i) {
-
-        const char current_char = value[i];
-
-        switch(current_char) {
-            case ' ':
-            case '_': break;
-            case '.':
-                if(after_comma) {
-                    return const_utils::Expected<DoubleReturnValue, std::string>::error_result(
-                        "only one comma allowed");
-                }
-                after_comma = true;
-                break;
-            case ',':
-            case ')':
-                return const_utils::Expected<DoubleReturnValue, std::string>::good_result(
-                    { result, value + i });
-            case '\0':
-                return const_utils::Expected<DoubleReturnValue, std::string>::error_result(
-                    "input ended too early");
-            default: {
-
-                const auto char_result = single_decimal_number(current_char);
-
-                PROPAGATE(char_result, DoubleReturnValue, std::string);
-
-                const auto value_of_char = char_result.value();
-
-                if(after_comma) {
-                    pow_of_10 *= 10.0;
-                    result += static_cast<double>(value_of_char) / pow_of_10;
-                } else {
-                    result = (result * 10.0) + static_cast<double>(value_of_char);
-                }
-                break;
-            }
-        }
-    }
-
-    return const_utils::Expected<DoubleReturnValue, std::string>::error_result("unreachable");
+consteval uint8_t consteval_char_to_digit(StrType value) {
+	return value - '0';
 }
 
-using AnySizeType = u32;
-
-using AnyColorReturnValue = CharIteratorResult<AnySizeType>;
-
-// decode a single_hex_number
-[[nodiscard]] constexpr const_utils::Expected<AnyColorReturnValue, std::string>
-single_color_value_any(const char* value) {
-
-    bool accept_hex = false;
-    AnySizeType start = 0;
-    AnySizeType mul_unit = 10;
-
-    // skip leading white space
-    while(value[start] == ' ') {
-        ++start;
-    }
-
-    if(value[start] == '0' && value[start + 1] == 'x') {
-        start += 2;
-        accept_hex = true;
-        mul_unit = 0x10;
-    }
-
-    AnySizeType result{ 0 };
-
-    const auto max_value_before_multiplication =
-        (std::numeric_limits<decltype(result)>::max() / mul_unit);
-
-    const auto max_value_before_multiplication_rest =
-        std::numeric_limits<decltype(result)>::max() - (max_value_before_multiplication * mul_unit);
-
-    for(AnySizeType i = start;; ++i) {
-
-        const char current_char = value[i];
-
-        switch(current_char) {
-            case ' ':
-            case '_': break;
-            case ',':
-            case ')':
-                return const_utils::Expected<AnyColorReturnValue, std::string>::good_result(
-                    { result, value + i });
-            case '\0':
-                return const_utils::Expected<AnyColorReturnValue, std::string>::error_result(
-                    "input ended too early");
-            default: {
-
-                const auto char_result = accept_hex ? single_hex_number(current_char)
-                                                    : single_decimal_number(current_char);
-
-                PROPAGATE(char_result, AnyColorReturnValue, std::string);
-
-                const auto value_of_char = char_result.value();
-
-                if(result == max_value_before_multiplication &&
-                   value_of_char > max_value_before_multiplication_rest) {
-                    return const_utils::Expected<AnyColorReturnValue, std::string>::error_result(
-                        "overflow detected");
-                }
-
-                if(result > max_value_before_multiplication) {
-                    return const_utils::Expected<AnyColorReturnValue, std::string>::error_result(
-                        "overflow detected");
-                }
-
-                result *= mul_unit;
-                result += value_of_char;
-                break;
-            }
-        }
-    }
-
-    return const_utils::Expected<AnyColorReturnValue, std::string>::error_result("unreachable");
+consteval bool consteval_is_separator(StrType value) {
+	// valid separators are /[_',.]/
+	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
-using ColorFromHexStringReturnType = std::pair<Color, bool>;
+template <size_t N> consteval void consteval_remove_leading_zeroes(BigIntConstExpr<N>& big_int) {
+	if(big_int.numbers.size() == 0) { // GCOVR_EXCL_BR_LINE
+		CONSTEVAL_STATIC_ASSERT(false,
+		                        "big_int has to have at least one number!"); // GCOVR_EXCL_LINE
+	} // GCOVR_EXCL_LINE
 
-[[nodiscard]] constexpr const_utils::Expected<ColorFromHexStringReturnType, std::string>
-get_color_from_hex_string(const char* input, std::size_t size) {
+	if(big_int.numbers.size() == 1) {
+#ifndef NDEBUG
+		if(big_int.numbers[0] == 0) {
+			CONSTEVAL_STATIC_ASSERT(big_int.positive, "0 can't be negative");
+		}
+#endif
 
-    if(size == const_constants::hex_rgb_size) {
-
-        const auto red = single_hex_color_value(input + const_constants::red_offset);
-        PROPAGATE(red, ColorFromHexStringReturnType, std::string);
-
-        const auto green = single_hex_color_value(input + const_constants::green_offset);
-        PROPAGATE(green, ColorFromHexStringReturnType, std::string);
-
-        const auto blue = single_hex_color_value(input + const_constants::blue_offset);
-        PROPAGATE(blue, ColorFromHexStringReturnType, std::string);
-
-        return const_utils::Expected<ColorFromHexStringReturnType, std::string>::good_result(
-            { Color{ red.value(), green.value(), blue.value() }, false });
-    }
-
-    if(size == const_constants::hex_rgba_size) {
-
-        const auto red = single_hex_color_value(input + const_constants::red_offset);
-        PROPAGATE(red, ColorFromHexStringReturnType, std::string);
-
-        const auto green = single_hex_color_value(input + const_constants::green_offset);
-        PROPAGATE(green, ColorFromHexStringReturnType, std::string);
-
-        const auto blue = single_hex_color_value(input + const_constants::blue_offset);
-        PROPAGATE(blue, ColorFromHexStringReturnType, std::string);
-
-        const auto alpha = single_hex_color_value(input + const_constants::alpha_offset);
-        PROPAGATE(alpha, ColorFromHexStringReturnType, std::string);
-
-        return const_utils::Expected<ColorFromHexStringReturnType, std::string>::good_result(
-            { Color{ red.value(), green.value(), blue.value(), alpha.value() }, true });
-    }
-
-    return const_utils::Expected<ColorFromHexStringReturnType, std::string>::error_result(
-        "Unrecognized HEX literal");
-}
-
-using ColorFromRGBStringReturnType = std::pair<Color, bool>;
-
-[[nodiscard]] constexpr const_utils::Expected<ColorFromRGBStringReturnType, std::string>
-get_color_from_rgb_string(         // NOLINT(readability-function-cognitive-complexity)
-    const char* input, std::size_t
-) {
-
-    if(input[0] == 'r' && input[1] == 'g' && input[2] == 'b') {
-        if(input[3] == '(') {
-
-            const auto r_result = single_color_value_any(input + 4);
-
-            PROPAGATE(r_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [r, next_g] = r_result.value();
-
-            if(r > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("r has to be in range 0 - 255");
-            }
-
-            if(*next_g != ',') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ','");
-            }
-
-            const auto g_result = single_color_value_any(next_g + 1);
-
-            PROPAGATE(g_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [g, next_b] = g_result.value();
-
-            if(g > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("g has to be in range 0 - 255");
-            }
-
-            if(*next_b != ',') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ','");
-            }
-
-            const auto b_result = single_color_value_any(next_b + 1);
-
-            PROPAGATE(b_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [b, end] = b_result.value();
-
-            if(b > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("b has to be in range 0 - 255");
-            }
-
-            if(*end != ')') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ')'");
-            }
-
-            if(*(end + 1) != '\0') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected end of string");
-            }
-
-            return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::good_result(
-                { Color{ static_cast<u8>(r), static_cast<u8>(g), static_cast<u8>(b) }, false });
-        }
-
-        if(input[3] == 'a' && input[4] == '(') {
-
-            const auto r_result = single_color_value_any(input + 5);
-
-            PROPAGATE(r_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [r, next_g] = r_result.value();
-
-            if(r > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("r has to be in range 0 - 255");
-            }
-
-            if(*next_g != ',') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ','");
-            }
-
-            const auto g_result = single_color_value_any(next_g + 1);
-
-            PROPAGATE(g_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [g, next_b] = g_result.value();
-
-            if(g > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("g has to be in range 0 - 255");
-            }
-
-            if(*next_b != ',') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ','");
-            }
-
-            const auto b_result = single_color_value_any(next_b + 1);
-
-            PROPAGATE(b_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [b, next_a] = b_result.value();
-
-            if(b > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("b has to be in range 0 - 255");
-            }
-
-            if(*next_a != ',') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ','");
-            }
-
-            const auto a_result = single_color_value_any(next_a + 1);
-
-            PROPAGATE(a_result, ColorFromRGBStringReturnType, std::string);
-
-            const auto [a, end] = a_result.value();
-
-            if(a > std::numeric_limits<u8>::max()) {
-                return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::
-                    error_result("a has to be in range 0 - 255");
-            }
-
-            if(*end != ')') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected ')'");
-            }
-
-            if(*(end + 1) != '\0') {
-                return const_utils::Expected<ColorFromRGBStringReturnType,
-                                             std::string>::error_result("expected end of string");
-            }
-
-            return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::good_result(
-                { Color{ static_cast<u8>(r), static_cast<u8>(g), static_cast<u8>(b),
-                         static_cast<u8>(a) },
-                  true });
-        }
-    }
-
-    return const_utils::Expected<ColorFromRGBStringReturnType, std::string>::error_result(
-        "Unrecognized RGB literal");
-}
-*/
-template <size_t N>
-[[nodiscard]] constexpr const_utils::Expected<BigIntConstExpr<N>, MaybeBigIntError>
-get_bigint_from_string_impl(const char* input, std::size_t size) {
-
-	if(size == 0) {
-		return const_utils::Expected<BigIntConstExpr<N>, MaybeBigIntError>::error_result(
-		    MaybeBigIntError{
-		        .message = "empty string is not valid",
-		        .index = 0,
-		        .symbol = NO_SYMBOL,
-		    });
+		return;
 	}
 
-	BigIntConstExpr<N> result = { .positive = true, .numbers = {}, .number_count = 0 };
-
-	size_t i = 0;
-
-	if(input[0] == '-') {
-		result.positive = false;
-		++i;
-
-		if(size == 1) {
-			return const_utils::Expected<BigIntConstExpr<N>, MaybeBigIntError>::error_result(
-			    MaybeBigIntError{
-			        .message = "'-' alone is not valid",
-			        .index = 0,
-			        .symbol = NO_SYMBOL,
-			    });
+	for(size_t i = big_int.numbers.size(); i > 1; --i) {
+		if(big_int.numbers[i - 1] == 0) {
+			big_int.numbers.pop_back();
+		} else {
+			break;
 		}
 	}
 
-	// TODO: Remove, this is just for not being unused
-	result.number_count = i;
+#ifndef NDEBUG
+	if(big_int.numbers.size() == 1) {
+		if(big_int.numbers[0] == 0) {
+			CONSTEVAL_STATIC_ASSERT(big_int.positive, "0 can't be negative");
+		}
+	}
+#endif
+}
 
-	return const_utils::Expected<BigIntConstExpr<N>, MaybeBigIntError>::good_result(result);
+#define BIGINT_BIT_COUNT_FOR_BCD_ALG 64
+#define BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG 4
+
+#define U64(n) (uint64_t)(n##ULL)
+
+template <size_t N, size_t S>
+consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
+                                              BCDDigitsConstExpr<S>& bcd_digits) {
+	// using reverse double dabble, see
+	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
+
+	if(bcd_digits.size() == 0) { // GCOVR_EXCL_BR_LINE
+		CONSTEVAL_STATIC_ASSERT(false, "not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE
+	} // GCOVR_EXCL_LINE
+
+	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
+	// normal bigints
+	BigIntConstExpr<N> temp = { .positive = true, .numbers = {} };
+
+	size_t pushed_bits = 0;
+
+	size_t bcd_processed_fully_amount = 0;
+
+	// first, process bcd_digits and populate temp in reverse order, we use this and pushed_bits to
+	// make the final result!
+
+	while(bcd_processed_fully_amount < bcd_digits.size()) {
+
+		{ // 1. shift right by one
+
+			{ // 1.1. shift last bit into the result
+
+				// 1.1.1. if we need a new uint64_t, allocate it and set it to 0
+				if((pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG) == 0) {
+					temp.numbers.push_back(U64(0));
+				}
+
+				// 1.1.2. shift the last bit of every number into the next one
+				for(size_t i = temp.numbers.size(); i != 0; --i) {
+					uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
+
+					if(i == temp.numbers.size()) {
+						CONSTEVAL_STATIC_ASSERT((last_bit == 0),
+						                        "no additional uint64_t was allocated in time (we "
+						                        "would overflow on >>)");
+					} else {
+						if(last_bit != 0) {
+							temp.numbers[i] =
+							    (U64(1) << (BIGINT_BIT_COUNT_FOR_BCD_ALG - 1)) + temp.numbers[i];
+						}
+					}
+
+					temp.numbers[i - 1] = temp.numbers[i - 1] >> 1;
+				}
+
+				// 1.1.3. shift the last bit of the last bcd input into the first output
+				BCDDigit last_value = bcd_digits[bcd_digits.size() - 1];
+				if((last_value & 0x01) != 0) {
+					temp.numbers[0] =
+					    (U64(1) << (BIGINT_BIT_COUNT_FOR_BCD_ALG - 1)) + temp.numbers[0];
+				}
+			}
+
+			{ // 1.2. shift every bcd_input along (only those who are not empty already)
+
+				// 1.2.1. shift the last bit of every number into the next one
+				for(size_t i = bcd_digits.size(); i > bcd_processed_fully_amount; --i) {
+					uint8_t last_bit = ((bcd_digits[i - 1]) & 0x01);
+
+					if(i == bcd_digits.size()) {
+						// we already processed that earlier, ignore the last bit, it is shifted
+						// away later in this for loop
+					} else {
+						if(last_bit != 0) {
+							bcd_digits[i] = ((BCDDigit)1 << (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) +
+							                bcd_digits[i];
+						}
+					}
+
+					bcd_digits[i - 1] = bcd_digits[i - 1] >> 1;
+				}
+			}
+		}
+
+		{ // 2. For each bcd_digit
+
+			for(size_t i = bcd_digits.size(); i > bcd_processed_fully_amount; --i) {
+
+				// 2.1 If value >= 8 then subtract 3 from value
+
+				BCDDigit value = bcd_digits[i - 1];
+
+				if(value >= 8) {
+					bcd_digits[i - 1] = bcd_digits[i - 1] - 3;
+				}
+			}
+		}
+		// increment pushed_bits
+		++pushed_bits;
+
+		// if we emptied another bcd_digit, increment that counter, so that the end check stops
+		// if necessary
+		if((pushed_bits % BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG) == 0) {
+			++bcd_processed_fully_amount;
+		}
+	}
+
+	{ // 3. set the final result
+
+		big_int.numbers.resize(temp.numbers.size());
+
+		// align the resulting uint64_t's e.g. if we would align to 6 bytes:
+		// [100101,01xxxx] -> [yyyy10,010101], where x may be any bit, (but is 0 in practice), y is
+		// always 0
+
+		{ // 3.1 align the temp values
+
+			uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
+
+			uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
+
+			if(alignment != 0) {
+
+				// 3.1.1. shift the last to_shift bytes of every number into the next one
+				for(size_t i = temp.numbers.size(); i != 0; --i) {
+					uint64_t last_bytes = (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
+
+					if(i == temp.numbers.size()) {
+						// those x values from above are not 0
+						CONSTEVAL_STATIC_ASSERT((last_bytes == 0),
+						                        "alignment and to_shift incorrectly calculated");
+					} else {
+						temp.numbers[i] = (last_bytes << alignment) + temp.numbers[i];
+					}
+
+					temp.numbers[i - 1] = temp.numbers[i - 1] >> to_shift;
+				}
+			}
+		}
+
+		{ // 3.2. reverse the numbers and put them into the result
+			for(size_t i = temp.numbers.size(); i != 0; --i) {
+				big_int.numbers[temp.numbers.size() - i] = temp.numbers[i - 1];
+			}
+		}
+	}
+}
+
+} // namespace
+
+template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_from_string_impl() {
+
+	constexpr size_t N = get_maximum_uint64_numbers_for_string_length(S.size);
+
+	using SuccessResult = BigIntConstExpr<N>;
+
+	using ResultType = const_utils::Expected<SuccessResult, MaybeBigIntError>;
+
+	// bigint regex: /^[+-]?[0-9][0-9_',.]*$/
+
+	if(S.size == 0) {
+		return ResultType::error_result(MaybeBigIntError{
+		    .message = "empty string is not valid",
+		    .index = 0,
+		    .symbol = NO_SYMBOL,
+		});
+	}
+
+	// like bigint_helper_zero
+	SuccessResult result = {
+		.positive = true,
+		.numbers = {},
+	};
+	result.numbers.push_back(0);
+
+	size_t i = 0;
+
+	if(S.str[0] == '-') {
+		result.positive = false;
+		++i;
+
+		if(S.size == 1) {
+			return ResultType::error_result(MaybeBigIntError{
+			    .message = "'-' alone is not valid",
+			    .index = 0,
+			    .symbol = NO_SYMBOL,
+			});
+		}
+	} else if(S.str[0] == '+') {
+		result.positive = true;
+		++i;
+
+		if(S.size == 1) {
+			return ResultType::error_result(MaybeBigIntError{
+			    .message = "'+' alone is not valid",
+			    .index = 0,
+			    .symbol = NO_SYMBOL,
+			});
+		}
+	} else {
+		result.positive = true;
+	}
+
+	bool start = true;
+
+	BCDDigitsConstExpr<S.size> bcd_digits = {};
+
+	for(; i < S.size; ++i) {
+		StrType value = S.str[i];
+
+		if(consteval_is_digit(value)) {
+			bcd_digits.push_back(consteval_char_to_digit(value));
+		} else if(consteval_is_separator(value)) {
+			if(start) {
+				return ResultType::error_result(MaybeBigIntError{
+				    .message = "separator not allowed at the start",
+				    .index = i,
+				    .symbol = value,
+				});
+			}
+			// skip this separator
+			continue;
+		} else {
+
+			return ResultType::error_result(MaybeBigIntError{
+			    .message = "invalid character",
+			    .index = i,
+			    .symbol = value,
+			});
+		}
+
+		if(start) {
+			start = false;
+		}
+	}
+
+	consteval_bcd_digits_to_bigint<N, S.size>(result, bcd_digits);
+
+	if(result.numbers.size() == 1) {
+		if(result.numbers[0] == 0) {
+			if(!result.positive) {
+
+				return ResultType::error_result(MaybeBigIntError{
+				    .message = "-0 is not allowed",
+				    .index = i,
+				    .symbol = NO_SYMBOL,
+				});
+			}
+		}
+	}
+
+	consteval_remove_leading_zeroes<N>(result);
+
+	return ResultType::good_result(result);
 }
 
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 } // namespace
 
-namespace detail {
+template <const_utils::ConstString S> consteval auto operator""_n() {
 
-template <size_t N>
-[[nodiscard]] constexpr const_utils::Expected<BigIntConstExpr<auto>, MaybeBigIntError>
-get_bigint_from_string(const std::string& input) {
-	return get_bigint_from_string_impl<N>(input.c_str(), input.size());
-}
-
-} // namespace detail
-
-consteval auto operator""_n(const char* input, std::size_t size) {
-
-	// TODO replace 10 with actual computation based on length
-	if constexpr(N > 10) {
-		CONSTEVAL_STATIC_ASSERT(false, "TODo");
-	}
-
-	const auto result = get_bigint_from_string_impl<N>(input, size);
+	const auto result = get_bigint_from_string_impl<S>();
 
 	CONSTEVAL_STATIC_ASSERT(result.has_value(), "incorrect bigint literal");
 
-	return std::get<0>(result.value());
+	return result.value();
 }
 
 // sanity tests at compile time:
