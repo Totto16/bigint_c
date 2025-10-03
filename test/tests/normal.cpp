@@ -68,9 +68,14 @@ TEST(BigInt, ParseError7) {
 
 TEST(BigInt, ParseError8) {
 
-	auto fun = []() { BigInt big_int = BigInt{ "ffgh" }; };
-
-	EXPECT_THROW(fun(), std::runtime_error);
+	try {
+		BigInt big_int = BigInt{ "01ffgh" };
+		FAIL() << "Expected bigint::ParseError to be thrown";
+	} catch(const bigint::ParseError& err) {
+		EXPECT_EQ(err, (bigint::ParseError{ "invalid character", 2, 'f' }));
+	} catch(...) {
+		FAIL() << "Expected bigint::ParseError to be thrown, but got a different exception";
+	}
 }
 
 TEST(BigInt, ParseError9) {
