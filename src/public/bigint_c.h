@@ -11,6 +11,6 @@ extern "C" {
 #ifdef __cplusplus
 }
 
-#include "../lib/cpp/lib.hpp"
+#include "./bigint_cpp.hpp"
 
 #endif
