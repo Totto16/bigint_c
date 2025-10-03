@@ -81,6 +81,12 @@ struct BigInt {
 	[[nodiscard]] static std::expected<BigInt, bigint::ParseError>
 	get_from_string(const std::string& str) noexcept;
 
+	/**
+	 * @brief Construct a new Big Int object
+	 * @throws bigint::ParseError - when the string is invalid
+	 * @see @link{BigInt::get_from_string} for a non throwing API
+	 * @param str
+	 */
 	explicit BigInt(const std::string& str);
 
 	~BigInt() noexcept;
