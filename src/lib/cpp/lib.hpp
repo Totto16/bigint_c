@@ -5,7 +5,7 @@
 #error "Only allowed in c++ mode"
 #endif
 
-#include "./lib.h"
+#include "../lib.h"
 
 #include <compare>
 #include <expected>
