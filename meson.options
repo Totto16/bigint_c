@@ -1,6 +1,6 @@
 option(
-    'test',
+    'tests',
     type: 'boolean',
-    value: true,
+    value: false,
     description: 'build tests',
 )

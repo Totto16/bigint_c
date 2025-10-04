@@ -1,4 +1,4 @@
-src_files += files('bigint_c.h', 'bigint_cpp.hpp')
+src_files += files('bigint_c.h')
 
 inc_dirs += include_directories('.')
 
