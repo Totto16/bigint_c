@@ -48,7 +48,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           path: ./build/meson-logs/coverage.xml
-          threshold: 0.90 # 0-1
+          threshold: 90.0 # 0-100
           fail: true
           coverage-reduction-failure: true
           # Publish the rendered output as a PR comment
