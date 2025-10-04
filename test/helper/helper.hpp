@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #include <bigint_c.h>

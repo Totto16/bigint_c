@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #if __STDC_VERSION__ >= 202000 || __cplusplus
