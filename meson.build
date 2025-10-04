@@ -6,7 +6,7 @@ project(
     default_options: {
         'buildtype': 'release',
         'optimization': '3',
-        'c_std': ['c2y', 'c23', 'c2x','c11'],
+        'c_std': ['c2y', 'c23', 'c2x', 'c11'],
         'warning_level': '3',
         'werror': 'true',
         'b_ndebug': 'if-release',
