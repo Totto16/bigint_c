@@ -62,3 +62,7 @@ TEST(BigIntCFuncs, BinStrReturnsNullOnInvalidInput) {
 
 	EXPECT_EQ(str, nullptr);
 }
+
+// TODO: input invalid BigInts into all public functions an see how the behave, make the behavior
+// expected, e.g. that negate doesn't care about the amount or numbers being NULL, or that it does
+// care
