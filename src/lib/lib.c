@@ -1363,10 +1363,26 @@ NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
 NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t big_int1,
                                                                      uint64_t big_int2) {
 
-	// TODO
-	UNUSED(big_int1);
-	UNUSED(big_int2);
-	UNREACHABLE_WITH_MSG("TODO");
+	uint128_t result = (uint128_t)big_int1 * (uint128_t)big_int2;
+
+	uint64_t left_part = (uint64_t)result;
+	uint64_t right_part = (uint64_t)(result >> 64);
+
+	bool need_two_numbers = right_part != 0;
+
+	BigInt result_big_int = { .positive = true,
+		                      .numbers = NULL,
+		                      .number_count = need_two_numbers ? 2 : 1 };
+
+	bigint_helper_realloc_to_new_size(&result_big_int);
+
+	result_big_int.numbers[0] = left_part;
+
+	if(need_two_numbers) {
+		result_big_int.numbers[1] = right_part;
+	}
+
+	return result_big_int;
 }
 
 NODISCARD static BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1, uint64_t big_int2) {
