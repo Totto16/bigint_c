@@ -1351,4 +1351,286 @@ BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int) {
 	big_int->positive = !big_int->positive;
 }
 
+typedef struct {
+	const uint64_t* numbers;
+	size_t number_count;
+} BigIntSlice;
+
+NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
+	return (BigIntSlice){ .numbers = big_int.numbers, .number_count = big_int.number_count };
+}
+
+NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t big_int1,
+                                                                     uint64_t big_int2) {
+
+	// TODO
+	UNUSED(big_int1);
+	UNUSED(big_int2);
+	UNREACHABLE_WITH_MSG("TODO");
+}
+
+NODISCARD static BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1, uint64_t big_int2) {
+#if defined(__SIZEOF_INT128__)
+	return bigint_mul_two_numbers_using_128_bit_numbers(big_int1, big_int2);
+#else
+#error "TODO"
+// TODO: use asm if on x86_64 or arm64 / or standard c way!
+#endif
+}
+
+NODISCARD static inline size_t helper_ceil_div(size_t input, size_t divider) {
+	return (input + divider - 1) / divider;
+}
+
+// NOTES: about "fake" 0 bigints:
+//  to make less memory allocations, we use bigint slices, that have NULL as numbers and count as 0,
+//  this represent 0, normally we would represent 0 by the numbers_count 0 and the first number
+//  being 0 to make this work, we need special checks in some places, where this could be used!
+// this are called "<x>_internal"
+
+NODISCARD static inline bool bigint_mul_karatsuba_is_zero_slice(BigIntSlice slice) {
+	return slice.number_count == 0 || slice.numbers == NULL;
+}
+
+NODISCARD static inline BigInt bigint_helper_copy_of_slice(BigIntSlice big_int_slice) {
+
+	BigInt big_int = { .positive = true,
+		               .numbers = (uint64_t*)big_int_slice.numbers,
+		               .number_count = big_int_slice.number_count };
+
+	return bigint_helper_get_full_copy(big_int);
+}
+
+NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2);
+
+NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_internal(BigIntSlice big_int1,
+                                                                    BigIntSlice big_int2) {
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
+		return bigint_helper_zero();
+	}
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int2)) {
+		return bigint_helper_zero();
+	}
+
+	return bigint_mul_bigint_karatsuba(big_int1, big_int2);
+}
+
+NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_add_internal(BigIntSlice big_int1,
+                                                                        BigIntSlice big_int2)
+
+{
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
+
+		if(bigint_mul_karatsuba_is_zero_slice(big_int2)) {
+			// 0 + 0
+			return bigint_helper_zero();
+		}
+
+		// 0 + +b = +b
+		return bigint_helper_copy_of_slice(big_int2);
+	}
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int2)) {
+		// +a + 0 = +a
+		return bigint_helper_copy_of_slice(big_int1);
+	}
+
+	// +a + +b
+
+	BigInt a = bigint_helper_copy_of_slice(big_int1);
+	BigInt b = bigint_helper_copy_of_slice(big_int2);
+
+	BigInt result = bigint_add_bigint_both_positive(a, b);
+
+	free_bigint_without_reset(a);
+	free_bigint_without_reset(b);
+
+	return result;
+}
+
+// this adds <amount> 0 numbera to the end of the number, also known as <big_int> * (2^64)^<amount>
+static void bigint_mul_bigint_karatsuba_shift_bigint_internally_by(BigInt* big_int, size_t amount) {
+
+	if(amount == 0) {
+		return;
+	}
+
+	size_t old_size = big_int->number_count;
+
+	big_int->number_count = old_size + amount;
+	bigint_helper_realloc_to_new_size(big_int);
+
+	// move the old numbers to the right (inverse as in normal numbers), starting from the right, so
+	// this can be done in one swoop, all leftover numbers are set to 0
+	for(size_t i = big_int->number_count; i != 0; --i) {
+
+		if(i > amount) {
+			uint64_t number_to_move = big_int->numbers[i - amount - 1];
+			big_int->numbers[i - 1] = number_to_move;
+		} else {
+			big_int->numbers[i - 1] = U64(0);
+		}
+	}
+}
+
+NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2);
+
+NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2) {
+
+	{ // check for simple bases cases e.g. * 0 or * 1
+
+		if(big_int1.number_count == 1) {
+
+			uint64_t number = big_int1.numbers[0];
+
+			if(number == 0) {
+				return bigint_helper_zero();
+			}
+
+			if(number == 1) {
+				return bigint_helper_copy_of_slice(big_int2);
+			}
+		}
+
+		if(big_int2.number_count == 1) {
+
+			uint64_t number = big_int2.numbers[0];
+
+			if(number == 0) {
+				return bigint_helper_zero();
+			}
+
+			if(number == 1) {
+				return bigint_helper_copy_of_slice(big_int1);
+			}
+		}
+	}
+
+	// basic algorihtm
+
+	// this is a divide and conquer algorithm based on en.wikipedia.org/wiki/Karatsuba_algorithm
+
+	// base case
+	if(big_int1.number_count == 1 && big_int2.number_count == 1) {
+		return bigint_mul_bigint_karatsuba_base(big_int1.numbers[0], big_int2.numbers[0]);
+	}
+
+	// recursive case
+
+	{
+		size_t max_count = helper_max(big_int1.number_count, big_int2.number_count);
+
+		size_t divide_at = helper_ceil_div(max_count, 2);
+
+		// get the 4 parts of the numbers, the first part can be NULL, as e.g. one can be smaller as
+		// the divide_at
+		// NOTE: PAY ATTENTION to the order, as the uint64_t values are stored in reverse order!
+
+		BigIntSlice a1 = { .numbers = NULL, .number_count = 0 };
+
+		if(big_int1.number_count > divide_at) {
+			a1.number_count = big_int1.number_count - divide_at;
+			a1.numbers = big_int1.numbers + divide_at;
+		}
+
+		BigIntSlice a2 = { .numbers = big_int1.numbers, .number_count = divide_at };
+
+		BigIntSlice b1 = { .numbers = NULL, .number_count = 0 };
+
+		if(big_int2.number_count > divide_at) {
+			b1.number_count = big_int2.number_count - divide_at;
+			b1.numbers = big_int2.numbers + divide_at;
+		}
+
+		BigIntSlice b2 = { .numbers = big_int2.numbers, .number_count = divide_at };
+
+		// do the necessary steps, use internal algorithm, where we could pass "fake" 0 bigint
+		// slices, see above what "fake" means
+
+		BigInt z_2 = bigint_mul_bigint_karatsuba_internal(a1, b1);
+
+		BigInt z_0 = bigint_mul_bigint_karatsuba(a2, b2);
+
+		BigInt z_1_temp1 = bigint_mul_bigint_karatsuba_add_internal(a1, a2);
+
+		BigInt z_1_temp2 = bigint_mul_bigint_karatsuba_add_internal(b1, b2);
+
+		BigInt z_1_mul_temp = bigint_mul_bigint_both_positive(z_1_temp1, z_1_temp2);
+
+		BigInt z_1_sub_temp = bigint_sub_bigint_both_positive(z_1_mul_temp, z_2);
+		ASSERT(z_1_sub_temp.positive, "result of this subtraction should always be positive!");
+
+		BigInt z_1 = bigint_sub_bigint_both_positive(z_1_sub_temp, z_0);
+		ASSERT(z_1.positive, "result of this subtraction should always be positive!");
+
+		// make the final number
+
+		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_2, divide_at * 2);
+
+		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_1, divide_at);
+
+		BigInt result_add_temp = bigint_add_bigint_both_positive(z_2, z_1);
+
+		free_bigint_without_reset(z_2);
+		free_bigint_without_reset(z_1);
+
+		BigInt result = bigint_add_bigint_both_positive(result_add_temp, z_0);
+
+		free_bigint_without_reset(result_add_temp);
+		free_bigint_without_reset(z_0);
+
+		bigint_helper_remove_leading_zeroes(&result);
+
+		// TODO: free all not anymore used bigints!
+
+		return result;
+	}
+}
+
+NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+
+	return bigint_mul_bigint_karatsuba(bigint_slice_from_bigint(big_int1),
+	                                   bigint_slice_from_bigint(big_int2));
+}
+
+BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2) {
+
+	if(big_int1.positive) {
+		if(big_int2.positive) {
+			// +a * +b
+			return bigint_mul_bigint_both_positive(big_int1, big_int2);
+		}
+
+		// +a * -b = - (+a * +b)
+		big_int2.positive = true;
+		BigInt result = bigint_mul_bigint_both_positive(big_int1, big_int2);
+
+		result.positive = false;
+
+		return result;
+	}
+
+	if(big_int2.positive) {
+		// -a * +b = - (+b * +a)
+		big_int1.positive = true;
+		BigInt result = bigint_mul_bigint_both_positive(big_int1, big_int2);
+
+		result.positive = false;
+
+		return result;
+	}
+
+	// both are negative
+
+	// -a * -b = + ( +a * +b )
+
+	big_int1.positive = true;
+	big_int2.positive = true;
+
+	return bigint_mul_bigint_both_positive(big_int1, big_int2);
+}
+
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)
