@@ -295,6 +295,24 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	return result;
 }
 
+[[nodiscard]] BigIntTest BigIntTest::operator*(const BigIntTest& value2) const {
+
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_mul(result_number, *number1, *number2);
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
 #elif TEST_BACKEND_USE_IMPLEMENTATION == 1
 
 #define CHECK_MP_ERROR(err) \
@@ -520,4 +538,27 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	return result;
 }
+
+[[nodiscard]] BigIntTest BigIntTest::operator*(const BigIntTest& value2) const {
+
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_mul(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
 #endif
