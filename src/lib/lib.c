@@ -1626,6 +1626,13 @@ BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 
 		result.positive = false;
 
+		// - 0 becomes +0
+		if(result.number_count == 1) {
+			if(result.numbers[0] == 0) {
+				result.positive = true;
+			}
+		}
+
 		return result;
 	}
 
@@ -1635,6 +1642,13 @@ BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 		BigInt result = bigint_mul_bigint_both_positive(big_int1, big_int2);
 
 		result.positive = false;
+
+		// - 0 becomes +0
+		if(result.number_count == 1) {
+			if(result.numbers[0] == 0) {
+				result.positive = true;
+			}
+		}
 
 		return result;
 	}
