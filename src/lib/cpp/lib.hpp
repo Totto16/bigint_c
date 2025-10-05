@@ -457,21 +457,33 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 }
 
 [[nodiscard]] BigInt& BigInt::operator+=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_add_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator-=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_sub_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator*=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_mul_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator/=(const BigInt& value2) {
