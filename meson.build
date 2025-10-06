@@ -43,7 +43,7 @@ bigint_c_lib = library(
     dependencies: deps,
     include_directories: inc_dirs,
     c_args: args,
-    c_shared_args:['-DBIGINT_C_LIB_EXPORT'],
+    c_shared_args: ['-DBIGINT_C_LIB_EXPORT'],
     install: true,
     version: bigint_c_lib_version,
 )
@@ -61,7 +61,7 @@ pkg.generate(
 
 bigint_c_dep = declare_dependency(
     link_with: bigint_c_lib,
-    compile_args:  args,
+    compile_args: args,
     include_directories: inc_dirs,
     dependencies: deps,
     version: bigint_c_lib_version,
