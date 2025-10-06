@@ -98,28 +98,35 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 static constexpr uint8_t CHUNK_BITS = 64;
 
 static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
-	size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
+	const size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
 	std::vector<uint64_t> values{};
 	values.resize(num_chunks);
 
-	mpz_t temp;
-	mpz_init_set(temp, number);
+	int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
+	int endian = 0; // host endian
+	int nails = 0;  // use all 64 bits of the number
 
-	// TODO: use mpz_export
+	size_t written = num_chunks;
 
-	for(size_t i = 0; i < num_chunks; ++i) {
-		values.at(i) = mpz_get_ui(temp);
-
-		// Shift right by 64 bits, don't perform arithmetic shifts (affects negative values), see
-		// https://gmplib.org/manual/Integer-Division
-		mpz_tdiv_q_2exp(temp, temp, CHUNK_BITS);
-	}
+	// see: https://gmplib.org/manual/Integer-Import-and-Export
+	mpz_export((void*)(values.data()), &written, order, sizeof(uint64_t), endian, nails, number);
 
 	// note: 0 is always positive here
 	bool positive = mpz_sgn(number) >= 0;
 
 	mpz_clear(number);
-	mpz_clear(temp);
+
+	if(written > num_chunks) {
+		throw std::runtime_error("values were written out of bounds");
+	}
+
+	values.resize(written);
+
+	if(written == 0) {
+		// number is 0
+		values.resize(1);
+		values.at(0) = 0;
+	}
 
 	test = BigIntTest(positive, std::move(values));
 }
@@ -323,7 +330,7 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 	CHECK_MP_ERROR(error);
 
 	if(written > num_chunks) {
-		throw std::runtime_error("values were written out bounds");
+		throw std::runtime_error("values were written out of bounds");
 	}
 
 	values.resize(written);
