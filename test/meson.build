@@ -1,3 +1,7 @@
+if host_machine.system() == 'windows'
+    error('tests are currently not supported on windows')
+endif
+
 test_deps = deps
 
 test_deps += dependency(
@@ -10,7 +14,6 @@ test_deps += dependency(
 )
 
 test_deps += dependency('gmp')
-
 
 test_deps += bigint_c_dep
 
@@ -32,8 +35,6 @@ foreach file : test_files
 
     test_args = []
 
-
-
     if file_name == 'compile_time_tests'
 
         cxx = meson.get_compiler('cpp')
@@ -41,22 +42,24 @@ foreach file : test_files
         test_needed_constexpr_depth = 1024
         test_needed_constexpr_steps = 1000000000
 
-
         if cxx.get_id() == 'gcc'
             #default 512
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())
             # default: 33554432 (1<<25)
-            test_args += ('-fconstexpr-ops-limit=' + test_needed_constexpr_steps.to_string())
+            test_args += (
+                '-fconstexpr-ops-limit='
+                                        + test_needed_constexpr_steps.to_string()
+            )
         elif cxx.get_id() == 'clang'
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())
             test_args += ('-fconstexpr-steps=' + test_needed_constexpr_steps.to_string())
         else
-            warning('Not supported test \'' + file_name + '\' for compiler \'' + cxx.get_id() + '\'')
+            warning('Not supported test \''
+                + file_name + '\' for compiler \'' + cxx.get_id() + '\'')
             continue
         endif
 
     endif
-
 
     test_exe = executable(
         'test_' + file_name,
