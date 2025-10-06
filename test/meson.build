@@ -55,7 +55,7 @@ foreach file : test_files
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())
             test_args += ('-fconstexpr-steps=' + test_needed_constexpr_steps.to_string())
         elif host_machine.system() == 'windows'
-        
+            test_args += ['/constexpr:steps' , test_needed_constexpr_steps.to_string()]
         else
             warning('Not supported test \''
                 + file_name + '\' for compiler \'' + cxx.get_id() + '\'')
