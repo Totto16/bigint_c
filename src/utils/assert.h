@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #if defined(_MSC_VER)
 #define NO_RETURN __declspec(noreturn)
 #else
