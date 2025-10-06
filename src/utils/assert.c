@@ -4,8 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-__attribute__((noreturn)) void custom_panic(const char* file_path, int line,
-                                              const char* message) {
+NO_RETURN void custom_panic(const char* file_path, int line, const char* message) {
 	fprintf(stderr, "%s:%d: ASSERTION FAILED: %s\n", file_path, line, message);
 	abort();
 }
