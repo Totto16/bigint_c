@@ -8,17 +8,18 @@
 
 // functions on maybe bigint
 
-NODISCARD bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int) {
+BIGINT_C_LIB_EXPORTED NODISCARD bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int) {
 	return maybe_big_int.error;
 }
 
-NODISCARD BigInt maybe_bigint_get_value(MaybeBigIntC maybe_big_int) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigInt maybe_bigint_get_value(MaybeBigIntC maybe_big_int) {
 	ASSERT(!maybe_bigint_is_error(maybe_big_int), "MaybeBigIntC has no value");
 
 	return maybe_big_int.data.result;
 }
 
-NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
+BIGINT_C_LIB_EXPORTED NODISCARD MaybeBigIntError
+maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
 	ASSERT(maybe_bigint_is_error(maybe_big_int), "MaybeBigIntC has no error");
 
 	return maybe_big_int.data.error;
@@ -28,7 +29,7 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
 
 #define U64(n) (uint64_t)(n##ULL)
 
-static void bigint_helper_realloc_to_new_size(BigInt* big_int) {
+BIGINT_C_ONLY_LOCAL static void bigint_helper_realloc_to_new_size(BigInt* big_int) {
 
 	uint64_t* new_numbers = realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
 
@@ -40,7 +41,7 @@ static void bigint_helper_realloc_to_new_size(BigInt* big_int) {
 	big_int->numbers = new_numbers;
 }
 
-static BigInt bigint_helper_zero(void) {
+BIGINT_C_ONLY_LOCAL static BigInt bigint_helper_zero(void) {
 
 	BigInt result = { .positive = true, .numbers = NULL, .number_count = 1 };
 
@@ -59,7 +60,7 @@ typedef struct {
 	size_t capacity;
 } BCDDigits;
 
-static void free_bcd_digits(BCDDigits digits) {
+BIGINT_C_ONLY_LOCAL static void free_bcd_digits(BCDDigits digits) {
 	if(digits.bcd_digits != NULL) {
 		free(digits.bcd_digits);
 	}
@@ -70,7 +71,7 @@ static void free_bcd_digits(BCDDigits digits) {
 // TODO: as one bcd input only uses 4 bits, 2 of them could be stored in one uint8_t , but that is
 // more complicated, when processing it, so this is a optimization for later
 
-static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
+BIGINT_C_ONLY_LOCAL static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 
 	if(digits->count + 1 > digits->capacity) {
 		size_t new_size = digits->capacity == 0 ? BCD_DIGITS_START_CAPACITY : digits->capacity * 2;
@@ -94,7 +95,8 @@ static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 #define BIGINT_BIT_COUNT_FOR_BCD_ALG 64
 #define BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG 4
 
-static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_digits) {
+BIGINT_C_ONLY_LOCAL static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int,
+                                                                   BCDDigits bcd_digits) {
 	// using reverse double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
@@ -239,7 +241,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 	free_bigint(&temp);
 }
 
-static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
+BIGINT_C_ONLY_LOCAL static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
 	if(big_int->number_count == 0) {                                      // GCOVR_EXCL_BR_LINE
 		UNREACHABLE_WITH_MSG("big_int has to have at least one number!"); // GCOVR_EXCL_LINE
 	} // GCOVR_EXCL_LINE
@@ -273,22 +275,23 @@ static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
 	bigint_helper_realloc_to_new_size(big_int);
 }
 
-NODISCARD static inline bool helper_is_digit(StrType value) {
+BIGINT_C_ONLY_LOCAL NODISCARD static inline bool helper_is_digit(StrType value) {
 	return value >= '0' && value <= '9';
 }
 
-NODISCARD static uint8_t helper_char_to_digit(StrType value) {
+BIGINT_C_ONLY_LOCAL NODISCARD static uint8_t helper_char_to_digit(StrType value) {
 	return value - '0';
 }
 
-NODISCARD static StrType helper_digit_to_char_checked(uint8_t value) {
+BIGINT_C_ONLY_LOCAL NODISCARD static StrType helper_digit_to_char_checked(uint8_t value) {
 
 	ASSERT(value < 10, "value is not a valid digit");
 
 	return (StrType)((StrType)value + '0');
 }
 
-NODISCARD static StrType helper_digit_to_hex_char_checked(uint8_t value, bool uppercase) {
+BIGINT_C_ONLY_LOCAL NODISCARD static StrType helper_digit_to_hex_char_checked(uint8_t value,
+                                                                              bool uppercase) {
 
 	ASSERT(value < 0x10, "value is not a valid hex digit");
 
@@ -303,14 +306,14 @@ NODISCARD static StrType helper_digit_to_hex_char_checked(uint8_t value, bool up
 	return (StrType)((StrType)(value - (uint8_t)10) + 'a');
 }
 
-NODISCARD static inline bool helper_is_separator(StrType value) {
+BIGINT_C_ONLY_LOCAL NODISCARD static inline bool helper_is_separator(StrType value) {
 	// valid separators are /[_',.]/
 	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
 // TODO: add separate functions for parsing from bin and hex, and also one, that detects it based on
 // prefix  (none means dec)
-NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
+BIGINT_C_LIB_EXPORTED NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	BigInt result = bigint_helper_zero();
 
@@ -424,7 +427,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 	return (MaybeBigIntC){ .error = false, .data = { .result = result } };
 }
 
-NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
 	BigInt result = bigint_helper_zero();
 	result.positive = true;
 	result.numbers[0] = number;
@@ -432,7 +435,7 @@ NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
 	return result;
 }
 
-NODISCARD BigInt bigint_from_signed_number(int64_t number) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigInt bigint_from_signed_number(int64_t number) {
 	BigInt result = bigint_helper_zero();
 
 	if(number < 0LL) {
@@ -451,7 +454,7 @@ NODISCARD BigInt bigint_from_signed_number(int64_t number) {
 	return result;
 }
 
-NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 
 	BigIntC result = { .positive = big_int.positive,
 		               .numbers = NULL,
@@ -464,7 +467,8 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 	return result;
 }
 
-NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers,
+                                                                    size_t size) {
 
 	BigIntC result = { .positive = true, .numbers = NULL, .number_count = size };
 
@@ -479,7 +483,7 @@ NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size) {
 	return result;
 }
 
-void free_bigint(BigInt* big_int) {
+BIGINT_C_LIB_EXPORTED void free_bigint(BigInt* big_int) {
 	if(big_int == NULL) {
 		return;
 	}
@@ -490,17 +494,17 @@ void free_bigint(BigInt* big_int) {
 	}
 }
 
-void free_bigint_without_reset(BigIntC big_int) {
+BIGINT_C_LIB_EXPORTED void free_bigint_without_reset(BigIntC big_int) {
 	if(big_int.numbers != NULL) {
 		free(big_int.numbers);
 	}
 }
 
-NODISCARD BigIntC bigint_copy(BigIntC big_int) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_copy(BigIntC big_int) {
 	return bigint_helper_get_full_copy(big_int);
 }
 
-NODISCARD static size_t bigint_helper_bits_of_number_used(uint64_t number) {
+BIGINT_C_ONLY_LOCAL NODISCARD static size_t bigint_helper_bits_of_number_used(uint64_t number) {
 
 	uint64_t temp = number;
 	size_t result = 0;
@@ -513,7 +517,8 @@ NODISCARD static size_t bigint_helper_bits_of_number_used(uint64_t number) {
 	return result;
 }
 
-NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC source) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BCDDigits
+bigint_helper_get_bcd_digits_from_bigint(BigIntC source) {
 
 	// using double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble
@@ -650,7 +655,7 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 }
 
 // TODO: support also some options, as for to_string_hex and to_string_bin
-NODISCARD Str bigint_to_string(BigInt big_int) {
+BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string(BigInt big_int) {
 
 	if(big_int.number_count == 0) {
 		return NULL;
@@ -708,8 +713,9 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 
 // TODO: add option to show + when it is positive!	add ability to choose gap character, use
 // struct to not pass a million booleans around!
-NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
-                                   bool trim_first_number, bool uppercase) {
+BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix,
+                                                         bool add_gaps, bool trim_first_number,
+                                                         bool uppercase) {
 
 	if(big_int.number_count == 0) {
 		return NULL;
@@ -792,8 +798,8 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 #define SIZEOF_BYTE_AS_BIN_STR 8UL
 #define SIZEOF_VALUE_AS_BIN_STR (SIZEOF_BYTE_AS_BIN_STR * 8UL)
 
-NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
-                                   bool trim_first_number) {
+BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix,
+                                                         bool add_gaps, bool trim_first_number) {
 	if(big_int.number_count == 0) {
 		return NULL;
 	}
@@ -870,7 +876,7 @@ NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
 	return str;
 }
 
-NODISCARD static size_t helper_max(size_t a, size_t b) {
+BIGINT_C_ONLY_LOCAL NODISCARD static size_t helper_max(size_t a, size_t b) {
 	if(a > b) {
 		return a;
 	}
@@ -889,8 +895,8 @@ typedef __int128_t int128_t;
 
 #if defined(HAVE_128_BIT_NUMBERS)
 
-NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
-                                                                              BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt
+bigint_add_bigint_both_positive_using_128_bit_numbers(BigInt big_int1, BigInt big_int2) {
 
 	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
 
@@ -928,8 +934,8 @@ NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(Bi
 	return result;
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
-                                                                              BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt
+bigint_sub_bigint_both_positive_using_128_bit_numbers(BigInt big_int1, BigInt big_int2) {
 
 	// NOTE: here it is assumed, that  a > b
 
@@ -984,16 +990,16 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(Bi
 #include <intrin.h>
 #endif
 
-NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
-                                                             uint64_t value2, uint64_t* result_out);
+BIGINT_C_ONLY_LOCAL NODISCARD static uint8_t
+bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1, uint64_t value2,
+                                    uint64_t* result_out);
 
 // use fast intrinsic (in ASM ADC) on x86_64 (only on windows for now)
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
 
-NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
-                                                                    uint64_t value1,
-                                                                    uint64_t value2,
-                                                                    uint64_t* result_out) {
+BIGINT_C_ONLY_LOCAL NODISCARD static inline uint8_t
+bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1, uint64_t value2,
+                                    uint64_t* result_out) {
 
 	// see:
 	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_addcarry_u64&ig_expand=175
@@ -1001,9 +1007,9 @@ NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carr
 }
 
 #else
-NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
-                                                             uint64_t value2,
-                                                             uint64_t* result_out) {
+BIGINT_C_ONLY_LOCAL NODISCARD static uint8_t
+bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1, uint64_t value2,
+                                    uint64_t* result_out) {
 	uint64_t sum = value1 + value2;
 	*result_out = sum + carry_in;
 
@@ -1015,7 +1021,8 @@ NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, u
 }
 #endif
 
-NODISCARD static BigInt bigint_add_bigint_both_positive_normal(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt
+bigint_add_bigint_both_positive_normal(BigInt big_int1, BigInt big_int2) {
 
 	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
 
@@ -1053,7 +1060,8 @@ NODISCARD static BigInt bigint_add_bigint_both_positive_normal(BigInt big_int1, 
 	return result;
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive_normal(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt
+bigint_sub_bigint_both_positive_normal(BigInt big_int1, BigInt big_int2) {
 
 	// NOTE: here it is assumed, that  a > b
 
@@ -1101,7 +1109,8 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_normal(BigInt big_int1, 
 }
 #endif
 
-NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1,
+                                                                            BigInt big_int2) {
 
 #if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
@@ -1111,7 +1120,7 @@ NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt 
 #endif
 }
 
-NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 
 	if(big_int1.positive) {
 
@@ -1145,7 +1154,8 @@ NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 	return result;
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive_impl(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt bigint_sub_bigint_both_positive_impl(BigInt big_int1,
+                                                                                 BigInt big_int2) {
 
 #if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
@@ -1154,7 +1164,8 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_impl(BigInt big_int1, Bi
 #endif
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_ONLY_LOCAL NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1,
+                                                                            BigInt big_int2) {
 
 	// check in which direction we need to perform the subtraction
 	int8_t compared = bigint_compare_bigint(big_int1, big_int2);
@@ -1174,7 +1185,7 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt 
 	return result;
 }
 
-NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
+BIGINT_C_LIB_EXPORTED NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
 
 	if(big_int1.positive) {
 		if(big_int2.positive) {
@@ -1205,7 +1216,7 @@ NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
 	return result;
 }
 
-NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
+BIGINT_C_LIB_EXPORTED NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
 	if(big_int1.positive != big_int2.positive) {
 		return false;
 	}
@@ -1223,7 +1234,7 @@ NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
 	return true;
 }
 
-NODISCARD static int8_t cmp_reverse(int8_t value) {
+BIGINT_C_ONLY_LOCAL NODISCARD static int8_t cmp_reverse(int8_t value) {
 	if(value == 0) {
 		return 0;
 	}
@@ -1239,7 +1250,7 @@ NODISCARD static int8_t cmp_reverse(int8_t value) {
 #define CMP_FIRST_ONE_IS_GREATER ((int8_t)1)
 #define CMP_ARE_EQUAL ((int8_t)0)
 
-NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
+BIGINT_C_LIB_EXPORTED NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 
 	if(!big_int1.positive) {
 		if(big_int2.positive) {
@@ -1287,7 +1298,7 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 	return CMP_ARE_EQUAL;
 }
 
-void bigint_negate(BigIntC* big_int) {
+BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int) {
 
 	if(big_int->number_count == 1) {
 		if(big_int->numbers[0] == 0) {
