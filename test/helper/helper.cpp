@@ -105,7 +105,7 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	mpz_t temp;
 	mpz_init_set(temp, number);
 
-	// TODO: maybe use mpz_export
+	// TODO: use mpz_export
 
 	for(size_t i = 0; i < num_chunks; ++i) {
 		values.at(i) = mpz_get_ui(temp);
@@ -295,42 +295,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 }
 
 #elif USE_IMPLEMENTATION == 1
-static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
-
-	uint8_t digit_size = sizeof(mp_digit);
-
-	if(!(digit_size == 4 || digit_size == 8)) {
-		throw new std::runtime_error("expected 32 or 64 bits per value!");
-	}
-
-	size_t mp_chuncks = number.used;
-
-	size_t num_chunks = digit_size == 4 ? ((mp_chuncks + 1) / 2) : mp_chuncks;
-	std::vector<uint64_t> values{};
-	values.resize(num_chunks);
-
-	size_t mp_index = 0;
-	for(size_t i = num_chunks; i != 0; --i, ++mp_index) {
-
-		uint64_t word = 0;
-		if(digit_size == 4) {
-			word = number.dp[mp_index];
-			if(mp_index + 1 < mp_chuncks) {
-				word |= static_cast<uint64_t>(number.dp[mp_index + 1]) << 32;
-			}
-		} else {
-			word = number.dp[mp_index];
-		}
-
-		values.at(i - 1) = word;
-	}
-
-	bool positive = !mp_isneg((&number));
-
-	mp_clear(&number);
-
-	test = BigIntTest(positive, std::move(values));
-}
 
 #define CHECK_MP_ERROR(err) \
 	do { \
@@ -338,6 +302,36 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 			throw new std::runtime_error{ mp_error_to_string(err) }; \
 		} \
 	} while(false)
+
+static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
+
+	mp_order order =
+	    MP_LSB_FIRST; // -1 means the least significant uint64_t comes first, as we store it.
+	mp_endian endian = MP_NATIVE_ENDIAN; // host endian
+	size_t nails = 0;                    // use all 64 bits of the number
+
+	size_t num_chunks = mp_pack_count(&number, nails, sizeof(uint64_t));
+
+	std::vector<uint64_t> values{};
+	values.resize(num_chunks);
+
+	size_t written = 0;
+
+	mp_err error = mp_pack((void*)(values.data()), num_chunks, &written, order, sizeof(uint64_t),
+	                       endian, nails, &number);
+
+	CHECK_MP_ERROR(error);
+
+	if(written > num_chunks) {
+		throw new std::runtime_error("values were written out bounds");
+	}
+
+	values.resize(written);
+
+	bool positive = !mp_isneg((&number));
+
+	test = BigIntTest(positive, std::move(values));
+}
 
 namespace {
 
@@ -381,42 +375,17 @@ class MPWrapper {
 
 static MPWrapper get_tommath_value_from_bigint(const BigIntTest& test) {
 
-	uint8_t digit_size = sizeof(mp_digit);
-
-	if(!(digit_size == 4 || digit_size == 8)) {
-		throw new std::runtime_error("expected 32 or 64 bits per value!");
-	}
-
-	int shift_size = digit_size == 4 ? 2 : 1;
-
 	MPWrapper bigint{};
 
-	mp_zero(*bigint);
+	mp_order order =
+	    MP_LSB_FIRST; // -1 means the least significant uint64_t comes first, as we store it.
+	mp_endian endian = MP_NATIVE_ENDIAN; // host endian
+	size_t nails = 0;                    // use all 64 bits of the number
 
-	for(size_t i = 0; i < test.values().size(); ++i) {
-		mp_int temp, shift;
-		mp_err error = mp_init(&temp);
-		CHECK_MP_ERROR(error);
+	mp_err error = mp_unpack(*bigint, test.values().size(), order, sizeof(uint64_t), endian, nails,
+	                         (void*)(test.values().data()));
 
-		error = mp_init(&shift);
-		CHECK_MP_ERROR(error);
-
-		mp_set_u64(&temp, test.values()[i]);
-
-		error = mp_lshd(&temp, shift_size);
-		CHECK_MP_ERROR(error);
-
-		if(i > 0) {
-			mp_lshd(&temp, shift_size);
-		}
-
-		// result = result + shift
-		error = mp_add(*bigint, &temp, *bigint);
-		CHECK_MP_ERROR(error);
-
-		mp_clear(&temp);
-		mp_clear(&shift);
-	}
+	CHECK_MP_ERROR(error);
 
 	(*bigint)->sign = test.positive() ? MP_ZPOS : MP_NEG;
 
