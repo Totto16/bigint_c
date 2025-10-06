@@ -539,13 +539,14 @@ bigint_helper_get_bcd_digits_from_bigint(BigIntC source) {
 		}
 	}
 
-	const size_t last_number_bit_amount = bigint_helper_bits_of_number_used(
+	size_t last_number_bit_amount = bigint_helper_bits_of_number_used(
 	    source.numbers[0]); // range 0 -64 0 should never be here, as then i should have remove
 	                        // it earlier (remove leading zeroes!)
 
 	// but it is here when the value is just 0 ("0")
-	// TODO: handle that case
-	ASSERT(last_number_bit_amount != 0, "first number has to have at least one bit of information");
+	if(last_number_bit_amount == 0) {
+		last_number_bit_amount = 1; // print one 0, even if it's a not a 1
+	}
 
 	// calculate the amount of input bits
 	const size_t total_input_bits = source.number_count * BIGINT_BIT_COUNT_FOR_BCD_ALG;
@@ -771,6 +772,10 @@ BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool p
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
 				start_point = (64 - bits_used) / 4;
+				if(start_point == SIZEOF_VALUE_AS_HEX_STR) {
+					start_point =
+					    SIZEOF_VALUE_AS_HEX_STR - 1; // print one 0, even if it's a not a 1
+				}
 				ASSERT(start_point < SIZEOF_VALUE_AS_HEX_STR, "start_point was too high");
 			}
 		}
@@ -854,6 +859,10 @@ BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool p
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
 				start_point = 64 - bits_used;
+				if(start_point == SIZEOF_VALUE_AS_BIN_STR) {
+					start_point =
+					    SIZEOF_VALUE_AS_BIN_STR - 1; // print one 0, even if it's a not a 1
+				}
 				ASSERT(start_point < SIZEOF_VALUE_AS_BIN_STR, "start_point was too high");
 			}
 		}
