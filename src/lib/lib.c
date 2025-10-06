@@ -877,10 +877,17 @@ NODISCARD static size_t helper_max(size_t a, size_t b) {
 	return b;
 }
 
+#if defined __GNUC__
 #if defined(__SIZEOF_INT128__)
-
+#define HAVE_128_BIT_NUMBERS
 typedef __uint128_t uint128_t;
 typedef __int128_t int128_t;
+
+#endif
+
+#endif
+
+#if defined(HAVE_128_BIT_NUMBERS)
 
 NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
                                                                               BigInt big_int2) {
@@ -971,15 +978,135 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(Bi
 
 	return result;
 }
+#else
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
+NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
+                                                             uint64_t value2, uint64_t* result_out);
+
+// use fast intrinsic (in ASM ADC) on x86_64 (only on windows for now)
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
+
+NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
+                                                                    uint64_t value1,
+                                                                    uint64_t value2,
+                                                                    uint64_t* result_out) {
+
+	// see:
+	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_addcarry_u64&ig_expand=175
+	return _addcarry_u64(carry_in, value1, value2, result_out);
+}
+
+#else
+NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
+                                                             uint64_t value2,
+                                                             uint64_t* result_out) {
+	uint64_t sum = value1 + value2;
+	*result_out = sum + carry_in;
+
+	bool carry1 = sum < a;
+	bool carry2 = *result_out < sum;
+
+	uint8_t carry_out = carry1 || carry2 ? 1 : 0;
+	return carry_out;
+}
+#endif
+
+NODISCARD static BigInt bigint_add_bigint_both_positive_normal(BigInt big_int1, BigInt big_int2) {
+
+	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	{ // 1. perform the actual addition
+
+		uint8_t carry = U64(0);
+
+		for(size_t i = 0; i < result.number_count; ++i) {
+
+			uint64_t value1 = U64(0);
+			uint64_t value2 = U64(0);
+
+			if(i < big_int1.number_count) {
+				value1 = big_int1.numbers[i];
+			}
+
+			if(i < big_int2.number_count) {
+				value2 = big_int2.numbers[i];
+			}
+
+			carry =
+			    bigint_helper_add_uint64_with_carry(carry, value1, value2, &(result.numbers[i]));
+		}
+
+		ASSERT(carry == 0,
+		       "The carry at the end has to be zero, otherwise we would have an overflow");
+	}
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
+
+NODISCARD static BigInt bigint_sub_bigint_both_positive_normal(BigInt big_int1, BigInt big_int2) {
+
+	// NOTE: here it is assumed, that  a > b
+
+	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	{ // 1. perform the actual subtraction
+
+		unsigned char borrow = 0;
+
+		for(size_t i = 0; i < result.number_count; ++i) {
+
+			uint64_t value1 = U64(0);
+			uint64_t value2 = U64(0);
+
+			if(i < big_int1.number_count) {
+				value1 = big_int1.numbers[i];
+			}
+
+			if(i < big_int2.number_count) {
+				value2 = big_int2.numbers[i];
+			}
+
+			uint64_t temp = value1 - value2;
+
+			if(borrow != 0) {
+				temp = temp - borrow;
+			}
+
+			borrow = (value1 < value2 + borrow) ? 1 : 0;
+
+			result.numbers[i] = temp;
+		}
+
+		ASSERT(borrow == 0,
+		       "The borrow at the end has to be zero, otherwise we would have an overflow");
+	}
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
 #endif
 
 NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
 
-#if defined(__SIZEOF_INT128__)
+#if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
-#error "TODO"
+	return bigint_add_bigint_both_positive_normal(big_int1, big_int2);
 // TODO: use asm if on x86_64 or arm64 / or standard c way!
 #endif
 }
@@ -1020,10 +1147,10 @@ NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 
 NODISCARD static BigInt bigint_sub_bigint_both_positive_impl(BigInt big_int1, BigInt big_int2) {
 
-#if defined(__SIZEOF_INT128__)
+#if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
-#error "TODO"
+	return bigint_sub_bigint_both_positive_normal(big_int1, big_int2);
 #endif
 }
 
