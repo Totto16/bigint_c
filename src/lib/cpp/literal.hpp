@@ -7,13 +7,6 @@
 #include <limits>
 #include <string>
 
-// TODO: can we use constexpr under linux too in this plcaes?
-#if defined(_MSC_VER)
-#define WIN_CONSTEXPR constexpr
-#else
-#define WIN_CONSTEXPR
-#endif
-
 template <size_t N> struct BigIntConstExpr {
   public:
 	bool positive;
@@ -280,7 +273,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 
 	// bigint regex: /^[+-]?[0-9][0-9_',.]*$/
 
-	if WIN_CONSTEXPR /**/ (S.size == 0) {
+	if constexpr(S.size == 0) {
 		return ResultType::error_result(MaybeBigIntError{
 		    .message = "empty string is not valid",
 		    .index = 0,
@@ -301,7 +294,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 		result.positive = false;
 		++i;
 
-		if WIN_CONSTEXPR /**/ (S.size == 1) {
+		if constexpr(S.size == 1) {
 			return ResultType::error_result(MaybeBigIntError{
 			    .message = "'-' alone is not valid",
 			    .index = 0,
@@ -312,7 +305,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 		result.positive = true;
 		++i;
 
-		if WIN_CONSTEXPR /**/ (S.size == 1) {
+		if constexpr(S.size == 1) {
 			return ResultType::error_result(MaybeBigIntError{
 			    .message = "'+' alone is not valid",
 			    .index = 0,
