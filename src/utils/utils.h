@@ -46,3 +46,36 @@
 	} while(false)
 
 #endif
+
+// see: https://gcc.gnu.org/wiki/Visibility
+
+// clang-format off
+#if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+    #define BIGINT_C_ONLY_LOCAL
+
+	// mingw vs msvc
+    #if defined(__GNUC__)
+        #define BIGINT_C_DLL_EXPORT __attribute__((dllexport))
+        #define BIGINT_C_DLL_IMPORT __attribute__((dllimport))
+    #else
+        #define BIGINT_C_DLL_EXPORT __declspec(dllexport) 
+        #define BIGINT_C_DLL_IMPORT __declspec(dllimport) 
+    #endif
+#else
+    #define BIGINT_C_ONLY_LOCAL __attribute__((visibility("hidden")))
+
+    #define BIGINT_C_DLL_EXPORT __attribute__((visibility("default")))
+    #define BIGINT_C_DLL_IMPORT __attribute__((visibility("default")))
+#endif
+
+#if defined(BIGINT_C_LIB_TYPE) && BIGINT_C_LIB_TYPE == 0
+	#if defined(BIGINT_C_LIB_EXPORT)
+		#define BIGINT_C_LIB_EXPORTED BIGINT_C_DLL_EXPORT
+	#else
+		#define BIGINT_C_LIB_EXPORTED BIGINT_C_DLL_IMPORT
+	#endif
+#else
+	#define BIGINT_C_LIB_EXPORTED BIGINT_C_ONLY_LOCAL
+#endif
+
+// clang-format on

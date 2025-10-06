@@ -39,7 +39,8 @@ bigint_c_lib = library(
     src_files,
     dependencies: deps,
     include_directories: inc_dirs,
-    c_args: ['-DBIGINT_C_VERSION_STRING="' + bigint_c_lib_version + '"'],
+    c_args: ['-DBIGINT_C_VERSION_STRING="' + bigint_c_lib_version + '"', '-DBIGINT_C_LIB_TYPE='
+            + (get_option('default_library') == 'static' ? '1' : '0')],
     install: true,
     version: bigint_c_lib_version,
 )
