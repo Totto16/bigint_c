@@ -4,7 +4,16 @@
 #define NODISCARD [[nodiscard]]
 #else
 // see e.g. https://www.gnu.org/software/gnulib/manual/html_node/Attributes.html
+#if defined(_MSC_VER)
+#if _MSC_VER >= 1700
+#define NODISCARD _Check_return_
+#else
+// empty, as not supported
+#define NODISCARD
+#endif
+#else
 #define NODISCARD __attribute__((__warn_unused_result__))
+#endif
 #endif
 
 #define UNUSED(v) ((void)(v))
