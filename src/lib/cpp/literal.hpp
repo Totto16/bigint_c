@@ -7,7 +7,7 @@
 #include <limits>
 #include <string>
 
-//TODO: can we use constexpr under linux too in this plcaes?
+// TODO: can we use constexpr under linux too in this plcaes?
 #if defined(_MSC_VER)
 #define WIN_CONSTEXPR constexpr
 #else

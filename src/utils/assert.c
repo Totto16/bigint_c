@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-BIGINT_C_ONLY_LOCAL NO_RETURN void custom_panic(const char* file_path, int line, const char* message) {
+BIGINT_C_ONLY_LOCAL NO_RETURN void custom_panic(const char* file_path, int line,
+                                                const char* message) {
 	fprintf(stderr, "%s:%d: ASSERTION FAILED: %s\n", file_path, line, message);
 	abort();
 }
