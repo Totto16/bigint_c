@@ -57,18 +57,28 @@ class ParseError final : public std::runtime_error {
 namespace ios {
 
 // custom io manipulators for formatting BigInts
-static const decltype(std::ios_base::oct) bin =
-    std::ios_base::oct; // oct is not supported by this lib, so we can use that base for bin,
-                        // default for base is dec, so this is not set
+constexpr const inline auto& bin =
+    std::oct; // oct is not supported by this lib, so we can use that base for bin,
+              // default for base is dec, so this is not set
 
-static const decltype(std::ios_base::oct) add_gaps =
-    std::ios_base::showpoint; // showpoint is not set by default
+constexpr const inline auto& add_gaps = std::showpoint; // showpoint is not set by default
 
-static const decltype(std::ios_base::oct) trim_first_number =
-    std::ios_base::skipws; // skipws is set by default
+constexpr const inline auto& no_add_gaps = std::noshowpoint;
+
+constexpr const inline auto& trim_first_number = std::skipws; // skipws is set by default
+
+constexpr const inline auto& no_trim_first_number = std::noskipws;
 
 } // namespace ios
 } // namespace bigint
+
+namespace {
+namespace bigint_ios {
+constexpr const auto bin_flag = std::ios_base::oct;
+constexpr const auto add_gaps_flag = std::ios_base::showpoint;
+constexpr const auto trim_first_number_flag = std::ios_base::skipws;
+} // namespace bigint_ios
+} // namespace
 
 struct BigInt {
   private:
@@ -183,10 +193,6 @@ struct BigInt {
 
 	[[nodiscard]] BigInt& operator^=(const BigInt& value2) const;
 
-	[[nodiscard]] std::ostream& operator<<(std::ostream& os) const;
-
-	[[nodiscard]] std::istream& operator>>(std::istream& is) const;
-
 	[[nodiscard]] BigInt operator<<(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt operator>>(const BigInt& value2) const;
@@ -218,6 +224,10 @@ struct BigInt {
 
 	[[nodiscard]] BigInt copy() const;
 };
+
+std::ostream& operator<<(std::ostream& os, const BigInt& value);
+
+std::istream& operator>>(std::istream& is, const BigInt& value);
 
 namespace std {
 
@@ -462,40 +472,37 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	throw std::runtime_error("TODO");
 }
 
-[[nodiscard]] std::ostream& BigInt::operator<<(std::ostream& os) const {
+std::ostream& operator<<(std::ostream& os, const BigInt& value) {
 	std::ios_base::fmtflags flags = os.flags();
 
 	bool prefix = (flags & std::ios_base::showbase) != 0;
 
-	bool trim_first_number = (flags & bigint::ios::trim_first_number) != 0;
+	bool trim_first_number = (flags & bigint_ios::trim_first_number_flag) != 0;
 
-	bool add_gaps = (flags & bigint::ios::add_gaps) != 0;
+	bool add_gaps = (flags & bigint_ios::add_gaps_flag) != 0;
 
 	if((flags & std::ios_base::basefield) == std::ios_base::hex) {
 
 		bool uppercase = (flags & std::ios_base::uppercase) != 0;
 
-		char* temp =
-		    bigint_to_string_hex(m_c_value, prefix, add_gaps, trim_first_number, uppercase);
+		std::string temp = value.to_string_hex(prefix, add_gaps, trim_first_number, uppercase);
 		os << temp;
-		free(temp);
 
-	} else if((flags & std::ios_base::basefield) == bigint::ios::bin) {
-		char* temp = bigint_to_string_bin(m_c_value, prefix, add_gaps, trim_first_number);
+	} else if((flags & std::ios_base::basefield) == bigint_ios::bin_flag) {
+		std::string temp = value.to_string_bin(prefix, add_gaps, trim_first_number);
 		os << temp;
-		free(temp);
 	} else {
-		char* temp = bigint_to_string(m_c_value);
+		std::string temp = value.to_string();
 		os << temp;
-		free(temp);
 	}
 
 	return os;
 }
 
-[[nodiscard]] std::istream& BigInt::operator>>(std::istream& is) const {
+std::istream& operator>>(std::istream& is, const BigInt& value) {
 	// TODO
 	UNUSED(is);
+	UNUSED(value);
 	throw std::runtime_error("TODO");
 }
 

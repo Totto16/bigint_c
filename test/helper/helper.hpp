@@ -37,6 +37,12 @@ struct BigIntTest {
 	[[nodiscard]] BigIntTest operator-(const BigIntTest& value2) const;
 };
 
+struct BigIntDebug {
+	const BigInt& value;
+
+	BigIntDebug(const BigInt& value) : value{ value } {};
+};
+
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2);
 
