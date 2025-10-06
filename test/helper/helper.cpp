@@ -328,7 +328,14 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 
 	values.resize(written);
 
-	bool positive = !mp_isneg((&number));
+	bool positive = !mp_isneg(&number);
+
+	if(written == 0) {
+		if(mp_iszero(&number)) {
+			values.resize(1);
+			values.at(0) = 0;
+		}
+	}
 
 	test = BigIntTest(positive, std::move(values));
 }

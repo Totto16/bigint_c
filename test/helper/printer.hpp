@@ -13,10 +13,6 @@ void PrintTo(const BigIntTest& value, std::ostream* os) {
 		*os << "- ";
 	}
 
-	if(value.values().empty()) {
-		throw  std::runtime_error("BigInt has no values!");
-	}
-
 	for(size_t i = 0; i < value.values().size(); ++i) {
 		if(i != 0) {
 			*os << ", ";
