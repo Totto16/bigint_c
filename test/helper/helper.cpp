@@ -3,7 +3,21 @@
 #define BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 #include "./helper.hpp"
 
+#if defined(_MSC_VER)
+#define USE_IMPLEMENTATION 1
+#else
+#define USE_IMPLEMENTATION 0
+#endif
+
+#if !defined(USE_IMPLEMENTATION)
+#error "DEFINE USE_IMPLEMENTATION"
+#elif USE_IMPLEMENTATION == 0
 #include <gmp.h>
+#elif USE_IMPLEMENTATION == 1
+#include <tommath.h>
+#else
+#error "unknown USE_IMPLEMENTATION"
+#endif
 
 #include <stdexcept>
 
@@ -77,6 +91,7 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 
 static constexpr uint8_t CHUNK_BITS = 64;
 
+#if USE_IMPLEMENTATION == 0
 static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
 	std::vector<uint64_t> values{};
@@ -103,6 +118,7 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 
 	test = BigIntTest(positive, std::move(values));
 }
+
 
 namespace {
 
@@ -277,3 +293,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	return result;
 }
+
+#elif USE_IMPLEMENTATION == 1
+//TODO
+#endif
