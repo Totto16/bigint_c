@@ -89,9 +89,14 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 	return (std::string{ error1.message() } == std::string{ error2.message() });
 }
 
-static constexpr uint8_t CHUNK_BITS = 64;
+[[nodiscard]] bool BigIntTest::is_special_separator(char value) {
+	return value == '_' || value == '\'' || value == ',' || value == '.';
+}
 
 #if USE_IMPLEMENTATION == 0
+
+static constexpr uint8_t CHUNK_BITS = 64;
+
 static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
 	std::vector<uint64_t> values{};
@@ -118,7 +123,6 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 
 	test = BigIntTest(positive, std::move(values));
 }
-
 
 namespace {
 
@@ -254,10 +258,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	return str;
 }
 
-[[nodiscard]] bool BigIntTest::is_special_separator(char value) {
-	return value == '_' || value == '\'' || value == ',' || value == '.';
-}
-
 [[nodiscard]] BigIntTest BigIntTest::operator+(const BigIntTest& value2) const {
 
 	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
@@ -295,5 +295,254 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 }
 
 #elif USE_IMPLEMENTATION == 1
-//TODO
+static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
+
+	uint8_t digit_size = sizeof(mp_digit);
+
+	if(!(digit_size == 4 || digit_size == 8)) {
+		throw new std::runtime_error("expected 32 or 64 bits per value!");
+	}
+
+	size_t mp_chuncks = number.used;
+
+	size_t num_chunks = digit_size == 4 ? ((mp_chuncks + 1) / 2) : mp_chuncks;
+	std::vector<uint64_t> values{};
+	values.resize(num_chunks);
+
+	size_t mp_index = 0;
+	for(size_t i = num_chunks; i != 0; --i, ++mp_index) {
+
+		uint64_t word = 0;
+		if(digit_size == 4) {
+			word = number.dp[mp_index];
+			if(mp_index + 1 < mp_chuncks) {
+				word |= static_cast<uint64_t>(number.dp[mp_index + 1]) << 32;
+			}
+		} else {
+			word = number.dp[mp_index];
+		}
+
+		values.at(i - 1) = word;
+	}
+
+	bool positive = !mp_isneg((&number));
+
+	mp_clear(&number);
+
+	test = BigIntTest(positive, std::move(values));
+}
+
+#define CHECK_MP_ERROR(err) \
+	do { \
+		if(err != MP_OKAY) { \
+			throw new std::runtime_error{ mp_error_to_string(err) }; \
+		} \
+	} while(false)
+
+namespace {
+
+class MPWrapper {
+  private:
+	std::shared_ptr<mp_int> m_value;
+
+  public:
+	MPWrapper() : m_value{ nullptr } {
+		mp_int* value = new mp_int{};
+
+		mp_err error = mp_init(value);
+		if(error != MP_OKAY) {
+			delete value;
+			throw new std::runtime_error{ mp_error_to_string(error) };
+		}
+
+		m_value = std::shared_ptr<mp_int>(value, [](mp_int* p) {
+			mp_clear(p);
+			delete p;
+		});
+	}
+
+	MPWrapper(const MPWrapper&) = default;
+	MPWrapper& operator=(const MPWrapper&) = default;
+
+	[[nodiscard]] const mp_int* get() const { return m_value.get(); }
+	[[nodiscard]] const mp_int* operator*() const { return m_value.get(); }
+
+	[[nodiscard]] mp_int* get() { return m_value.get(); }
+	[[nodiscard]] mp_int* operator*() { return m_value.get(); }
+
+	~MPWrapper() = default;
+
+	MPWrapper(MPWrapper&& number) noexcept = default;
+
+	MPWrapper& operator=(MPWrapper&& number) = default;
+};
+
+} // namespace
+
+static MPWrapper get_tommath_value_from_bigint(const BigIntTest& test) {
+
+	uint8_t digit_size = sizeof(mp_digit);
+
+	if(!(digit_size == 4 || digit_size == 8)) {
+		throw new std::runtime_error("expected 32 or 64 bits per value!");
+	}
+
+	int shift_size = digit_size == 4 ? 2 : 1;
+
+	MPWrapper bigint{};
+
+	mp_zero(*bigint);
+
+	for(size_t i = 0; i < test.values().size(); ++i) {
+		mp_int temp, shift;
+		mp_err error = mp_init(&temp);
+		CHECK_MP_ERROR(error);
+
+		error = mp_init(&shift);
+		CHECK_MP_ERROR(error);
+
+		mp_set_u64(&temp, test.values()[i]);
+
+		error = mp_lshd(&temp, shift_size);
+		CHECK_MP_ERROR(error);
+
+		if(i > 0) {
+			mp_lshd(&temp, shift_size);
+		}
+
+		// result = result + shift
+		error = mp_add(*bigint, &temp, *bigint);
+		CHECK_MP_ERROR(error);
+
+		mp_clear(&temp);
+		mp_clear(&shift);
+	}
+
+	(*bigint)->sign = test.positive() ? MP_ZPOS : MP_NEG;
+
+	return bigint;
+}
+
+// the same algorithm as in c, but using a external library, to verify the test result
+// see https://gmplib.org/manual/Concept-Index for gmp docs
+BigIntTest::BigIntTest(const std::string& str) : m_values{} {
+
+	// preprocess the string, to allow the same syntax as in the c library
+	std::string cleaned_str = str;
+	std::erase_if(cleaned_str, [](char digit) -> bool {
+		// Remove special characters like separators and also the "+" sign, as gmp doesn't allow
+		// that
+		return BigIntTest::is_special_separator(digit) || digit == '+';
+	});
+
+	mp_int bigint;
+	mp_err error = mp_init(&bigint);
+	CHECK_MP_ERROR(error);
+
+	// Parse the decimal string into the big integer
+	error = mp_read_radix(&bigint, cleaned_str.c_str(), 10);
+	if(error != MP_OKAY) {
+		mp_clear(&bigint);
+		throw std::runtime_error("Failed to parse bigint string: " + str +
+		                         " (cleaned: " + cleaned_str + ")" + mp_error_to_string(error));
+	}
+
+	initialize_bigint_from_tommath(*this, std::move(bigint));
+}
+
+BigIntTest::BigIntTest(const uint64_t& number) : m_values{} {
+	mp_int bigint;
+	mp_err error = mp_init(&bigint);
+	CHECK_MP_ERROR(error);
+
+	mp_set_u64(&bigint, number);
+
+	initialize_bigint_from_tommath(*this, std::move(bigint));
+}
+BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
+	mp_int bigint;
+	mp_err error = mp_init(&bigint);
+	CHECK_MP_ERROR(error);
+
+	mp_set_i64(&bigint, number);
+
+	initialize_bigint_from_tommath(*this, std::move(bigint));
+}
+
+[[nodiscard]] std::string BigIntTest::to_string() const {
+	MPWrapper number = get_tommath_value_from_bigint(*this);
+
+	size_t needed_size = 0;
+	mp_err error = mp_radix_size(*number, 10, &needed_size);
+	CHECK_MP_ERROR(error);
+
+	needed_size += 1; // for the \0 terminator
+
+	char* buffer = (char*)malloc(needed_size * sizeof(char));
+
+	if(buffer == nullptr) {
+		throw std::runtime_error("string conversion error");
+	}
+
+	size_t written = 0;
+
+	error = mp_to_radix(*number, buffer, needed_size, &written, 10);
+	CHECK_MP_ERROR(error);
+
+	buffer[written] = '\0';
+
+	std::string str{ buffer };
+
+	free(buffer);
+
+	return str;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator+(const BigIntTest& value2) const {
+
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	if(error != MP_OKAY) {
+		throw new std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	error = mp_add(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw new std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator-(const BigIntTest& value2) const {
+
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	if(error != MP_OKAY) {
+		throw new std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	error = mp_sub(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw new std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
 #endif
