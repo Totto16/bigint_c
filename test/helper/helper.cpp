@@ -299,7 +299,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 #define CHECK_MP_ERROR(err) \
 	do { \
 		if(err != MP_OKAY) { \
-			throw new std::runtime_error{ mp_error_to_string(err) }; \
+			throw std::runtime_error{ mp_error_to_string(err) }; \
 		} \
 	} while(false)
 
@@ -323,7 +323,7 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 	CHECK_MP_ERROR(error);
 
 	if(written > num_chunks) {
-		throw new std::runtime_error("values were written out bounds");
+		throw std::runtime_error("values were written out bounds");
 	}
 
 	values.resize(written);
@@ -346,7 +346,7 @@ class MPWrapper {
 		mp_err error = mp_init(value);
 		if(error != MP_OKAY) {
 			delete value;
-			throw new std::runtime_error{ mp_error_to_string(error) };
+			throw std::runtime_error{ mp_error_to_string(error) };
 		}
 
 		m_value = std::shared_ptr<mp_int>(value, [](mp_int* p) {
@@ -473,14 +473,12 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	mp_int result_number;
 	mp_err error = mp_init(&result_number);
-	if(error != MP_OKAY) {
-		throw new std::runtime_error{ mp_error_to_string(error) };
-	}
+	CHECK_MP_ERROR(error);
 
 	error = mp_add(*number1, *number2, &result_number);
 	if(error != MP_OKAY) {
 		mp_clear(&result_number);
-		throw new std::runtime_error{ mp_error_to_string(error) };
+		throw std::runtime_error{ mp_error_to_string(error) };
 	}
 
 	BigIntTest result{ false, {} };
@@ -497,14 +495,12 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	mp_int result_number;
 	mp_err error = mp_init(&result_number);
-	if(error != MP_OKAY) {
-		throw new std::runtime_error{ mp_error_to_string(error) };
-	}
+	CHECK_MP_ERROR(error);
 
 	error = mp_sub(*number1, *number2, &result_number);
 	if(error != MP_OKAY) {
 		mp_clear(&result_number);
-		throw new std::runtime_error{ mp_error_to_string(error) };
+		throw std::runtime_error{ mp_error_to_string(error) };
 	}
 
 	BigIntTest result{ false, {} };
