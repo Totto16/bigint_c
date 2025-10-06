@@ -1,6 +1,7 @@
 
 
 #include "./lib.h"
+#include "../utils/assert.h"
 
 #include <limits.h>
 #include <stdio.h>

@@ -121,8 +121,9 @@ struct BigInt {
 		    (uint64_t*)realloc(c_value.numbers, sizeof(uint64_t) * c_value.number_count);
 
 		if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
-			UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE
-			    "realloc failed, no error handling implemented here");
+			throw std::runtime_error(
+			    "realloc failed, no error handling implemented here"); // GCOVR_EXCL_LINE
+
 		} // GCOVR_EXCL_LINE
 
 		c_value.numbers = new_numbers;
@@ -389,25 +390,25 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 [[nodiscard]] bool BigInt::operator*(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] bool BigInt::operator/(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] bool BigInt::operator%(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] bool BigInt::operator^(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator-() {
@@ -418,37 +419,37 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 [[nodiscard]] BigInt& BigInt::operator+=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator-=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator*=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator/=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator%=(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator^=(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] std::ostream& BigInt::operator<<(std::ostream& os) const {
@@ -485,51 +486,51 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 [[nodiscard]] std::istream& BigInt::operator>>(std::istream& is) const {
 	// TODO
 	UNUSED(is);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator<<(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator>>(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator<<=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator++() {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator--() {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator++(int) {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator--(int) {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] std::string BigInt::to_string() const {
