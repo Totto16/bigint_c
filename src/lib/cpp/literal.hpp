@@ -81,10 +81,12 @@ consteval bool consteval_is_separator(StrType value) {
 }
 
 template <size_t N> consteval void consteval_remove_leading_zeroes(BigIntConstExpr<N>& big_int) {
-	if(big_int.numbers.size() == 0) { // GCOVR_EXCL_BR_LINE
-		CONSTEVAL_STATIC_ASSERT(false,
-		                        "big_int has to have at least one number!"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(big_int.numbers.size() ==
+	   0) { // GCOVR_EXCL_BR_LINE (every caller assures that, internal function)
+		CONSTEVAL_STATIC_ASSERT(
+		    false,
+		    "big_int has to have at least one number!"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	if(big_int.numbers.size() == 1) {
 #ifndef NDEBUG
@@ -124,9 +126,10 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 	// using reverse double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
-	if(bcd_digits.size() == 0) { // GCOVR_EXCL_BR_LINE
-		CONSTEVAL_STATIC_ASSERT(false, "not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(bcd_digits.size() == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		CONSTEVAL_STATIC_ASSERT(
+		    false, "not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
 	// normal bigints

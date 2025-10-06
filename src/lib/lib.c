@@ -34,10 +34,10 @@ BIGINT_C_ONLY_LOCAL static void bigint_helper_realloc_to_new_size(BigInt* big_in
 
 	uint64_t* new_numbers = realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
 
-	if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE
+	if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE (OOM content)
 		    "realloc failed, no error handling implemented here");
-	} // GCOVR_EXCL_LINE
+	} // GCOVR_EXCL_LINE (OOM content)
 
 	big_int->numbers = new_numbers;
 }
@@ -79,10 +79,10 @@ BIGINT_C_ONLY_LOCAL static void helper_add_value_to_bcd_digits(BCDDigits* digits
 
 		BCDDigit* new_bcd_digits = realloc(digits->bcd_digits, sizeof(BCDDigit) * new_size);
 
-		if(new_bcd_digits == NULL) { // GCOVR_EXCL_BR_LINE
-			UNREACHABLE_WITH_MSG(    // GCOVR_EXCL_LINE
+		if(new_bcd_digits == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+			UNREACHABLE_WITH_MSG(    // GCOVR_EXCL_LINE (OOM content)
 			    "realloc failed, no error handling implemented here");
-		} // GCOVR_EXCL_LINE
+		} // GCOVR_EXCL_LINE (OOM content)
 
 		digits->capacity = new_size;
 		digits->bcd_digits = new_bcd_digits;
@@ -101,9 +101,9 @@ BIGINT_C_ONLY_LOCAL static void bigint_helper_bcd_digits_to_bigint(BigInt* big_i
 	// using reverse double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
-	if(bcd_digits.count == 0) {                                       // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(bcd_digits.count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that, internal function)
+		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
 	// normal bigints
@@ -243,9 +243,10 @@ BIGINT_C_ONLY_LOCAL static void bigint_helper_bcd_digits_to_bigint(BigInt* big_i
 }
 
 BIGINT_C_ONLY_LOCAL static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
-	if(big_int->number_count == 0) {                                      // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG("big_int has to have at least one number!"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(big_int->number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		UNREACHABLE_WITH_MSG(        // GCOVR_EXCL_LINE (see above)
+		    "big_int has to have at least one number!"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	if(big_int->number_count == 1) {
 #ifndef NDEBUG
@@ -524,9 +525,9 @@ bigint_helper_get_bcd_digits_from_bigint(BigIntC source) {
 	// using double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble
 
-	if(source.number_count == 0) {                                // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG("not initialized BigInt correctly"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(source.number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		UNREACHABLE_WITH_MSG("not initialized BigInt correctly"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// reverse the source so that the bits are aligned
 	{
@@ -678,9 +679,9 @@ BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string(BigInt big_int) {
 
 	Str str = malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) {                // GCOVR_EXCL_BR_LINE
-		free_bcd_digits(bcd_digits); // GCOVR_EXCL_LINE
-		return NULL;                 // GCOVR_EXCL_LINE
+	if(str == NULL) {                // GCOVR_EXCL_BR_LINE (OOM)
+		free_bcd_digits(bcd_digits); // GCOVR_EXCL_LINE (OOM content)
+		return NULL;                 // GCOVR_EXCL_LINE (OOM content)
 	}
 
 	str[string_size] = '\0';
@@ -738,8 +739,8 @@ BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool p
 
 	Str str = malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) { // GCOVR_EXCL_BR_LINE
-		return NULL;  // GCOVR_EXCL_LINE
+	if(str == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+		return NULL;  // GCOVR_EXCL_LINE (OOM content)
 	}
 
 	str[string_size] = '\0';
@@ -821,8 +822,8 @@ BIGINT_C_LIB_EXPORTED NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool p
 
 	Str str = malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) { // GCOVR_EXCL_BR_LINE
-		return NULL;  // GCOVR_EXCL_LINE
+	if(str == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+		return NULL;  // GCOVR_EXCL_LINE (OOM content)
 	}
 
 	str[string_size] = '\0';

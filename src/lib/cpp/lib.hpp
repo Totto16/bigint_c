@@ -86,9 +86,10 @@ struct BigInt {
 	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
 	BigInt(Args... args) noexcept {
 
-		std::vector<uint64_t> values = { static_cast<uint64_t>(args)... };
-		// Use values...
-		m_c_value = bigint_from_list_of_numbers(values.data(), values.size());
+		std::vector<uint64_t> values = { static_cast<uint64_t>( // GCOVR_EXCL_BR_LINE (c++ template)
+			args)... };                                         // GCOVR_EXCL_BR_LINE (c++ template)
+		m_c_value = bigint_from_list_of_numbers(values.data(),  // GCOVR_EXCL_BR_LINE (c++ template)
+		                                        values.size()); // GCOVR_EXCL_BR_LINE (c++ template)
 	}
 
 	[[nodiscard]] static std::expected<BigInt, bigint::ParseError>
@@ -120,11 +121,12 @@ struct BigInt {
 		uint64_t* const new_numbers =
 		    (uint64_t*)realloc(c_value.numbers, sizeof(uint64_t) * c_value.number_count);
 
-		if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
+		if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
 			throw std::runtime_error(
-			    "realloc failed, no error handling implemented here"); // GCOVR_EXCL_LINE
+			    "realloc failed, no error handling implemented here"); // GCOVR_EXCL_LINE (OOM
+			                                                           // content)
 
-		} // GCOVR_EXCL_LINE
+		} // GCOVR_EXCL_LINE (OOM content)
 
 		c_value.numbers = new_numbers;
 
