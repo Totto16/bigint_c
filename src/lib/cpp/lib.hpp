@@ -118,14 +118,14 @@ struct BigInt {
 			                .numbers = nullptr,
 			                .number_count = big_int.numbers.size() };
 
-		uint64_t* const new_numbers =
+		auto* const new_numbers =
 		    (uint64_t*)realloc(c_value.numbers, sizeof(uint64_t) * c_value.number_count);
 
-		if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
-			throw std::runtime_error(
+		if(new_numbers == NULL) {                                      // GCOVR_EXCL_BR_LINE (OOM)
+			throw std::runtime_error(                                  // GCOVR_EXCL_LINE (OOM
+			                                                           // content)
 			    "realloc failed, no error handling implemented here"); // GCOVR_EXCL_LINE (OOM
 			                                                           // content)
-
 		} // GCOVR_EXCL_LINE (OOM content)
 
 		c_value.numbers = new_numbers;
@@ -222,7 +222,9 @@ struct BigInt {
 namespace std {
 
 template <> struct hash<BigInt> {
-	std::size_t operator()(const BigInt& value) const noexcept { return value.hash(); }
+	std::size_t operator()(const BigInt& value) const noexcept {
+		return value.hash(); // GCOVR_EXCL_BR_LINE (c++ destructor or constructor branches)
+	}
 };
 
 std::string to_string(const BigInt& value);
@@ -232,19 +234,21 @@ std::string to_string(const BigInt& value);
 #ifdef BIGINT_C_CPP_IMPLEMENTATION
 
 static std::string get_parse_error_message(MaybeBigIntError error) {
-	std::string result = error.message;
+	std::string result = // GCOVR_EXCL_BR_LINE (c++ string initialization, makes allocation)
+	    error.message;   // GCOVR_EXCL_BR_LINE (c++ string initialization, makes allocation)
 
-	result += ": index ";
-	result += std::to_string(error.index);
+	result += ": index ";     // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+	result += std::to_string( // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+	    error.index);
 
 	if(error.symbol == NO_SYMBOL) {
-		result += " symbol '";
-		result += error.symbol;
-		result += "'";
+		result += " symbol '";  // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+		result += error.symbol; // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+		result += "'";          // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
 	}
 
 	return result;
-}
+} // GCOVR_EXCL_BR_LINE (c++ destructor branches)
 
 bigint::ParseError::ParseError(MaybeBigIntError error)
     : std::runtime_error{ get_parse_error_message(error) }, m_c_error{ error } {}
@@ -278,23 +282,27 @@ BigInt::BigInt(BigIntC&& c_value) noexcept : m_c_value{ c_value } {
 }
 
 BigInt::BigInt(uint64_t value) noexcept {
-	m_c_value = bigint_from_unsigned_number(value);
+	m_c_value = bigint_from_unsigned_number(value); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 }
 
 BigInt::BigInt(int64_t value) noexcept {
-	m_c_value = bigint_from_signed_number(value);
+	m_c_value = bigint_from_signed_number(value); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 }
 
 [[nodiscard]] std::expected<BigInt, bigint::ParseError>
 BigInt::get_from_string(const std::string& str) noexcept {
-	MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
+	MaybeBigIntC result =                      // GCOVR_EXCL_BR_LINE (c++ assignment branches)
+	    maybe_bigint_from_string(str.c_str()); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 
 	if(maybe_bigint_is_error(result)) {
 		return std::unexpected<bigint::ParseError>{ bigint::ParseError{
-			maybe_bigint_get_error(result) } };
+			// GCOVR_EXCL_BR_LINE (c++ assignment branches)
+			maybe_bigint_get_error(result) } }; // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 	}
 
-	return std::expected<BigInt, bigint::ParseError>{ maybe_bigint_get_value(result) };
+	return std::expected<BigInt, bigint::ParseError>{
+		maybe_bigint_get_value(result) // GCOVR_EXCL_BR_LINE (c++ RVO branches)
+	}; // GCOVR_EXCL_BR_LINE (c++ RVO branches)
 }
 
 BigInt::BigInt(const std::string& str) {
