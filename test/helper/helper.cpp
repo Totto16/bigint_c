@@ -489,8 +489,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	error = mp_to_radix(*number, buffer, needed_size, &written, 10);
 	CHECK_MP_ERROR(error);
 
-	buffer[written] = '\0';
-
 	std::string str{ buffer };
 
 	free(buffer);
