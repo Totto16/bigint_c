@@ -30,7 +30,7 @@ void PrintTo(const BigIntDebug& value, std::ostream* os) {
 }
 
 std::ostream& operator<<(std::ostream& os, const BigIntDebug& value) {
-	PrintTo(value.value, &os);
+	PrintTo(value, &os);
 	return os;
 }
 

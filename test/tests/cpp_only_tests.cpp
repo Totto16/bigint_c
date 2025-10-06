@@ -241,14 +241,14 @@ TEST(BigInt, IntegertoStringOsStream) {
 					}
 					case 1: {
 						normal_result = bigint.to_string();
-						str_stream << std::ios_base::dec;
+						str_stream << std::dec;
 						break;
 					}
 					case 2:
 					default: {
 						normal_result =
 						    bigint.to_string_hex(prefix, add_gaps, trim_first_number, uppercase);
-						str_stream << std::ios_base::hex;
+						str_stream << std::hex;
 						break;
 					}
 				}
@@ -256,7 +256,7 @@ TEST(BigInt, IntegertoStringOsStream) {
 				{ // apply options
 
 					if(prefix) {
-						str_stream << std::ios_base::showbase;
+						str_stream << std::showbase;
 					} else {
 						str_stream << std::noshowbase;
 					}
@@ -274,19 +274,20 @@ TEST(BigInt, IntegertoStringOsStream) {
 					}
 
 					if(uppercase) {
-						str_stream << std::ios_base::uppercase;
+						str_stream << std::uppercase;
 					} else {
 						str_stream << std::nouppercase;
 					}
 				}
 
-				str_stream << static_cast<const BigInt&>(bigint);
+				str_stream << bigint;
 
 				std::string stream_result = str_stream.str();
 
 				EXPECT_EQ(stream_result, normal_result)
-				    << "Input value: " << bigint << "options: " << (prefix ? "prefix" : "no-prefix")
-				    << " " << (add_gaps ? "add_gaps" : "no-gaps") << " "
+				    << "Input value: " << BigIntDebug{ bigint }
+				    << "options: " << (prefix ? "prefix" : "no-prefix") << " "
+				    << (add_gaps ? "add_gaps" : "no-gaps") << " "
 				    << (trim_first_number ? "trim_first_number" : "no-trim") << " "
 				    << (uppercase ? "uppercase" : " lowercase");
 				;

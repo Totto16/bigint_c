@@ -40,7 +40,7 @@ struct BigIntTest {
 struct BigIntDebug {
 	const BigInt& value;
 
-	BigIntDebug(const BigInt& value) : value{ value } {};
+	explicit BigIntDebug(const BigInt& value) : value{ value } {};
 };
 
 // helper thought just for the tests

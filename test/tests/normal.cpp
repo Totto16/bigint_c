@@ -249,7 +249,8 @@ TEST(BigInt, IntegerEqComparison) {
 
 		const bool actual_result = value1 == value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -283,7 +284,8 @@ TEST(BigInt, IntegerNeqComparison) {
 
 		const bool actual_result = value1 != value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -362,7 +364,8 @@ TEST(BigInt, IntegerGeneralComparison) {
 
 		const std::strong_ordering actual_result = value1 <=> value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -429,7 +432,8 @@ TEST(BigInt, IntegerLtComparison) {
 
 		const bool actual_result = value1 < value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -496,7 +500,8 @@ TEST(BigInt, IntegerLteComparison) {
 
 		const bool actual_result = value1 <= value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -563,7 +568,8 @@ TEST(BigInt, IntegerGtComparison) {
 
 		const bool actual_result = value1 > value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -630,7 +636,8 @@ TEST(BigInt, IntegerGteComparison) {
 
 		const bool actual_result = value1 >= value2;
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -660,7 +667,8 @@ TEST(BigInt, IntegerNegate) {
 
 		const auto& negated = -value1;
 
-		EXPECT_EQ(negated, value2) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(negated, value2)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -981,8 +989,9 @@ TEST(BigInt, IntegertoHexString) {
 			    big_int.to_string_hex(prefix, add_gaps, trim_first_number, uppercase);
 
 			EXPECT_EQ(actual_result, expected_result)
-			    << "Input value: " << big_int << "options: " << (prefix ? "prefix" : "no-prefix")
-			    << " " << (add_gaps ? "add_gaps" : "no-gaps") << " "
+			    << "Input value: " << BigIntDebug{ big_int }
+			    << "options: " << (prefix ? "prefix" : "no-prefix") << " "
+			    << (add_gaps ? "add_gaps" : "no-gaps") << " "
 			    << (trim_first_number ? "trim_first_number" : "no-trim") << " "
 			    << (uppercase ? "uppercase" : " lowercase");
 		}
@@ -1088,8 +1097,9 @@ TEST(BigInt, IntegertoBinString) {
 			std::string actual_result = big_int.to_string_bin(prefix, add_gaps, trim_first_number);
 
 			EXPECT_EQ(actual_result, expected_result)
-			    << "Input value: " << big_int << "options: " << (prefix ? "prefix" : "no-prefix")
-			    << " " << (add_gaps ? "add_gaps" : "no-gaps") << " "
+			    << "Input value: " << BigIntDebug{ big_int }
+			    << "options: " << (prefix ? "prefix" : "no-prefix") << " "
+			    << (add_gaps ? "add_gaps" : "no-gaps") << " "
 			    << (trim_first_number ? "trim_first_number" : "no-trim");
 		}
 	}
@@ -1109,7 +1119,7 @@ TEST(BigInt, IntegerBulkInitialization) {
 	EXPECT_EQ(
 	    bigint_c_str,
 	    "0x1 FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF")
-	    << "Input value: " << test_positive;
+	    << "Input value: " << BigIntDebug{ test_positive };
 }
 
 TEST(BigInt, IntegerAddition) {
@@ -1217,7 +1227,8 @@ TEST(BigInt, IntegerAddition) {
 
 		const BigIntTest result_expected = BigIntTest(value1) + BigIntTest(value2);
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
@@ -1329,6 +1340,7 @@ TEST(BigInt, IntegerSubtraction) {
 
 		const BigIntTest result_expected = BigIntTest(value1) - BigIntTest(value2);
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
