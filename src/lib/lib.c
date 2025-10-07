@@ -1381,10 +1381,10 @@ NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t bi
 
 	uint128_t result = (uint128_t)big_int1 * (uint128_t)big_int2;
 
-	uint64_t left_part = (uint64_t)result;
-	uint64_t right_part = (uint64_t)(result >> 64);
+	uint64_t low = (uint64_t)result;
+	uint64_t high = (uint64_t)(result >> 64);
 
-	bool need_two_numbers = right_part != 0;
+	bool need_two_numbers = high != 0;
 
 	BigInt result_big_int = { .positive = true,
 		                      .numbers = NULL,
@@ -1392,25 +1392,58 @@ NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t bi
 
 	bigint_helper_realloc_to_new_size(&result_big_int);
 
-	result_big_int.numbers[0] = left_part;
+	result_big_int.numbers[0] = low;
 
 	if(need_two_numbers) {
-		result_big_int.numbers[1] = right_part;
+		result_big_int.numbers[1] = high;
 	}
 
 	return result_big_int;
 }
 
 #else
-#error "TODO"
+
+NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_t big_int2) {
+
+	uint64_t b1_low = (uint32_t)(big_int1);
+	uint64_t b1_high = big_int1 >> 32;
+	uint64_t b2_low = (uint32_t)(big_int2);
+	uint64_t b2_high = big_int2 >> 32;
+
+	uint64_t res_ll = b1_low * b2_low;
+	uint64_t res_lh = b1_low * b2_high;
+	uint64_t res_hl = b1_high * b2_low;
+	uint64_t res_hh = b1_high * b2_high;
+
+	uint64_t carry = ((res_ll >> 32) + (res_lh & 0xFFFFFFFF) + (res_hl & 0xFFFFFFFF)) >> 32;
+
+	uint64_t low = res_ll + (res_lh << 32) + (res_hl << 32);
+	uint64_t high = res_hh + (res_lh >> 32) + (res_hl >> 32) + carry;
+
+	bool need_two_numbers = high != 0;
+
+	BigInt result_big_int = { .positive = true,
+		                      .numbers = NULL,
+		                      .number_count = need_two_numbers ? 2 : 1 };
+
+	bigint_helper_realloc_to_new_size(&result_big_int);
+
+	result_big_int.numbers[0] = low;
+
+	if(need_two_numbers) {
+		result_big_int.numbers[1] = high;
+	}
+
+	return result_big_int;
+}
+
 #endif
 
 NODISCARD static BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1, uint64_t big_int2) {
 #if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 	return bigint_mul_two_numbers_using_128_bit_numbers(big_int1, big_int2);
 #else
-#error "TODO"
-// TODO: use asm if on x86_64 or arm64 / or standard c way!
+	return bigint_mul_two_numbers_normal(big_int1, big_int2);
 #endif
 }
 
