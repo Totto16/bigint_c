@@ -38,7 +38,8 @@ maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
 
 static void bigint_helper_realloc_to_new_size(BigIntC* big_int) {
 
-	uint64_t* new_numbers = realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
+	uint64_t* new_numbers =
+	    (uint64_t*)realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
 
 	if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
 		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE (OOM content)
@@ -81,7 +82,8 @@ static void free_bcd_digits(BCDDigits digits) {
 static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 
 	if(digits->count + 1 > digits->capacity) {
-		size_t new_size = digits->capacity == 0 ? BCD_DIGITS_START_CAPACITY : digits->capacity * 2;
+		const size_t new_size =
+		    digits->capacity == 0 ? BCD_DIGITS_START_CAPACITY : digits->capacity * 2;
 
 		BCDDigit* new_bcd_digits =
 		    (BCDDigit*)realloc(digits->bcd_digits, sizeof(BCDDigit) * new_size);
@@ -137,7 +139,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 
 				// 1.1.2. shift the last bit of every number into the next one
 				for(size_t i = temp.number_count; i != 0; --i) {
-					uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
+					const uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
 
 					if(i == temp.number_count) {
 						ASSERT((last_bit == 0), "no additional uint64_t was allocated in time (we "
@@ -153,7 +155,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 				}
 
 				// 1.1.3. shift the last bit of the last bcd input into the first output
-				BCDDigit last_value = bcd_digits.bcd_digits[bcd_digits.count - 1];
+				const BCDDigit last_value = bcd_digits.bcd_digits[bcd_digits.count - 1];
 				if((last_value & 0x01) != 0) {
 					temp.numbers[0] =
 					    (U64(1) << (BIGINT_BIT_COUNT_FOR_BCD_ALG - 1)) + temp.numbers[0];
@@ -164,7 +166,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 
 				// 1.2.1. shift the last bit of every number into the next one
 				for(size_t i = bcd_digits.count; i > bcd_processed_fully_amount; --i) {
-					uint8_t last_bit = ((bcd_digits.bcd_digits[i - 1]) & 0x01);
+					const uint8_t last_bit = ((bcd_digits.bcd_digits[i - 1]) & 0x01);
 
 					if(i == bcd_digits.count) {
 						// we already processed that earlier, ignore the last bit, it is shifted
@@ -188,7 +190,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 
 				// 2.1 If value >= 8 then subtract 3 from value
 
-				BCDDigit value = bcd_digits.bcd_digits[i - 1];
+				const BCDDigit value = bcd_digits.bcd_digits[i - 1];
 
 				if(value >=
 				   8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
@@ -217,15 +219,16 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 
 		{ // 3.1 align the temp values
 
-			uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
+			const uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
 
-			uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
+			const uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
 
 			if(alignment != 0) {
 
 				// 3.1.1. shift the last to_shift bytes of every number into the next one
 				for(size_t i = temp.number_count; i != 0; --i) {
-					uint64_t last_bytes = (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
+					const uint64_t last_bytes =
+					    (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
 
 					if(i == temp.number_count) {
 						// those x values from above are not 0
@@ -331,7 +334,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr s
 
 	BigIntC result = bigint_helper_zero();
 
-	size_t str_len = strlen(str);
+	const size_t str_len = strlen(str);
 
 	// bigint regex: /^[+-]?[0-9][0-9_',.]*$/
 
@@ -383,7 +386,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr s
 	BCDDigits bcd_digits = { .bcd_digits = NULL, .count = 0, .capacity = 0 };
 
 	for(; index < str_len; ++index) {
-		StrType value = str[index];
+		const StrType value = str[index];
 
 		if(helper_is_digit(value)) {
 			helper_add_value_to_bcd_digits(&bcd_digits, helper_char_to_digit(value));

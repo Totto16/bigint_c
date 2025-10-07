@@ -37,7 +37,8 @@ jobs:
           meson setup build -Dbuildtype=release -Dtests=true --fatal-meson-warnings
 
       - uses: cpp-linter/cpp-linter-action@v2
-        id: linter
+        name: Lint C Files
+        id: linter-c
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -51,11 +52,30 @@ jobs:
           tidy-checks: ""
           step-summary: true
           file-annotations: true
-          ignore: subprojects|build|test
+          ignore: subprojects|build|test|*.cpp|*.hpp
+          extra-args: -std=c23
+
+      - uses: cpp-linter/cpp-linter-action@v2
+        name: Lint C++ Files
+        id: linter-cpp
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: file
+          version: 21
+          database: build
+          files-changed-only: ${{ github.event_name != 'workflow_dispatch' }}
+          lines-changed-only: ${{ github.event_name != 'workflow_dispatch' }}
+          thread-comments: update
+          tidy-checks: ""
+          step-summary: true
+          file-annotations: true
+          ignore: subprojects|build|test|*.c|*.h
           extra-args: -std=c++23
 
       - name: Fail CI run if linter checks failed
-        if: steps.linter.outputs.checks-failed != 0
+        if: steps.linter-c.outputs.checks-failed != 0 || steps.linter-cpp.outputs.checks-failed != 0
         run: |
-          echo "${{ steps.linter.outputs.checks-failed }} linter checks failed"
+          echo "${{ steps.linter-c.outputs.checks-failed }} C and ${{ steps.linter-cpp.outputs.checks-failed }} C++ linter checks failed"
           exit 1
