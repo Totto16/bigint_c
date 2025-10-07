@@ -9,10 +9,27 @@ test_deps += dependency(
     version: '>=1.17.0',
 )
 
-if host_machine.system() == 'windows'
-    test_deps += dependency('libtommath')
+test_backend = 'gmp'
+
+if tests == 'true' or tests == 'auto'
+    if host_machine.system() == 'windows'
+        test_backend = 'tommath'
+    else
+        test_backend = 'gmp'
+    endif
+elif tests == 'gmp' or tests == 'tommath'
+    test_backend = tests
 else
+    error('Unsupported test backend: ' + tests)
+endif
+
+
+if test_backend == 'tommath'
+    test_deps += dependency('libtommath')
+elif test_backend == 'gmp'
     test_deps += dependency('gmp')
+else
+    error('Unsupported test backend: ' + test_backend)
 endif
 
 
@@ -49,7 +66,7 @@ foreach file : test_files
             # default: 33554432 (1<<25)
             test_args += (
                 '-fconstexpr-ops-limit='
-                                                                            + test_needed_constexpr_steps.to_string()
+                                                                                                                                                                + test_needed_constexpr_steps.to_string()
             )
         elif cxx.get_id() == 'clang'
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())

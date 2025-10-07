@@ -69,6 +69,8 @@ bigint_c_dep = declare_dependency(
 
 meson.override_dependency('bigint_c', bigint_c_dep)
 
-if get_option('tests')
+tests = get_option('tests')
+
+if tests != 'false'
     subdir('test')
 endif

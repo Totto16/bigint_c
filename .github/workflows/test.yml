@@ -8,14 +8,49 @@ on:
 
 jobs:
   test:
-    name: Run Tests
-    runs-on: ubuntu-24.04
+    name: Run Tests (${{ matrix.config.name }})
+    runs-on: ${{ matrix.config.os }}-${{ matrix.config.os-version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - name: Windows
+            os: windows
+            os-version: 2025
+            test_type: auto
+
+          - name: Linux (ARM64)
+            os: ubuntu
+            os-version: 24.04-arm
+            arm: true
+            test_type: auto
+
+          - name: Linux (x86_64, GMP)
+            os: ubuntu
+            os-version: 24.04
+            arm: false
+            test_type: gmp
+    
+          - name: Linux (x86_64, Tommath)
+            os: ubuntu
+            os-version: 24.04
+            arm: false
+            test_type: tommath
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
 
+      - name: Setup MSVC (Windows)
+        if: matrix.config.os == 'windows'
+        uses: TheMrMilchmann/setup-msvc-dev@v3
+        with:
+          arch: x64
+          toolset: "14.44"
+
       - name: Setup Clang
+        if: matrix.config.os == 'ubuntu'
         run: |
           wget https://apt.llvm.org/llvm.sh
           chmod +x llvm.sh
@@ -28,13 +63,14 @@ jobs:
         run: |
           pip install meson --break-system-packages
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
+        if: matrix.config.os == 'ubuntu'
         run: |
           sudo apt-get update
           sudo apt-get install ninja-build gcovr -y --no-install-recommends
 
       - name: Configure
-        run: meson setup build -Dbuildtype=debug -Db_coverage=true -Dtests=true --fatal-meson-warnings
+        run: meson setup build -Dbuildtype=debug -Db_coverage=true -Ddefault_library=${{( matrix.config.os == 'windows') && 'static' ||'shared' }} -Dtests=${{ matrix.config.test_type}} --fatal-meson-warnings
 
       - name: Run tests
         run: meson test -C build --verbose
@@ -44,6 +80,7 @@ jobs:
           ninja coverage -C build
 
       - name: Create Coverage Report
+        if: matrix.config.os == 'ubuntu' && matrix.config.test_type == 'gmp'
         uses: insightsengineering/coverage-action@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -59,6 +96,7 @@ jobs:
           diff-branch: main
 
       - name: Upload test coverage artifacts
+        if: matrix.config.os == 'ubuntu' && matrix.config.test_type == 'gmp'  
         uses: actions/upload-artifact@v4
         with:
           name: Tests coverage artifacts
