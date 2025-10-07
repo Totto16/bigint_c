@@ -915,17 +915,18 @@ NODISCARD static size_t helper_max(size_t num1, size_t num2) {
 	return num2;
 }
 
-#if defined __GNUC__
-#if defined(__SIZEOF_INT128__)
-#define HAVE_128_BIT_NUMBERS
+#if !defined(BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION)
+#error "DEFINE BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION"
+#elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 typedef __uint128_t uint128_t; // NOLINT(readability-identifier-naming)
 typedef __int128_t int128_t;   // NOLINT(readability-identifier-naming)
+#elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1
 
+#else
+#error "unknown BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION"
 #endif
 
-#endif
-
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 
 NODISCARD static BigIntC bigint_add_bigint_both_positive_using_128_bit_numbers(BigIntC big_int1,
                                                                                BigIntC big_int2) {
@@ -1021,7 +1022,7 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_using_128_bit_numbers(B
 
 	return result;
 }
-#else
+#elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1
 
 #if defined(_MSC_VER)
 #include <intrin.h>
@@ -1050,7 +1051,7 @@ NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, u
 	uint64_t sum = value1 + value2;
 	*result_out = sum + carry_in;
 
-	bool carry1 = sum < a;
+	bool carry1 = sum < value1;
 	bool carry2 = *result_out < sum;
 
 	uint8_t carry_out = carry1 || carry2 ? 1 : 0;
@@ -1144,11 +1145,13 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1
 
 	return result;
 }
+#else
+#error "unknown BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION"
 #endif
 
 NODISCARD static BigIntC bigint_add_bigint_both_positive(BigIntC big_int1, BigIntC big_int2) {
 
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
 	return bigint_add_bigint_both_positive_normal(big_int1, big_int2);
@@ -1194,7 +1197,7 @@ bigint_add_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-recurs
 
 NODISCARD static BigIntC bigint_sub_bigint_both_positive_impl(BigIntC big_int1, BigIntC big_int2) {
 
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
 	return bigint_sub_bigint_both_positive_normal(big_int1, big_int2);
@@ -1371,7 +1374,7 @@ NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
 	return (BigIntSlice){ .numbers = big_int.numbers, .number_count = big_int.number_count };
 }
 
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 
 NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t big_int1,
                                                                      uint64_t big_int2) {
@@ -1403,7 +1406,7 @@ NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t bi
 #endif
 
 NODISCARD static BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1, uint64_t big_int2) {
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 	return bigint_mul_two_numbers_using_128_bit_numbers(big_int1, big_int2);
 #else
 #error "TODO"
