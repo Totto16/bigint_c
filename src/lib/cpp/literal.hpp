@@ -52,7 +52,9 @@ constexpr size_t padding_for_bcd_algorihtm = 2;
 
 } // namespace const_constants
 
-namespace {
+// NOLINTBEGIN(llvm-prefer-static-over-anonymous-namespace)
+
+namespace { // NOLINT(cert-dcl59-cpp,google-build-namespaces)
 consteval size_t consteval_ceil_div(size_t input, size_t divider) {
 	return (input + divider - 1) / divider;
 }
@@ -157,7 +159,7 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 
 				// 1.1.2. shift the last bit of every number into the next one
 				for(size_t i = temp.numbers.size(); i != 0; --i) {
-					uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
+					const uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
 
 					if(i == temp.numbers.size()) {
 						CONSTEVAL_STATIC_ASSERT((last_bit == 0),
@@ -174,7 +176,7 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 				}
 
 				// 1.1.3. shift the last bit of the last bcd input into the first output
-				BCDDigit last_value = bcd_digits[bcd_digits.size() - 1];
+				const BCDDigit last_value = bcd_digits[bcd_digits.size() - 1];
 				if((last_value & 0x01) != 0) {
 					temp.numbers[0] =
 					    (U64(1) << (BIGINT_BIT_COUNT_FOR_BCD_ALG - 1)) + temp.numbers[0];
@@ -185,15 +187,17 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 
 				// 1.2.1. shift the last bit of every number into the next one
 				for(size_t i = bcd_digits.size(); i > bcd_processed_fully_amount; --i) {
-					uint8_t last_bit = ((bcd_digits[i - 1]) & 0x01);
+					const uint8_t last_bit = ((bcd_digits[i - 1]) & 0x01);
 
 					if(i == bcd_digits.size()) {
 						// we already processed that earlier, ignore the last bit, it is shifted
 						// away later in this for loop
 					} else {
 						if(last_bit != 0) {
-							bcd_digits[i] = ((BCDDigit)1 << (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) +
-							                bcd_digits[i];
+							bcd_digits[i] =
+							    static_cast<BCDDigit>((static_cast<BCDDigit>(1)
+							                           << (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) +
+							                          bcd_digits[i]);
 						}
 					}
 
@@ -208,9 +212,10 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 
 				// 2.1 If value >= 8 then subtract 3 from value
 
-				BCDDigit value = bcd_digits[i - 1];
+				const BCDDigit value = bcd_digits[i - 1];
 
-				if(value >= 8) {
+				if(value >=
+				   8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 					bcd_digits[i - 1] = bcd_digits[i - 1] - 3;
 				}
 			}
@@ -235,15 +240,16 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 
 		{ // 3.1 align the temp values
 
-			uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
+			const uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
 
-			uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
+			const uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
 
 			if(alignment != 0) {
 
 				// 3.1.1. shift the last to_shift bytes of every number into the next one
 				for(size_t i = temp.numbers.size(); i != 0; --i) {
-					uint64_t last_bytes = (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
+					const uint64_t last_bytes =
+					    (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
 
 					if(i == temp.numbers.size()) {
 						// those x values from above are not 0
@@ -270,7 +276,8 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 
 template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_from_string_impl() {
 
-	constexpr size_t N = get_maximum_uint64_numbers_for_string_length(S.size);
+	constexpr size_t N = // NOLINT(readability-identifier-naming,readability-identifier-length)
+	    get_maximum_uint64_numbers_for_string_length(S.size);
 
 	using SuccessResult = BigIntConstExpr<N>;
 
@@ -326,7 +333,8 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 	BCDDigitsConstExpr<S.size> bcd_digits = {};
 
 	for(; index < S.size; ++index) {
-		StrType value = S.str[index];
+		const StrType value =
+		    S.str[index]; // NOLINT(cppcoreguidelines-pro-bounds-constant-array-index)
 
 		if(consteval_is_digit(value)) {
 			bcd_digits.push_back(consteval_char_to_digit(value));
@@ -375,6 +383,8 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 }
 
 } // namespace
+
+// NOLINTEND(llvm-prefer-static-over-anonymous-namespace)
 
 template <const_utils::ConstString S> consteval auto operator""_n() {
 

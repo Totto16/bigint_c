@@ -1,5 +1,7 @@
 #pragma once
 
+// NOLINTBEGIN(modernize-use-using)
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -38,6 +40,8 @@ typedef struct {
 		MaybeBigIntError error;
 	} data;
 } MaybeBigIntC;
+
+// NOLINTEND(modernize-use-using)
 
 // functions on maybe bigint
 

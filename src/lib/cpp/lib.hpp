@@ -111,7 +111,7 @@ struct BigInt {
 	template <typename... Args>
 	    requires(sizeof...(Args) >= 2) &&
 	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
-	BigInt(Args... args) noexcept {
+	BigInt(Args... args) noexcept : m_c_value{} { // NOLINT(google-explicit-constructor)
 
 		std::vector<uint64_t> values = { static_cast<uint64_t>( // GCOVR_EXCL_BR_LINE (c++ template)
 			args)... };                                         // GCOVR_EXCL_BR_LINE (c++ template)

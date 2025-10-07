@@ -1,7 +1,7 @@
 name: Lint CI
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
   workflow_dispatch:
 
@@ -48,10 +48,11 @@ jobs:
           files-changed-only: ${{ github.event_name != 'workflow_dispatch' }}
           lines-changed-only: ${{ github.event_name != 'workflow_dispatch' }}
           thread-comments: update
-          tidy-checks: ''
+          tidy-checks: ""
           step-summary: true
           file-annotations: true
           ignore: subprojects|build
+          extra-args: -std=c++23
 
       - name: Fail CI run if linter checks failed
         if: steps.linter.outputs.checks-failed != 0
