@@ -77,11 +77,9 @@ jobs:
           git checkout v1.3.0
           mkdir build
           cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-          cmake --build .
           cmake -DCMAKE_BUILD_TYPE=Debug ..
-          cmake --build .
-          cmake --install .
+          cmake --build . --config=Debug
+          cmake --install . --config=Debug
 
       - name: Configure
         run: meson setup build -Dbuildtype=debug -Db_coverage=true -Ddefault_library=${{( matrix.config.os == 'windows') && 'static' ||'shared' }} -Dtests=${{ matrix.config.test_type}} --fatal-meson-warnings
