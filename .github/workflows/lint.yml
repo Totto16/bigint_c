@@ -51,7 +51,7 @@ jobs:
           tidy-checks: ""
           step-summary: true
           file-annotations: true
-          ignore: subprojects|build
+          ignore: subprojects|build|test
           extra-args: -std=c++23
 
       - name: Fail CI run if linter checks failed
