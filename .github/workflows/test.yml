@@ -67,20 +67,21 @@ jobs:
         if: matrix.config.os == 'ubuntu'
         run: |
           sudo apt-get update
-          sudo apt-get install ninja-build gcovr libgmp-dev cmake -y --no-install-recommends
+          sudo apt-get install ninja-build gcovr libgmp-dev cmake libtommath-dev -y --no-install-recommends
 
-      - name: Install libtommath
-        if: matrix.config.test_type == 'tommath' || matrix.config.os == 'windows'
+      - name: Install libtommath (Windows)
+        if: matrix.config.os == 'windows'
         run: |
           git clone https://github.com/libtom/libtommath
           cd libtommath
+          git checkout v1.3.0
           mkdir build
           cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           cmake --build .
           cmake -DCMAKE_BUILD_TYPE=Debug ..
           cmake --build .
-          ${{matrix.config.os == 'ubuntu' && 'sudo' || ''}} cmake --install .
+          cmake --install .
 
       - name: Configure
         run: meson setup build -Dbuildtype=debug -Db_coverage=true -Ddefault_library=${{( matrix.config.os == 'windows') && 'static' ||'shared' }} -Dtests=${{ matrix.config.test_type}} --fatal-meson-warnings

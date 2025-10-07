@@ -3,20 +3,14 @@
 #define BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 #include "./helper.hpp"
 
-#if defined(_MSC_VER)
-#define USE_IMPLEMENTATION 1
-#else
-#define USE_IMPLEMENTATION 0
-#endif
-
-#if !defined(USE_IMPLEMENTATION)
-#error "DEFINE USE_IMPLEMENTATION"
-#elif USE_IMPLEMENTATION == 0
+#if !defined(TEST_BACKEND_USE_IMPLEMENTATION)
+#error "DEFINE TEST_BACKEND_USE_IMPLEMENTATION"
+#elif TEST_BACKEND_USE_IMPLEMENTATION == 0
 #include <gmp.h>
-#elif USE_IMPLEMENTATION == 1
+#elif TEST_BACKEND_USE_IMPLEMENTATION == 1
 #include <tommath.h>
 #else
-#error "unknown USE_IMPLEMENTATION"
+#error "unknown TEST_BACKEND_USE_IMPLEMENTATION"
 #endif
 
 #include <stdexcept>
@@ -93,7 +87,7 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
-#if USE_IMPLEMENTATION == 0
+#if TEST_BACKEND_USE_IMPLEMENTATION == 0
 
 static constexpr uint8_t CHUNK_BITS = 64;
 
@@ -301,7 +295,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	return result;
 }
 
-#elif USE_IMPLEMENTATION == 1
+#elif TEST_BACKEND_USE_IMPLEMENTATION == 1
 
 #define CHECK_MP_ERROR(err) \
 	do { \
@@ -346,6 +340,8 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 
 	test = BigIntTest(positive, std::move(values));
 }
+
+#include <memory>
 
 namespace {
 
@@ -455,7 +451,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 [[nodiscard]] std::string BigIntTest::to_string() const {
 	MPWrapper number = get_tommath_value_from_bigint(*this);
 
-	size_t needed_size = 0;
+	int needed_size = 0;
 	mp_err error = mp_radix_size(*number, 10, &needed_size);
 	CHECK_MP_ERROR(error);
 

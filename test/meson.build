@@ -23,11 +23,18 @@ else
     error('Unsupported test backend: ' + tests)
 endif
 
+general_test_args = []
+
 
 if test_backend == 'tommath'
-    test_deps += dependency('libtommath')
+    test_deps += dependency(
+        'libtommath',
+        version: '<=1.3.0',
+    )
+    general_test_args += ('-DTEST_BACKEND_USE_IMPLEMENTATION=1')
 elif test_backend == 'gmp'
     test_deps += dependency('gmp')
+    general_test_args += ('-DTEST_BACKEND_USE_IMPLEMENTATION=0')
 else
     error('Unsupported test backend: ' + test_backend)
 endif
@@ -51,7 +58,7 @@ add_languages(
 foreach file : test_files
     file_name = file.split('.')[-2]
 
-    test_args = []
+    test_args = general_test_args
 
     if file_name == 'compile_time_tests'
 
@@ -64,10 +71,7 @@ foreach file : test_files
             #default 512
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())
             # default: 33554432 (1<<25)
-            test_args += (
-                '-fconstexpr-ops-limit='
-                                                                                                                                                                + test_needed_constexpr_steps.to_string()
-            )
+            test_args += ('-fconstexpr-ops-limit=' + test_needed_constexpr_steps.to_string())
         elif cxx.get_id() == 'clang'
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())
             test_args += ('-fconstexpr-steps=' + test_needed_constexpr_steps.to_string())
