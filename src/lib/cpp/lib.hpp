@@ -12,6 +12,7 @@
 #include <expected>
 #include <ios>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,8 +26,14 @@ template <> struct hash<BigIntC> {
 
 		// see: https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector
 		for(size_t i = 0; i < value.number_count; ++i) {
-			hash = hash ^ (std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) +
-			               (hash >> 2));
+			hash =
+			    hash ^
+			    (std::hash<uint64_t>()(
+			         value.numbers[i]) + // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			     0x9e3779b9 + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+			     (hash
+			      << 6) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+			     (hash >> 2));
 		}
 
 		return hash;
@@ -55,24 +62,34 @@ class ParseError final : public std::runtime_error {
 };
 
 namespace ios {
-
 // custom io manipulators for formatting BigInts
-constexpr const inline auto& bin =
-    std::oct; // oct is not supported by this lib, so we can use that base for bin,
-              // default for base is dec, so this is not set
 
-constexpr const inline auto& add_gaps = std::showpoint; // showpoint is not set by default
+// oct is not supported by this lib, so we can use that base for bin,
+// showpoint is not set by default
+constexpr const inline auto& bin = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::oct;
+// default for base is dec, so this is not set
 
-constexpr const inline auto& no_add_gaps = std::noshowpoint;
+constexpr const inline auto&
+    add_gaps = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::showpoint;
 
-constexpr const inline auto& trim_first_number = std::skipws; // skipws is set by default
+constexpr const inline auto&
+    no_add_gaps = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::noshowpoint;
 
-constexpr const inline auto& no_trim_first_number = std::noskipws;
+constexpr const inline auto&
+    trim_first_number = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::skipws;        // skipws is set by default
+
+constexpr const inline auto&
+    no_trim_first_number = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::noskipws;
 
 } // namespace ios
 } // namespace bigint
 
-namespace {
+namespace { // NOLINT(cert-dcl59-cpp,google-build-namespaces)
 namespace bigint_ios {
 constexpr const auto bin_flag = std::ios_base::oct;
 constexpr const auto add_gaps_flag = std::ios_base::showpoint;
@@ -85,11 +102,11 @@ struct BigInt {
 	BigIntC m_c_value;
 
   public:
-	BigInt(BigIntC&& c_value) noexcept;
+	BigInt(BigIntC&& c_value) noexcept; // NOLINT(google-explicit-constructor)
 
-	BigInt(uint64_t value) noexcept;
+	BigInt(uint64_t value) noexcept; // NOLINT(google-explicit-constructor)
 
-	BigInt(int64_t value) noexcept;
+	BigInt(int64_t value) noexcept; // NOLINT(google-explicit-constructor)
 
 	template <typename... Args>
 	    requires(sizeof...(Args) >= 2) &&
@@ -122,14 +139,16 @@ struct BigInt {
 
 	BigInt& operator=(BigInt&& big_int) noexcept;
 
-	template <size_t N> BigInt(const BigIntConstExpr<N>& big_int) {
+	template <size_t N>
+	BigInt(const BigIntConstExpr<N>& big_int) : m_c_value{} { // NOLINT(google-explicit-constructor)
 
 		BigIntC c_value = { .positive = big_int.positive,
 			                .numbers = nullptr,
 			                .number_count = big_int.numbers.size() };
 
 		auto* const new_numbers =
-		    (uint64_t*)realloc(c_value.numbers, sizeof(uint64_t) * c_value.number_count);
+		    static_cast<uint64_t*>(realloc( // NOLINT(cppcoreguidelines-no-malloc)
+		        c_value.numbers, sizeof(uint64_t) * c_value.number_count));
 
 		if(new_numbers == NULL) {                                      // GCOVR_EXCL_BR_LINE (OOM)
 			throw std::runtime_error(                                  // GCOVR_EXCL_LINE (OOM
@@ -141,7 +160,8 @@ struct BigInt {
 		c_value.numbers = new_numbers;
 
 		for(size_t i = 0; i < c_value.number_count; ++i) {
-			c_value.numbers[i] = big_int.numbers[i];
+			c_value.numbers[i] = // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			    big_int.numbers[i];
 		}
 
 		this->m_c_value = c_value;
@@ -225,9 +245,9 @@ struct BigInt {
 	[[nodiscard]] BigInt copy() const;
 };
 
-std::ostream& operator<<(std::ostream& os, const BigInt& value);
+std::ostream& operator<<(std::ostream& out_stream, const BigInt& value);
 
-std::istream& operator>>(std::istream& is, const BigInt& value);
+std::istream& operator>>(std::istream& in_stream, const BigInt& value);
 
 namespace std {
 
@@ -237,7 +257,7 @@ template <> struct hash<BigInt> {
 	}
 };
 
-std::string to_string(const BigInt& value);
+std::string to_string(const BigInt& value); // NOLINT(cert-dcl58-cpp)
 
 } // namespace std
 
@@ -472,8 +492,8 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	throw std::runtime_error("TODO");
 }
 
-std::ostream& operator<<(std::ostream& os, const BigInt& value) {
-	std::ios_base::fmtflags flags = os.flags();
+std::ostream& operator<<(std::ostream& out_stream, const BigInt& value) {
+	std::ios_base::fmtflags flags = out_stream.flags();
 
 	bool prefix = (flags & std::ios_base::showbase) != 0;
 
@@ -486,22 +506,22 @@ std::ostream& operator<<(std::ostream& os, const BigInt& value) {
 		bool uppercase = (flags & std::ios_base::uppercase) != 0;
 
 		std::string temp = value.to_string_hex(prefix, add_gaps, trim_first_number, uppercase);
-		os << temp;
+		out_stream << temp;
 
 	} else if((flags & std::ios_base::basefield) == bigint_ios::bin_flag) {
 		std::string temp = value.to_string_bin(prefix, add_gaps, trim_first_number);
-		os << temp;
+		out_stream << temp;
 	} else {
 		std::string temp = value.to_string();
-		os << temp;
+		out_stream << temp;
 	}
 
-	return os;
+	return out_stream;
 }
 
-std::istream& operator>>(std::istream& is, const BigInt& value) {
+std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 	// TODO
-	UNUSED(is);
+	UNUSED(in_stream);
 	UNUSED(value);
 	throw std::runtime_error("TODO");
 }

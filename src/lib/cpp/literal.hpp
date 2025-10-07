@@ -7,6 +7,8 @@
 #include <limits>
 #include <string>
 
+#include "../lib.h"
+
 template <size_t N> struct BigIntConstExpr {
   public:
 	bool positive;
@@ -291,11 +293,11 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 	};
 	result.numbers.push_back(0);
 
-	size_t i = 0;
+	size_t index = 0;
 
 	if(S.str[0] == '-') {
 		result.positive = false;
-		++i;
+		++index;
 
 		if constexpr(S.size == 1) {
 			return ResultType::error_result(MaybeBigIntError{
@@ -306,7 +308,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 		}
 	} else if(S.str[0] == '+') {
 		result.positive = true;
-		++i;
+		++index;
 
 		if constexpr(S.size == 1) {
 			return ResultType::error_result(MaybeBigIntError{
@@ -323,8 +325,8 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 
 	BCDDigitsConstExpr<S.size> bcd_digits = {};
 
-	for(; i < S.size; ++i) {
-		StrType value = S.str[i];
+	for(; index < S.size; ++index) {
+		StrType value = S.str[index];
 
 		if(consteval_is_digit(value)) {
 			bcd_digits.push_back(consteval_char_to_digit(value));
@@ -332,7 +334,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 			if(start) {
 				return ResultType::error_result(MaybeBigIntError{
 				    .message = "separator not allowed at the start",
-				    .index = i,
+				    .index = index,
 				    .symbol = value,
 				});
 			}
@@ -342,7 +344,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 
 			return ResultType::error_result(MaybeBigIntError{
 			    .message = "invalid character",
-			    .index = i,
+			    .index = index,
 			    .symbol = value,
 			});
 		}
@@ -360,7 +362,7 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 
 				return ResultType::error_result(MaybeBigIntError{
 				    .message = "-0 is not allowed",
-				    .index = i,
+				    .index = index,
 				    .symbol = NO_SYMBOL,
 				});
 			}
@@ -372,7 +374,6 @@ template <const_utils::ConstString S> [[nodiscard]] consteval auto get_bigint_fr
 	return ResultType::good_result(result);
 }
 
-// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 } // namespace
 
 template <const_utils::ConstString S> consteval auto operator""_n() {
