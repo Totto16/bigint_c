@@ -1360,6 +1360,8 @@ NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
 	return (BigIntSlice){ .numbers = big_int.numbers, .number_count = big_int.number_count };
 }
 
+#if defined(HAVE_128_BIT_NUMBERS)
+
 NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t big_int1,
                                                                      uint64_t big_int2) {
 
@@ -1385,8 +1387,12 @@ NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t bi
 	return result_big_int;
 }
 
+#else
+#error "TODO"
+#endif
+
 NODISCARD static BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1, uint64_t big_int2) {
-#if defined(__SIZEOF_INT128__)
+#if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_mul_two_numbers_using_128_bit_numbers(big_int1, big_int2);
 #else
 #error "TODO"
@@ -1543,25 +1549,34 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 
 		// get the 4 parts of the numbers, the first part can be NULL, as e.g. one can be smaller as
 		// the divide_at
-		// NOTE: PAY ATTENTION to the order, as the uint64_t values are stored in reverse order!
+		// NOTE: PAY ATTENTION to the order, as the uint64_t values are stored in reverse order! but
+		// a1 is msb and a2 lsb
 
 		BigIntSlice a1 = { .numbers = NULL, .number_count = 0 };
+		BigIntSlice a2 = { .numbers = NULL, .number_count = 0 };
 
 		if(big_int1.number_count > divide_at) {
-			a1.number_count = big_int1.number_count - divide_at;
-			a1.numbers = big_int1.numbers + divide_at;
-		}
+			a1 = (BigIntSlice){ .numbers = big_int1.numbers + divide_at,
+				                .number_count = big_int1.number_count - divide_at };
+			a2 = (BigIntSlice){ .numbers = big_int1.numbers, .number_count = divide_at };
 
-		BigIntSlice a2 = { .numbers = big_int1.numbers, .number_count = divide_at };
+		} else {
+			a2 =
+			    (BigIntSlice){ .numbers = big_int1.numbers, .number_count = big_int1.number_count };
+		}
 
 		BigIntSlice b1 = { .numbers = NULL, .number_count = 0 };
+		BigIntSlice b2 = { .numbers = NULL, .number_count = 0 };
 
 		if(big_int2.number_count > divide_at) {
-			b1.number_count = big_int2.number_count - divide_at;
-			b1.numbers = big_int2.numbers + divide_at;
-		}
+			b1 = (BigIntSlice){ .numbers = big_int2.numbers + divide_at,
+				                .number_count = big_int2.number_count - divide_at };
+			b2 = (BigIntSlice){ .numbers = big_int2.numbers, .number_count = divide_at };
 
-		BigIntSlice b2 = { .numbers = big_int2.numbers, .number_count = divide_at };
+		} else {
+			b2 =
+			    (BigIntSlice){ .numbers = big_int2.numbers, .number_count = big_int2.number_count };
+		}
 
 		// do the necessary steps, use internal algorithm, where we could pass "fake" 0 bigint
 		// slices, see above what "fake" means
@@ -1581,6 +1596,11 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 
 		BigInt z_1 = bigint_sub_bigint_both_positive(z_1_sub_temp, z_0);
 		ASSERT(z_1.positive, "result of this subtraction should always be positive!");
+
+		// these two asserts should always hold since:
+		// (a1 + a2) * (b1 + b2) > (a1 * b1) + (a2 * b2)
+		// (a1 * b1) + (a1 * b2) + (a2 * b1) + (a2 * b2) > (a1 * b1) + (a2 * b2)
+		// (a1 * b2) + (a2 * b1) > 0
 
 		// make the final number
 

@@ -1469,6 +1469,7 @@ TEST(BigInt, IntegerMultiplication) {
 
 		const BigIntTest result_expected = BigIntTest(value1) * BigIntTest(value2);
 
-		EXPECT_EQ(actual_result, result_expected) << "Input values: " << value1 << ", " << value2;
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
