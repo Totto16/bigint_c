@@ -38,7 +38,7 @@ struct BigIntTest {
 };
 
 struct BigIntDebug {
-	const BigInt& value;
+	const BigInt& value; // this is a reference by design, to avoid two copies, when printing!
 
 	explicit BigIntDebug(const BigInt& value) : value{ value } {};
 };

@@ -96,9 +96,9 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	std::vector<uint64_t> values{};
 	values.resize(num_chunks);
 
-	int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
-	int endian = 0; // host endian
-	int nails = 0;  // use all 64 bits of the number
+	const int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
+	const int endian = 0; // host endian
+	const int nails = 0;  // use all 64 bits of the number
 
 	size_t written = num_chunks;
 
@@ -106,7 +106,7 @@ static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
 	mpz_export((void*)(values.data()), &written, order, sizeof(uint64_t), endian, nails, number);
 
 	// note: 0 is always positive here
-	bool positive = mpz_sgn(number) >= 0;
+	const bool positive = mpz_sgn(number) >= 0;
 
 	mpz_clear(number);
 
@@ -173,9 +173,9 @@ static MPZWrapper get_gmp_value_from_bigint(const BigIntTest& test) {
 
 	MPZWrapper bigint{};
 
-	int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
-	int endian = 0; // host endian
-	int nails = 0;  // use all 64 bits of the number
+	const int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
+	const int endian = 0; // host endian
+	const int nails = 0;  // use all 64 bits of the number
 
 	// see: https://gmplib.org/manual/Integer-Import-and-Export
 	mpz_import(*bigint, test.values().size(), order, sizeof(uint64_t), endian, nails,
@@ -236,7 +236,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 [[nodiscard]] std::string BigIntTest::to_string() const {
 	MPZWrapper number = get_gmp_value_from_bigint(*this);
 
-	size_t needed_size =
+	const size_t needed_size =
 	    mpz_sizeinbase(*number, 10) + 2; // one for the eventual "-" and one for the 0 terminator
 
 	char* buffer = (char*)malloc(needed_size * sizeof(char));
