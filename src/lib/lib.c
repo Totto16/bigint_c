@@ -1,24 +1,32 @@
 
 
 #include "./lib.h"
+#include "../utils/assert.h"
+
+// NOLINTBEGIN(modernize-deprecated-headers)
 
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
 
+// NOLINTEND(modernize-deprecated-headers)
+
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)
+
 // functions on maybe bigint
 
-NODISCARD bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int) {
+NODISCARD BIGINT_C_LIB_EXPORTED bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int) {
 	return maybe_big_int.error;
 }
 
-NODISCARD BigInt maybe_bigint_get_value(MaybeBigIntC maybe_big_int) {
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC maybe_bigint_get_value(MaybeBigIntC maybe_big_int) {
 	ASSERT(!maybe_bigint_is_error(maybe_big_int), "MaybeBigIntC has no value");
 
 	return maybe_big_int.data.result;
 }
 
-NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
+NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntError
+maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
 	ASSERT(maybe_bigint_is_error(maybe_big_int), "MaybeBigIntC has no error");
 
 	return maybe_big_int.data.error;
@@ -28,21 +36,22 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int) {
 
 #define U64(n) (uint64_t)(n##ULL)
 
-static void bigint_helper_realloc_to_new_size(BigInt* big_int) {
+static void bigint_helper_realloc_to_new_size(BigIntC* big_int) {
 
-	uint64_t* new_numbers = realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
+	uint64_t* new_numbers =
+	    (uint64_t*)realloc(big_int->numbers, sizeof(uint64_t) * big_int->number_count);
 
-	if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE
+	if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE (OOM content)
 		    "realloc failed, no error handling implemented here");
-	} // GCOVR_EXCL_LINE
+	} // GCOVR_EXCL_LINE (OOM content)
 
 	big_int->numbers = new_numbers;
 }
 
-static BigInt bigint_helper_zero(void) {
+static BigIntC bigint_helper_zero(void) {
 
-	BigInt result = { .positive = true, .numbers = NULL, .number_count = 1 };
+	BigIntC result = { .positive = true, .numbers = NULL, .number_count = 1 };
 
 	bigint_helper_realloc_to_new_size(&result);
 
@@ -73,14 +82,16 @@ static void free_bcd_digits(BCDDigits digits) {
 static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 
 	if(digits->count + 1 > digits->capacity) {
-		size_t new_size = digits->capacity == 0 ? BCD_DIGITS_START_CAPACITY : digits->capacity * 2;
+		const size_t new_size =
+		    digits->capacity == 0 ? BCD_DIGITS_START_CAPACITY : digits->capacity * 2;
 
-		BCDDigit* new_bcd_digits = realloc(digits->bcd_digits, sizeof(BCDDigit) * new_size);
+		BCDDigit* new_bcd_digits =
+		    (BCDDigit*)realloc(digits->bcd_digits, sizeof(BCDDigit) * new_size);
 
-		if(new_bcd_digits == NULL) { // GCOVR_EXCL_BR_LINE
-			UNREACHABLE_WITH_MSG(    // GCOVR_EXCL_LINE
+		if(new_bcd_digits == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+			UNREACHABLE_WITH_MSG(    // GCOVR_EXCL_LINE (OOM content)
 			    "realloc failed, no error handling implemented here");
-		} // GCOVR_EXCL_LINE
+		} // GCOVR_EXCL_LINE (OOM content)
 
 		digits->capacity = new_size;
 		digits->bcd_digits = new_bcd_digits;
@@ -94,17 +105,17 @@ static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 #define BIGINT_BIT_COUNT_FOR_BCD_ALG 64
 #define BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG 4
 
-static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_digits) {
+static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_digits) {
 	// using reverse double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble#Reverse_double_dabble
 
-	if(bcd_digits.count == 0) {                                       // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(bcd_digits.count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that, internal function)
+		UNREACHABLE_WITH_MSG("not initialized bcd_digits correctly"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// this acts as a helper type, where we shift bits into, it is stored in reverse order than
 	// normal bigints
-	BigInt temp = { .positive = true, .numbers = NULL, .number_count = 0 };
+	BigIntC temp = { .positive = true, .numbers = NULL, .number_count = 0 };
 
 	size_t pushed_bits = 0;
 
@@ -128,7 +139,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 
 				// 1.1.2. shift the last bit of every number into the next one
 				for(size_t i = temp.number_count; i != 0; --i) {
-					uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
+					const uint8_t last_bit = ((temp.numbers[i - 1]) & 0x01);
 
 					if(i == temp.number_count) {
 						ASSERT((last_bit == 0), "no additional uint64_t was allocated in time (we "
@@ -144,7 +155,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 				}
 
 				// 1.1.3. shift the last bit of the last bcd input into the first output
-				BCDDigit last_value = bcd_digits.bcd_digits[bcd_digits.count - 1];
+				const BCDDigit last_value = bcd_digits.bcd_digits[bcd_digits.count - 1];
 				if((last_value & 0x01) != 0) {
 					temp.numbers[0] =
 					    (U64(1) << (BIGINT_BIT_COUNT_FOR_BCD_ALG - 1)) + temp.numbers[0];
@@ -155,7 +166,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 
 				// 1.2.1. shift the last bit of every number into the next one
 				for(size_t i = bcd_digits.count; i > bcd_processed_fully_amount; --i) {
-					uint8_t last_bit = ((bcd_digits.bcd_digits[i - 1]) & 0x01);
+					const uint8_t last_bit = ((bcd_digits.bcd_digits[i - 1]) & 0x01);
 
 					if(i == bcd_digits.count) {
 						// we already processed that earlier, ignore the last bit, it is shifted
@@ -179,9 +190,10 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 
 				// 2.1 If value >= 8 then subtract 3 from value
 
-				BCDDigit value = bcd_digits.bcd_digits[i - 1];
+				const BCDDigit value = bcd_digits.bcd_digits[i - 1];
 
-				if(value >= 8) {
+				if(value >=
+				   8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 					bcd_digits.bcd_digits[i - 1] = bcd_digits.bcd_digits[i - 1] - 3;
 				}
 			}
@@ -207,15 +219,16 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 
 		{ // 3.1 align the temp values
 
-			uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
+			const uint8_t alignment = pushed_bits % BIGINT_BIT_COUNT_FOR_BCD_ALG;
 
-			uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
+			const uint8_t to_shift = BIGINT_BIT_COUNT_FOR_BCD_ALG - alignment;
 
 			if(alignment != 0) {
 
 				// 3.1.1. shift the last to_shift bytes of every number into the next one
 				for(size_t i = temp.number_count; i != 0; --i) {
-					uint64_t last_bytes = (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
+					const uint64_t last_bytes =
+					    (temp.numbers[i - 1]) & ((U64(1) << to_shift) - U64(1));
 
 					if(i == temp.number_count) {
 						// those x values from above are not 0
@@ -239,10 +252,11 @@ static void bigint_helper_bcd_digits_to_bigint(BigInt* big_int, BCDDigits bcd_di
 	free_bigint(&temp);
 }
 
-static void bigint_helper_remove_leading_zeroes(BigInt* big_int) {
-	if(big_int->number_count == 0) {                                      // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG("big_int has to have at least one number!"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+static void bigint_helper_remove_leading_zeroes(BigIntC* big_int) {
+	if(big_int->number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		UNREACHABLE_WITH_MSG(        // GCOVR_EXCL_LINE (see above)
+		    "big_int has to have at least one number!"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	if(big_int->number_count == 1) {
 #ifndef NDEBUG
@@ -292,15 +306,21 @@ NODISCARD static StrType helper_digit_to_hex_char_checked(uint8_t value, bool up
 
 	ASSERT(value < 0x10, "value is not a valid hex digit");
 
-	if(value < 10) {
+	if(value < 10) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 		return (StrType)((StrType)value + '0');
 	}
 
 	if(uppercase) {
-		return (StrType)((StrType)(value - (uint8_t)10) + 'A');
+		return (
+		    StrType)((StrType)(value -
+		                       (uint8_t)10) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+		             'A');
 	}
 
-	return (StrType)((StrType)(value - (uint8_t)10) + 'a');
+	return (
+	    StrType)((StrType)(value -
+	                       (uint8_t)10) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+	             'a');
 }
 
 NODISCARD static inline bool helper_is_separator(StrType value) {
@@ -310,11 +330,11 @@ NODISCARD static inline bool helper_is_separator(StrType value) {
 
 // TODO: add separate functions for parsing from bin and hex, and also one, that detects it based on
 // prefix  (none means dec)
-NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
+NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
-	BigInt result = bigint_helper_zero();
+	BigIntC result = bigint_helper_zero();
 
-	size_t str_len = strlen(str);
+	const size_t str_len = strlen(str);
 
 	// bigint regex: /^[+-]?[0-9][0-9_',.]*$/
 
@@ -328,11 +348,11 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 			                             } } };
 	}
 
-	size_t i = 0;
+	size_t index = 0;
 
 	if(str[0] == '-') {
 		result.positive = false;
-		++i;
+		++index;
 
 		if(str_len == 1) {
 			free_bigint(&result);
@@ -346,7 +366,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	} else if(str[0] == '+') {
 		result.positive = true;
-		++i;
+		++index;
 
 		if(str_len == 1) {
 			free_bigint(&result);
@@ -365,8 +385,8 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 
 	BCDDigits bcd_digits = { .bcd_digits = NULL, .count = 0, .capacity = 0 };
 
-	for(; i < str_len; ++i) {
-		StrType value = str[i];
+	for(; index < str_len; ++index) {
+		const StrType value = str[index];
 
 		if(helper_is_digit(value)) {
 			helper_add_value_to_bcd_digits(&bcd_digits, helper_char_to_digit(value));
@@ -379,7 +399,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 				    MaybeBigIntC){ .error = true,
 					               .data = { .error = (MaybeBigIntError){
 					                             .message = "separator not allowed at the start",
-					                             .index = i,
+					                             .index = index,
 					                             .symbol = value,
 					                         } } };
 			}
@@ -391,7 +411,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 			return (MaybeBigIntC){ .error = true,
 				                   .data = { .error = (MaybeBigIntError){
 				                                 .message = "invalid character",
-				                                 .index = i,
+				                                 .index = index,
 				                                 .symbol = value,
 				                             } } };
 		}
@@ -412,7 +432,7 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 				return (MaybeBigIntC){ .error = true,
 					                   .data = { .error = (MaybeBigIntError){
 					                                 .message = "-0 is not allowed",
-					                                 .index = i,
+					                                 .index = index,
 					                                 .symbol = NO_SYMBOL,
 					                             } } };
 			}
@@ -424,16 +444,16 @@ NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str) {
 	return (MaybeBigIntC){ .error = false, .data = { .result = result } };
 }
 
-NODISCARD BigInt bigint_from_unsigned_number(uint64_t number) {
-	BigInt result = bigint_helper_zero();
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_unsigned_number(uint64_t number) {
+	BigIntC result = bigint_helper_zero();
 	result.positive = true;
 	result.numbers[0] = number;
 
 	return result;
 }
 
-NODISCARD BigInt bigint_from_signed_number(int64_t number) {
-	BigInt result = bigint_helper_zero();
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_signed_number(int64_t number) {
+	BigIntC result = bigint_helper_zero();
 
 	if(number < 0LL) {
 		result.positive = false;
@@ -464,7 +484,8 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 	return result;
 }
 
-NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size) {
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64_t* const numbers,
+                                                                    size_t size) {
 
 	BigIntC result = { .positive = true, .numbers = NULL, .number_count = size };
 
@@ -479,7 +500,7 @@ NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size) {
 	return result;
 }
 
-void free_bigint(BigInt* big_int) {
+BIGINT_C_LIB_EXPORTED void free_bigint(BigIntC* big_int) {
 	if(big_int == NULL) {
 		return;
 	}
@@ -490,13 +511,13 @@ void free_bigint(BigInt* big_int) {
 	}
 }
 
-void free_bigint_without_reset(BigIntC big_int) {
+BIGINT_C_LIB_EXPORTED void free_bigint_without_reset(BigIntC big_int) {
 	if(big_int.numbers != NULL) {
 		free(big_int.numbers);
 	}
 }
 
-NODISCARD BigIntC bigint_copy(BigIntC big_int) {
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_copy(BigIntC big_int) {
 	return bigint_helper_get_full_copy(big_int);
 }
 
@@ -518,27 +539,28 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 	// using double dabble, see
 	// https://en.wikipedia.org/wiki/Double_dabble
 
-	if(source.number_count == 0) {                                // GCOVR_EXCL_BR_LINE
-		UNREACHABLE_WITH_MSG("not initialized BigInt correctly"); // GCOVR_EXCL_LINE
-	} // GCOVR_EXCL_LINE
+	if(source.number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		UNREACHABLE_WITH_MSG("not initialized BigIntC correctly"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// reverse the source so that the bits are aligned
 	{
 		for(size_t i = 0; i < source.number_count / 2; ++i) {
-			uint64_t temp = source.numbers[i];
+			const uint64_t temp = source.numbers[i];
 			source.numbers[i] = source.numbers[source.number_count - 1 - i];
 
 			source.numbers[source.number_count - 1 - i] = temp;
 		}
 	}
 
-	const size_t last_number_bit_amount = bigint_helper_bits_of_number_used(
+	size_t last_number_bit_amount = bigint_helper_bits_of_number_used(
 	    source.numbers[0]); // range 0 -64 0 should never be here, as then i should have remove
 	                        // it earlier (remove leading zeroes!)
 
 	// but it is here when the value is just 0 ("0")
-	// TODO: handle that case
-	ASSERT(last_number_bit_amount != 0, "first number has to have at least one bit of information");
+	if(last_number_bit_amount == 0) {
+		last_number_bit_amount = 1; // print one 0, even if it's a not a 1
+	}
 
 	// calculate the amount of input bits
 	const size_t total_input_bits = source.number_count * BIGINT_BIT_COUNT_FOR_BCD_ALG;
@@ -558,9 +580,10 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 				// 2.1. If value >= 5 then add 3 to value
 
-				BCDDigit value = bcd_digits.bcd_digits[i];
+				const BCDDigit value = bcd_digits.bcd_digits[i];
 
-				if(value >= 5) {
+				if(value >=
+				   5) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 					bcd_digits.bcd_digits[i] = bcd_digits.bcd_digits[i] + 3;
 				}
 			}
@@ -584,8 +607,8 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 							needs_new_digit = true;
 						} else {
 							// 2.1.1.3. we need a new one, if the next shift would overflow!
-							BCDDigit value = bcd_digits.bcd_digits[bcd_digits.count - 1];
-							uint8_t first_bit =
+							const BCDDigit value = bcd_digits.bcd_digits[bcd_digits.count - 1];
+							const uint8_t first_bit =
 							    (value >> (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) & 0x01;
 							if(first_bit != 0) {
 								needs_new_digit = true;
@@ -602,9 +625,10 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 					for(size_t i = bcd_digits.count; i != 0; --i) {
 
-						BCDDigit value = bcd_digits.bcd_digits[i - 1];
+						const BCDDigit value = bcd_digits.bcd_digits[i - 1];
 
-						uint8_t first_bit = (value >> (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) & 0x01;
+						const uint8_t first_bit =
+						    (value >> (BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG - 1)) & 0x01;
 
 						if(i == bcd_digits.count) {
 							ASSERT((first_bit == 0), "the first bit of the first bcd_digit has to "
@@ -626,14 +650,14 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 			{ // 2.2 shift first input bit into the bcd_result
 
-				size_t input_index = current_bit / BIGINT_BIT_COUNT_FOR_BCD_ALG;
+				const size_t input_index = current_bit / BIGINT_BIT_COUNT_FOR_BCD_ALG;
 
-				size_t input_u64_index =
+				const size_t input_u64_index =
 				    BIGINT_BIT_COUNT_FOR_BCD_ALG - (current_bit % BIGINT_BIT_COUNT_FOR_BCD_ALG) - 1;
 
 				ASSERT(input_index < source.number_count, "input index would index out of bounds");
 
-				uint8_t first_bit = (source.numbers[input_index] >> input_u64_index) & 0x01;
+				const uint8_t first_bit = (source.numbers[input_index] >> input_u64_index) & 0x01;
 
 				ASSERT(bcd_digits.count > 0, "bcd_digits has to be initialized");
 				if(first_bit != 0) {
@@ -650,15 +674,15 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 }
 
 // TODO: support also some options, as for to_string_hex and to_string_bin
-NODISCARD Str bigint_to_string(BigInt big_int) {
+NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string(BigIntC big_int) {
 
 	if(big_int.number_count == 0) {
 		return NULL;
 	}
 
-	BigInt copy = bigint_helper_get_full_copy(big_int);
+	BigIntC copy = bigint_helper_get_full_copy(big_int);
 
-	BCDDigits bcd_digits = bigint_helper_get_bcd_digits_from_bigint(copy);
+	const BCDDigits bcd_digits = bigint_helper_get_bcd_digits_from_bigint(copy);
 
 	free_bigint(&copy);
 
@@ -670,30 +694,30 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 		string_size = string_size + 1;
 	}
 
-	Str str = malloc(sizeof(StrType) * (string_size + 1));
+	Str str = (Str)malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) {                // GCOVR_EXCL_BR_LINE
-		free_bcd_digits(bcd_digits); // GCOVR_EXCL_LINE
-		return NULL;                 // GCOVR_EXCL_LINE
+	if(str == NULL) {                // GCOVR_EXCL_BR_LINE (OOM)
+		free_bcd_digits(bcd_digits); // GCOVR_EXCL_LINE (OOM content)
+		return NULL;                 // GCOVR_EXCL_LINE (OOM content)
 	}
 
 	str[string_size] = '\0';
 
-	size_t i = 0;
+	size_t index = 0;
 
 	if(!big_int.positive) {
-		str[i] = '-';
-		++i;
+		str[index] = '-';
+		++index;
 	}
 
 	const size_t offset = string_size - bcd_digits.count;
 
-	for(; i < string_size; ++i) {
+	for(; index < string_size; ++index) {
 
-		size_t digits_index = offset + bcd_digits.count - i - 1;
+		const size_t digits_index = offset + bcd_digits.count - index - 1;
 		ASSERT(digits_index < bcd_digits.count, "string conversion overflowed bcd_digits");
 
-		str[i] = helper_digit_to_char_checked(bcd_digits.bcd_digits[digits_index]);
+		str[index] = helper_digit_to_char_checked(bcd_digits.bcd_digits[digits_index]);
 	}
 
 	free_bcd_digits(bcd_digits);
@@ -708,8 +732,9 @@ NODISCARD Str bigint_to_string(BigInt big_int) {
 
 // TODO: add option to show + when it is positive!	add ability to choose gap character, use
 // struct to not pass a million booleans around!
-NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
-                                   bool trim_first_number, bool uppercase) {
+NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_hex(BigIntC big_int, bool prefix,
+                                                         bool add_gaps, bool trim_first_number,
+                                                         bool uppercase) {
 
 	if(big_int.number_count == 0) {
 		return NULL;
@@ -729,60 +754,67 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 		string_size = string_size + (big_int.number_count - 1);
 	}
 
-	Str str = malloc(sizeof(StrType) * (string_size + 1));
+	Str str = (Str)malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) { // GCOVR_EXCL_BR_LINE
-		return NULL;  // GCOVR_EXCL_LINE
+	if(str == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+		return NULL;  // GCOVR_EXCL_LINE (OOM content)
 	}
 
 	str[string_size] = '\0';
 
-	size_t i = 0;
+	size_t index = 0;
 
 	if(!big_int.positive) {
-		str[i] = '-';
-		++i;
+		str[index] = '-';
+		++index;
 	}
 
 	if(prefix) {
 		for(size_t j = 0; j < SIZEOF_HEX_PREFIX; ++j) {
-			str[i] = HEX_PREFIX[j];
-			++i;
+			str[index] = HEX_PREFIX[j];
+			++index;
 		}
 	}
 
 	size_t current_number = big_int.number_count;
 
-	for(; i < string_size && current_number != 0; --current_number) {
+	for(; index < string_size && current_number != 0; --current_number) {
 
-		uint64_t number = big_int.numbers[current_number - 1];
+		const uint64_t number = big_int.numbers[current_number - 1];
 
 		size_t start_point = 0;
 
 		if(trim_first_number) {
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
-				start_point = (64 - bits_used) / 4;
+				start_point =
+				    (64 - // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+				     bits_used) /
+				    4;
+				if(start_point == SIZEOF_VALUE_AS_HEX_STR) {
+					start_point =
+					    SIZEOF_VALUE_AS_HEX_STR - 1; // print one 0, even if it's a not a 1
+				}
 				ASSERT(start_point < SIZEOF_VALUE_AS_HEX_STR, "start_point was too high");
 			}
 		}
 
-		for(size_t j = start_point; j < SIZEOF_VALUE_AS_HEX_STR; ++i, ++j) {
-			uint8_t digit = (number >> ((64 - ((j + 1) * 4)))) & 0x0F;
-			str[i] = helper_digit_to_hex_char_checked(digit, uppercase);
+		for(size_t j = start_point; j < SIZEOF_VALUE_AS_HEX_STR; ++index, ++j) {
+			const uint8_t digit = (number >> ((64 - ((j + 1) * 4)))) & 0x0F;
+			str[index] = helper_digit_to_hex_char_checked(digit, uppercase);
 		}
 
 		if(add_gaps && current_number != 1) {
-			str[i] = ' ';
-			++i;
+			str[index] = ' ';
+			++index;
 		}
 	}
 
 	ASSERT(current_number == 0, "for loop exited too early");
-	ASSERT(i <= string_size, "string size was not enough or for loop implementation error");
+	ASSERT(index <= string_size, "string size was not enough or for loop implementation error");
 
 	// if we trim the first number, the end of the string is sooner, so set the 0 byte there
-	str[i] = '\0';
+	str[index] = '\0';
 
 	return str;
 }
@@ -792,8 +824,8 @@ NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
 #define SIZEOF_BYTE_AS_BIN_STR 8UL
 #define SIZEOF_VALUE_AS_BIN_STR (SIZEOF_BYTE_AS_BIN_STR * 8UL)
 
-NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
-                                   bool trim_first_number) {
+NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_bin(BigIntC big_int, bool prefix,
+                                                         bool add_gaps, bool trim_first_number) {
 	if(big_int.number_count == 0) {
 		return NULL;
 	}
@@ -812,82 +844,95 @@ NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
 		string_size = string_size + (big_int.number_count - 1);
 	}
 
-	Str str = malloc(sizeof(StrType) * (string_size + 1));
+	Str str = (Str)malloc(sizeof(StrType) * (string_size + 1));
 
-	if(str == NULL) { // GCOVR_EXCL_BR_LINE
-		return NULL;  // GCOVR_EXCL_LINE
+	if(str == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
+		return NULL;  // GCOVR_EXCL_LINE (OOM content)
 	}
 
 	str[string_size] = '\0';
 
-	size_t i = 0;
+	size_t index = 0;
 
 	if(!big_int.positive) {
-		str[i] = '-';
-		++i;
+		str[index] = '-';
+		++index;
 	}
 
 	if(prefix) {
 		for(size_t j = 0; j < SIZEOF_BIN_PREFIX; ++j) {
-			str[i] = BIN_PREFIX[j];
-			++i;
+			str[index] = BIN_PREFIX[j];
+			++index;
 		}
 	}
 
 	size_t current_number = big_int.number_count;
 
-	for(; i < string_size && current_number != 0; --current_number) {
+	for(; index < string_size && current_number != 0; --current_number) {
 
-		uint64_t number = big_int.numbers[current_number - 1];
+		const uint64_t number = big_int.numbers[current_number - 1];
 
 		size_t start_point = 0;
 
 		if(trim_first_number) {
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
-				start_point = 64 - bits_used;
+				start_point =
+				    64 - // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+				    bits_used;
+				if(start_point == SIZEOF_VALUE_AS_BIN_STR) {
+					start_point =
+					    SIZEOF_VALUE_AS_BIN_STR - 1; // print one 0, even if it's a not a 1
+				}
 				ASSERT(start_point < SIZEOF_VALUE_AS_BIN_STR, "start_point was too high");
 			}
 		}
 
-		for(size_t j = start_point; j < SIZEOF_VALUE_AS_BIN_STR; ++i, ++j) {
-			uint8_t digit = (number >> ((64 - ((j + 1))))) & 0x01;
-			str[i] = digit == 0 ? '0' : '1';
+		for(size_t j = start_point; j < SIZEOF_VALUE_AS_BIN_STR; ++index, ++j) {
+			const uint8_t digit = (number >> ((64 - ((j + 1))))) & 0x01;
+			str[index] = digit == 0 ? '0' : '1';
 		}
 
 		if(add_gaps && current_number != 1) {
-			str[i] = ' ';
-			++i;
+			str[index] = ' ';
+			++index;
 		}
 	}
 
 	ASSERT(current_number == 0, "for loop exited too early");
-	ASSERT(i <= string_size, "string size was not enough or for loop implementation error");
+	ASSERT(index <= string_size, "string size was not enough or for loop implementation error");
 
 	// if we trim the first number, the end of the string is sooner, so set the 0 byte there
-	str[i] = '\0';
+	str[index] = '\0';
 
 	return str;
 }
 
-NODISCARD static size_t helper_max(size_t a, size_t b) {
-	if(a > b) {
-		return a;
+NODISCARD static size_t helper_max(size_t num1, size_t num2) {
+	if(num1 > num2) {
+		return num1;
 	}
-	return b;
+	return num2;
 }
 
+#if defined __GNUC__
 #if defined(__SIZEOF_INT128__)
+#define HAVE_128_BIT_NUMBERS
+typedef __uint128_t uint128_t; // NOLINT(readability-identifier-naming)
+typedef __int128_t int128_t;   // NOLINT(readability-identifier-naming)
 
-typedef __uint128_t uint128_t;
-typedef __int128_t int128_t;
+#endif
 
-NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
-                                                                              BigInt big_int2) {
+#endif
 
-	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+#if defined(HAVE_128_BIT_NUMBERS)
 
-	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
+NODISCARD static BigIntC bigint_add_bigint_both_positive_using_128_bit_numbers(BigIntC big_int1,
+                                                                               BigIntC big_int2) {
+
+	const size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigIntC result = { .positive = true, .numbers = NULL, .number_count = max_count };
 
 	bigint_helper_realloc_to_new_size(&result);
 
@@ -909,7 +954,9 @@ NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(Bi
 
 			result.numbers[i] = (uint64_t)sum;
 
-			carry = (uint64_t)(sum >> 64);
+			carry =
+			    (uint64_t)(sum >>
+			               64); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 		}
 
 		ASSERT(carry == 0,
@@ -921,14 +968,14 @@ NODISCARD static BigInt bigint_add_bigint_both_positive_using_128_bit_numbers(Bi
 	return result;
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(BigInt big_int1,
-                                                                              BigInt big_int2) {
+NODISCARD static BigIntC bigint_sub_bigint_both_positive_using_128_bit_numbers(BigIntC big_int1,
+                                                                               BigIntC big_int2) {
 
 	// NOTE: here it is assumed, that  a > b
 
-	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+	const size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
 
-	BigInt result = { .positive = true, .number_count = max_count, .numbers = NULL };
+	BigIntC result = { .positive = true, .numbers = NULL, .number_count = max_count };
 
 	bigint_helper_realloc_to_new_size(&result);
 
@@ -956,7 +1003,10 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(Bi
 			if(temp >= 0) {
 				borrow = (int64_t)0LL;
 			} else {
-				temp = ((int128_t)1 << 64) + temp;
+				temp =
+				    ((int128_t)1
+				     << 64) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+				    temp;
 				borrow = (int64_t)1LL;
 			}
 
@@ -971,20 +1021,143 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive_using_128_bit_numbers(Bi
 
 	return result;
 }
+#else
 
+#if defined(_MSC_VER)
+#include <intrin.h>
 #endif
 
-NODISCARD static BigInt bigint_add_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
+                                                             uint64_t value2, uint64_t* result_out);
 
-#if defined(__SIZEOF_INT128__)
+// use fast intrinsic (in ASM ADC) on x86_64 (only on windows for now)
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
+
+NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
+                                                                    uint64_t value1,
+                                                                    uint64_t value2,
+                                                                    uint64_t* result_out) {
+
+	// see:
+	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_addcarry_u64&ig_expand=175
+	return _addcarry_u64(carry_in, value1, value2, result_out);
+}
+
+#else
+NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
+                                                             uint64_t value2,
+                                                             uint64_t* result_out) {
+	uint64_t sum = value1 + value2;
+	*result_out = sum + carry_in;
+
+	bool carry1 = sum < a;
+	bool carry2 = *result_out < sum;
+
+	uint8_t carry_out = carry1 || carry2 ? 1 : 0;
+	return carry_out;
+}
+#endif
+
+NODISCARD static BigIntC bigint_add_bigint_both_positive_normal(BigIntC big_int1,
+                                                                BigIntC big_int2) {
+
+	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigIntC result = { .positive = true, .number_count = max_count, .numbers = NULL };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	{ // 1. perform the actual addition
+
+		uint8_t carry = U64(0);
+
+		for(size_t i = 0; i < result.number_count; ++i) {
+
+			uint64_t value1 = U64(0);
+			uint64_t value2 = U64(0);
+
+			if(i < big_int1.number_count) {
+				value1 = big_int1.numbers[i];
+			}
+
+			if(i < big_int2.number_count) {
+				value2 = big_int2.numbers[i];
+			}
+
+			carry =
+			    bigint_helper_add_uint64_with_carry(carry, value1, value2, &(result.numbers[i]));
+		}
+
+		ASSERT(carry == 0,
+		       "The carry at the end has to be zero, otherwise we would have an overflow");
+	}
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
+
+NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1,
+                                                                BigIntC big_int2) {
+
+	// NOTE: here it is assumed, that  a > b
+
+	size_t max_count = helper_max(big_int1.number_count, big_int2.number_count) + 1;
+
+	BigIntC result = { .positive = true, .number_count = max_count, .numbers = NULL };
+
+	bigint_helper_realloc_to_new_size(&result);
+
+	{ // 1. perform the actual subtraction
+
+		unsigned char borrow = 0;
+
+		for(size_t i = 0; i < result.number_count; ++i) {
+
+			uint64_t value1 = U64(0);
+			uint64_t value2 = U64(0);
+
+			if(i < big_int1.number_count) {
+				value1 = big_int1.numbers[i];
+			}
+
+			if(i < big_int2.number_count) {
+				value2 = big_int2.numbers[i];
+			}
+
+			uint64_t temp = value1 - value2;
+
+			if(borrow != 0) {
+				temp = temp - borrow;
+			}
+
+			borrow = (value1 < value2 + borrow) ? 1 : 0;
+
+			result.numbers[i] = temp;
+		}
+
+		ASSERT(borrow == 0,
+		       "The borrow at the end has to be zero, otherwise we would have an overflow");
+	}
+
+	bigint_helper_remove_leading_zeroes(&result);
+
+	return result;
+}
+#endif
+
+NODISCARD static BigIntC bigint_add_bigint_both_positive(BigIntC big_int1, BigIntC big_int2) {
+
+#if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
-#error "TODO"
+	return bigint_add_bigint_both_positive_normal(big_int1, big_int2);
 // TODO: use asm if on x86_64 or arm64 / or standard c way!
 #endif
 }
 
-NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC
+bigint_add_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-recursion)
 
 	if(big_int1.positive) {
 
@@ -1001,7 +1174,8 @@ NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 	if(big_int2.positive) {
 		// -a + +b = +b - +a
 		big_int1.positive = true;
-		return bigint_sub_bigint(big_int2, big_int1);
+		return bigint_sub_bigint(big_int2, // NOLINT(readability-suspicious-call-argument)
+		                         big_int1);
 	}
 
 	// both are negative
@@ -1011,26 +1185,26 @@ NODISCARD BigInt bigint_add_bigint(BigInt big_int1, BigInt big_int2) {
 	big_int1.positive = true;
 	big_int2.positive = true;
 
-	BigInt result = bigint_add_bigint_both_positive(big_int1, big_int2);
+	BigIntC result = bigint_add_bigint_both_positive(big_int1, big_int2);
 
 	result.positive = false;
 
 	return result;
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive_impl(BigInt big_int1, BigInt big_int2) {
+NODISCARD static BigIntC bigint_sub_bigint_both_positive_impl(BigIntC big_int1, BigIntC big_int2) {
 
-#if defined(__SIZEOF_INT128__)
+#if defined(HAVE_128_BIT_NUMBERS)
 	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
-#error "TODO"
+	return bigint_sub_bigint_both_positive_normal(big_int1, big_int2);
 #endif
 }
 
-NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+NODISCARD static BigIntC bigint_sub_bigint_both_positive(BigIntC big_int1, BigIntC big_int2) {
 
 	// check in which direction we need to perform the subtraction
-	int8_t compared = bigint_compare_bigint(big_int1, big_int2);
+	const int8_t compared = bigint_compare_bigint(big_int1, big_int2);
 
 	if(compared == 0) {
 		return bigint_helper_zero();
@@ -1041,13 +1215,16 @@ NODISCARD static BigInt bigint_sub_bigint_both_positive(BigInt big_int1, BigInt 
 	}
 
 	// +a - +b where b > a = - ( +b - +a)
-	BigIntC result = bigint_sub_bigint_both_positive_impl(big_int2, big_int1);
+	BigIntC result =
+	    bigint_sub_bigint_both_positive_impl( // NOLINT(readability-suspicious-call-argument)
+	        big_int2, big_int1);
 
 	result.positive = false;
 	return result;
 }
 
-NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC
+bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-recursion)
 
 	if(big_int1.positive) {
 		if(big_int2.positive) {
@@ -1073,12 +1250,14 @@ NODISCARD BigInt bigint_sub_bigint(BigInt big_int1, BigInt big_int2) {
 	big_int1.positive = true;
 	big_int2.positive = true;
 
-	BigInt result = bigint_sub_bigint_both_positive(big_int2, big_int1);
+	BigIntC result =
+	    bigint_sub_bigint_both_positive( // NOLINT(readability-suspicious-call-argument)
+	        big_int2, big_int1);
 
 	return result;
 }
 
-NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
+NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
 	if(big_int1.positive != big_int2.positive) {
 		return false;
 	}
@@ -1112,7 +1291,8 @@ NODISCARD static int8_t cmp_reverse(int8_t value) {
 #define CMP_FIRST_ONE_IS_GREATER ((int8_t)1)
 #define CMP_ARE_EQUAL ((int8_t)0)
 
-NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
+NODISCARD BIGINT_C_LIB_EXPORTED int8_t
+bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-recursion)
 
 	if(!big_int1.positive) {
 		if(big_int2.positive) {
@@ -1145,8 +1325,8 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 	}
 
 	for(size_t i = big_int1.number_count; i != 0; --i) {
-		uint64_t num1 = big_int1.numbers[i - 1];
-		uint64_t num2 = big_int2.numbers[i - 1];
+		const uint64_t num1 = big_int1.numbers[i - 1];
+		const uint64_t num2 = big_int2.numbers[i - 1];
 
 		if(num1 < num2) {
 			return CMP_FIRST_ONE_IS_LESS;
@@ -1160,7 +1340,7 @@ NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) {
 	return CMP_ARE_EQUAL;
 }
 
-void bigint_negate(BigIntC* big_int) {
+BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int) {
 
 	if(big_int->number_count == 1) {
 		if(big_int->numbers[0] == 0) {
@@ -1170,3 +1350,5 @@ void bigint_negate(BigIntC* big_int) {
 
 	big_int->positive = !big_int->positive;
 }
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)

@@ -1,5 +1,7 @@
 #pragma once
 
+// NOLINTBEGIN(modernize-use-using)
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -39,13 +41,15 @@ typedef struct {
 	} data;
 } MaybeBigIntC;
 
+// NOLINTEND(modernize-use-using)
+
 // functions on maybe bigint
 
-NODISCARD bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int);
+NODISCARD BIGINT_C_LIB_EXPORTED bool maybe_bigint_is_error(MaybeBigIntC maybe_big_int);
 
-NODISCARD BigIntC maybe_bigint_get_value(MaybeBigIntC maybe_big_int);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC maybe_bigint_get_value(MaybeBigIntC maybe_big_int);
 
-NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int);
+NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int);
 
 // normal bigint functions
 
@@ -61,11 +65,11 @@ NODISCARD MaybeBigIntError maybe_bigint_get_error(MaybeBigIntC maybe_big_int);
  * @param str - the input string
  * @return MaybeBigInt - the result
  */
-NODISCARD MaybeBigIntC maybe_bigint_from_string(ConstStr str);
+NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr str);
 
-NODISCARD BigIntC bigint_from_unsigned_number(uint64_t number);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_unsigned_number(uint64_t number);
 
-NODISCARD BigIntC bigint_from_signed_number(int64_t number);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_signed_number(int64_t number);
 
 /**
  * @brief Constructs a bigint from the logical array of numbers
@@ -77,25 +81,27 @@ NODISCARD BigIntC bigint_from_signed_number(int64_t number);
  * @param size
  * @return BigIntC - the result
  */
-NODISCARD BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64_t* numbers,
+                                                                    size_t size);
 
-void free_bigint(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void free_bigint(BigIntC* big_int);
 
-void free_bigint_without_reset(BigIntC big_int);
+BIGINT_C_LIB_EXPORTED void free_bigint_without_reset(BigIntC big_int);
 
-NODISCARD BigIntC bigint_copy(BigIntC big_int);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_copy(BigIntC big_int);
 
-NODISCARD Str bigint_to_string(BigIntC big_int);
+NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string(BigIntC big_int);
 
-NODISCARD Str bigint_to_string_hex(BigIntC big_int, bool prefix, bool add_gaps,
-                                   bool trim_first_number, bool uppercase);
+NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_hex(BigIntC big_int, bool prefix,
+                                                         bool add_gaps, bool trim_first_number,
+                                                         bool uppercase);
 
-NODISCARD Str bigint_to_string_bin(BigIntC big_int, bool prefix, bool add_gaps,
-                                   bool trim_first_number);
+NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_bin(BigIntC big_int, bool prefix,
+                                                         bool add_gaps, bool trim_first_number);
 
-NODISCARD BigIntC bigint_add_bigint(BigIntC big_int1, BigIntC big_int2);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_add_bigint(BigIntC big_int1, BigIntC big_int2);
 
-NODISCARD BigIntC bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2);
 
 /**
  * @brief This compares two bigints for equality, this is faster than comparing them, as this may
@@ -105,7 +111,7 @@ NODISCARD BigIntC bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2);
  * @param big_int2
  * @return bool
  */
-NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2);
+NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2);
 
 /**
  * @brief This compares two bigints, return 0 if they are equal, -1 if the first one is less then
@@ -115,6 +121,6 @@ NODISCARD bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2);
  * @param big_int2
  * @return 0, -1 or 1
  */
-NODISCARD int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);
+NODISCARD BIGINT_C_LIB_EXPORTED int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);
 
-void bigint_negate(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int);

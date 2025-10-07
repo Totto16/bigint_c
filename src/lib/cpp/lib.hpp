@@ -12,6 +12,7 @@
 #include <expected>
 #include <ios>
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -25,8 +26,14 @@ template <> struct hash<BigIntC> {
 
 		// see: https://stackoverflow.com/questions/20511347/a-good-hash-function-for-a-vector
 		for(size_t i = 0; i < value.number_count; ++i) {
-			hash = hash ^ (std::hash<uint64_t>()(value.numbers[i]) + 0x9e3779b9 + (hash << 6) +
-			               (hash >> 2));
+			hash =
+			    hash ^
+			    (std::hash<uint64_t>()(
+			         value.numbers[i]) + // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			     0x9e3779b9 + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+			     (hash
+			      << 6) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+			     (hash >> 2));
 		}
 
 		return hash;
@@ -54,27 +61,62 @@ class ParseError final : public std::runtime_error {
 	[[nodiscard]] std::optional<char> symbol() const noexcept;
 };
 
+namespace ios {
+// custom io manipulators for formatting BigInts
+
+// oct is not supported by this lib, so we can use that base for bin,
+// showpoint is not set by default
+constexpr const inline auto& bin = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::oct;
+// default for base is dec, so this is not set
+
+constexpr const inline auto&
+    add_gaps = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::showpoint;
+
+constexpr const inline auto&
+    no_add_gaps = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::noshowpoint;
+
+constexpr const inline auto&
+    trim_first_number = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::skipws;        // skipws is set by default
+
+constexpr const inline auto&
+    no_trim_first_number = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    std::noskipws;
+
+} // namespace ios
 } // namespace bigint
+
+namespace { // NOLINT(cert-dcl59-cpp,google-build-namespaces)
+namespace bigint_ios {
+constexpr const auto bin_flag = std::ios_base::oct;
+constexpr const auto add_gaps_flag = std::ios_base::showpoint;
+constexpr const auto trim_first_number_flag = std::ios_base::skipws;
+} // namespace bigint_ios
+} // namespace
 
 struct BigInt {
   private:
 	BigIntC m_c_value;
 
   public:
-	BigInt(BigIntC&& c_value) noexcept;
+	BigInt(BigIntC&& c_value) noexcept; // NOLINT(google-explicit-constructor)
 
-	BigInt(uint64_t value) noexcept;
+	BigInt(uint64_t value) noexcept; // NOLINT(google-explicit-constructor)
 
-	BigInt(int64_t value) noexcept;
+	BigInt(int64_t value) noexcept; // NOLINT(google-explicit-constructor)
 
 	template <typename... Args>
 	    requires(sizeof...(Args) >= 2) &&
 	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
-	BigInt(Args... args) noexcept {
+	BigInt(Args... args) noexcept : m_c_value{} { // NOLINT(google-explicit-constructor)
 
-		std::vector<uint64_t> values = { static_cast<uint64_t>(args)... };
-		// Use values...
-		m_c_value = bigint_from_list_of_numbers(values.data(), values.size());
+		std::vector<uint64_t> values = { static_cast<uint64_t>( // GCOVR_EXCL_BR_LINE (c++ template)
+			args)... };                                         // GCOVR_EXCL_BR_LINE (c++ template)
+		m_c_value = bigint_from_list_of_numbers(values.data(),  // GCOVR_EXCL_BR_LINE (c++ template)
+		                                        values.size()); // GCOVR_EXCL_BR_LINE (c++ template)
 	}
 
 	[[nodiscard]] static std::expected<BigInt, bigint::ParseError>
@@ -97,24 +139,29 @@ struct BigInt {
 
 	BigInt& operator=(BigInt&& big_int) noexcept;
 
-	template <size_t N> BigInt(const BigIntConstExpr<N>& big_int) {
+	template <size_t N>
+	BigInt(const BigIntConstExpr<N>& big_int) : m_c_value{} { // NOLINT(google-explicit-constructor)
 
 		BigIntC c_value = { .positive = big_int.positive,
 			                .numbers = nullptr,
 			                .number_count = big_int.numbers.size() };
 
-		uint64_t* const new_numbers =
-		    (uint64_t*)realloc(c_value.numbers, sizeof(uint64_t) * c_value.number_count);
+		auto* const new_numbers =
+		    static_cast<uint64_t*>(realloc( // NOLINT(cppcoreguidelines-no-malloc)
+		        c_value.numbers, sizeof(uint64_t) * c_value.number_count));
 
-		if(new_numbers == NULL) { // GCOVR_EXCL_BR_LINE
-			UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE
-			    "realloc failed, no error handling implemented here");
-		} // GCOVR_EXCL_LINE
+		if(new_numbers == NULL) {                                      // GCOVR_EXCL_BR_LINE (OOM)
+			throw std::runtime_error(                                  // GCOVR_EXCL_LINE (OOM
+			                                                           // content)
+			    "realloc failed, no error handling implemented here"); // GCOVR_EXCL_LINE (OOM
+			                                                           // content)
+		} // GCOVR_EXCL_LINE (OOM content)
 
 		c_value.numbers = new_numbers;
 
 		for(size_t i = 0; i < c_value.number_count; ++i) {
-			c_value.numbers[i] = big_int.numbers[i];
+			c_value.numbers[i] = // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+			    big_int.numbers[i];
 		}
 
 		this->m_c_value = c_value;
@@ -166,21 +213,6 @@ struct BigInt {
 
 	[[nodiscard]] BigInt& operator^=(const BigInt& value2) const;
 
-	// custom io manipulators for formatting BigInts
-	static const decltype(std::ios_base::oct) bin =
-	    std::ios_base::oct; // oct is not supported by this lib, so we can use that base for bin,
-	                        // default for base is dec, so this is not set
-
-	static const decltype(std::ios_base::oct) add_gaps =
-	    std::ios_base::showpoint; // showpoint is not set by default
-
-	static const decltype(std::ios_base::oct) trim_first_number =
-	    std::ios_base::skipws; // skipws is set by default
-
-	[[nodiscard]] std::ostream& operator<<(std::ostream& os) const;
-
-	[[nodiscard]] std::istream& operator>>(std::istream& is) const;
-
 	[[nodiscard]] BigInt operator<<(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt operator>>(const BigInt& value2) const;
@@ -213,32 +245,40 @@ struct BigInt {
 	[[nodiscard]] BigInt copy() const;
 };
 
+std::ostream& operator<<(std::ostream& out_stream, const BigInt& value);
+
+std::istream& operator>>(std::istream& in_stream, const BigInt& value);
+
 namespace std {
 
 template <> struct hash<BigInt> {
-	std::size_t operator()(const BigInt& value) const noexcept { return value.hash(); }
+	std::size_t operator()(const BigInt& value) const noexcept {
+		return value.hash(); // GCOVR_EXCL_BR_LINE (c++ destructor or constructor branches)
+	}
 };
 
-std::string to_string(const BigInt& value);
+std::string to_string(const BigInt& value); // NOLINT(cert-dcl58-cpp)
 
 } // namespace std
 
 #ifdef BIGINT_C_CPP_IMPLEMENTATION
 
 static std::string get_parse_error_message(MaybeBigIntError error) {
-	std::string result = error.message;
+	std::string result = // GCOVR_EXCL_BR_LINE (c++ string initialization, makes allocation)
+	    error.message;   // GCOVR_EXCL_BR_LINE (c++ string initialization, makes allocation)
 
-	result += ": index ";
-	result += std::to_string(error.index);
+	result += ": index ";     // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+	result += std::to_string( // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+	    error.index);
 
 	if(error.symbol == NO_SYMBOL) {
-		result += " symbol '";
-		result += error.symbol;
-		result += "'";
+		result += " symbol '";  // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+		result += error.symbol; // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
+		result += "'";          // GCOVR_EXCL_BR_LINE (c++ string concatenation, makes allocation)
 	}
 
 	return result;
-}
+} // GCOVR_EXCL_BR_LINE (c++ destructor branches)
 
 bigint::ParseError::ParseError(MaybeBigIntError error)
     : std::runtime_error{ get_parse_error_message(error) }, m_c_error{ error } {}
@@ -272,23 +312,27 @@ BigInt::BigInt(BigIntC&& c_value) noexcept : m_c_value{ c_value } {
 }
 
 BigInt::BigInt(uint64_t value) noexcept {
-	m_c_value = bigint_from_unsigned_number(value);
+	m_c_value = bigint_from_unsigned_number(value); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 }
 
 BigInt::BigInt(int64_t value) noexcept {
-	m_c_value = bigint_from_signed_number(value);
+	m_c_value = bigint_from_signed_number(value); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 }
 
 [[nodiscard]] std::expected<BigInt, bigint::ParseError>
 BigInt::get_from_string(const std::string& str) noexcept {
-	MaybeBigIntC result = maybe_bigint_from_string(str.c_str());
+	MaybeBigIntC result =                      // GCOVR_EXCL_BR_LINE (c++ assignment branches)
+	    maybe_bigint_from_string(str.c_str()); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 
 	if(maybe_bigint_is_error(result)) {
 		return std::unexpected<bigint::ParseError>{ bigint::ParseError{
-			maybe_bigint_get_error(result) } };
+			// GCOVR_EXCL_BR_LINE (c++ assignment branches)
+			maybe_bigint_get_error(result) } }; // GCOVR_EXCL_BR_LINE (c++ assignment branches)
 	}
 
-	return std::expected<BigInt, bigint::ParseError>{ maybe_bigint_get_value(result) };
+	return std::expected<BigInt, bigint::ParseError>{
+		maybe_bigint_get_value(result) // GCOVR_EXCL_BR_LINE (c++ RVO branches)
+	}; // GCOVR_EXCL_BR_LINE (c++ RVO branches)
 }
 
 BigInt::BigInt(const std::string& str) {
@@ -386,25 +430,25 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 [[nodiscard]] bool BigInt::operator*(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] bool BigInt::operator/(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] bool BigInt::operator%(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] bool BigInt::operator^(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator-() {
@@ -415,118 +459,115 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 [[nodiscard]] BigInt& BigInt::operator+=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator-=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator*=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator/=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator%=(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator^=(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
-[[nodiscard]] std::ostream& BigInt::operator<<(std::ostream& os) const {
-	std::ios_base::fmtflags flags = os.flags();
+std::ostream& operator<<(std::ostream& out_stream, const BigInt& value) {
+	std::ios_base::fmtflags flags = out_stream.flags();
 
 	bool prefix = (flags & std::ios_base::showbase) != 0;
 
-	bool trim_first_number = (flags & BigInt::trim_first_number) != 0;
+	bool trim_first_number = (flags & bigint_ios::trim_first_number_flag) != 0;
 
-	bool add_gaps = (flags & BigInt::add_gaps) != 0;
+	bool add_gaps = (flags & bigint_ios::add_gaps_flag) != 0;
 
 	if((flags & std::ios_base::basefield) == std::ios_base::hex) {
 
 		bool uppercase = (flags & std::ios_base::uppercase) != 0;
 
-		char* temp =
-		    bigint_to_string_hex(m_c_value, prefix, add_gaps, trim_first_number, uppercase);
-		os << temp;
-		free(temp);
+		std::string temp = value.to_string_hex(prefix, add_gaps, trim_first_number, uppercase);
+		out_stream << temp;
 
-	} else if((flags & std::ios_base::basefield) == BigInt::bin) {
-		char* temp = bigint_to_string_bin(m_c_value, prefix, add_gaps, trim_first_number);
-		os << temp;
-		free(temp);
+	} else if((flags & std::ios_base::basefield) == bigint_ios::bin_flag) {
+		std::string temp = value.to_string_bin(prefix, add_gaps, trim_first_number);
+		out_stream << temp;
 	} else {
-		char* temp = bigint_to_string(m_c_value);
-		os << temp;
-		free(temp);
+		std::string temp = value.to_string();
+		out_stream << temp;
 	}
 
-	return os;
+	return out_stream;
 }
 
-[[nodiscard]] std::istream& BigInt::operator>>(std::istream& is) const {
+std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 	// TODO
-	UNUSED(is);
-	UNREACHABLE_WITH_MSG("TODO");
+	UNUSED(in_stream);
+	UNUSED(value);
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator<<(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator>>(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator<<=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator++() {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt& BigInt::operator--() {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator++(int) {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] BigInt BigInt::operator--(int) {
 	// TODO
-	UNREACHABLE_WITH_MSG("TODO");
+	throw std::runtime_error("TODO");
 }
 
 [[nodiscard]] std::string BigInt::to_string() const {

@@ -9,7 +9,35 @@ test_deps += dependency(
     version: '>=1.17.0',
 )
 
-test_deps += dependency('gmp')
+test_backend = 'gmp'
+
+if tests == 'true' or tests == 'auto'
+    if host_machine.system() == 'windows'
+        test_backend = 'tommath'
+    else
+        test_backend = 'gmp'
+    endif
+elif tests == 'gmp' or tests == 'tommath'
+    test_backend = tests
+else
+    error('Unsupported test backend: ' + tests)
+endif
+
+general_test_args = []
+
+
+if test_backend == 'tommath'
+    test_deps += dependency(
+        'libtommath',
+        version: '<=1.3.0',
+    )
+    general_test_args += ('-DTEST_BACKEND_USE_IMPLEMENTATION=1')
+elif test_backend == 'gmp'
+    test_deps += dependency('gmp')
+    general_test_args += ('-DTEST_BACKEND_USE_IMPLEMENTATION=0')
+else
+    error('Unsupported test backend: ' + test_backend)
+endif
 
 
 test_deps += bigint_c_dep
@@ -30,9 +58,7 @@ add_languages(
 foreach file : test_files
     file_name = file.split('.')[-2]
 
-    test_args = []
-
-
+    test_args = general_test_args
 
     if file_name == 'compile_time_tests'
 
@@ -40,7 +66,6 @@ foreach file : test_files
 
         test_needed_constexpr_depth = 1024
         test_needed_constexpr_steps = 1000000000
-
 
         if cxx.get_id() == 'gcc'
             #default 512
@@ -50,13 +75,15 @@ foreach file : test_files
         elif cxx.get_id() == 'clang'
             test_args += ('-fconstexpr-depth=' + test_needed_constexpr_depth.to_string())
             test_args += ('-fconstexpr-steps=' + test_needed_constexpr_steps.to_string())
+        elif host_machine.system() == 'windows'
+            test_args += ['/constexpr:steps' , test_needed_constexpr_steps.to_string()]
         else
-            warning('Not supported test \'' + file_name + '\' for compiler \'' + cxx.get_id() + '\'')
+            warning('Not supported test \''
+                + file_name + '\' for compiler \'' + cxx.get_id() + '\'')
             continue
         endif
 
     endif
-
 
     test_exe = executable(
         'test_' + file_name,

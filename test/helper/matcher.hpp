@@ -2,6 +2,9 @@
 
 #include <gmock/gmock.h>
 
+#include <expected>
+#include <optional>
+
 #include "./printer.hpp"
 
 MATCHER(ExpectedHasValue, "expected has value") {

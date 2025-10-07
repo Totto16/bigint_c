@@ -3,7 +3,15 @@
 #define BIGINT_C_CPP_ACCESS_TO_UNDERLYING_C_DATA
 #include "./helper.hpp"
 
+#if !defined(TEST_BACKEND_USE_IMPLEMENTATION)
+#error "DEFINE TEST_BACKEND_USE_IMPLEMENTATION"
+#elif TEST_BACKEND_USE_IMPLEMENTATION == 0
 #include <gmp.h>
+#elif TEST_BACKEND_USE_IMPLEMENTATION == 1
+#include <tommath.h>
+#else
+#error "unknown TEST_BACKEND_USE_IMPLEMENTATION"
+#endif
 
 #include <stdexcept>
 
@@ -75,31 +83,44 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 	return (std::string{ error1.message() } == std::string{ error2.message() });
 }
 
+[[nodiscard]] bool BigIntTest::is_special_separator(char value) {
+	return value == '_' || value == '\'' || value == ',' || value == '.';
+}
+
+#if TEST_BACKEND_USE_IMPLEMENTATION == 0
+
 static constexpr uint8_t CHUNK_BITS = 64;
 
 static void initialize_bigint_from_gmp(BigIntTest& test, mpz_t&& number) {
-	size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
+	const size_t num_chunks = (mpz_sizeinbase(number, 2) + CHUNK_BITS - 1) / CHUNK_BITS;
 	std::vector<uint64_t> values{};
 	values.resize(num_chunks);
 
-	mpz_t temp;
-	mpz_init_set(temp, number);
+	const int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
+	const int endian = 0; // host endian
+	const int nails = 0;  // use all 64 bits of the number
 
-	// TODO: maybe use mpz_export
+	size_t written = num_chunks;
 
-	for(size_t i = 0; i < num_chunks; ++i) {
-		values.at(i) = mpz_get_ui(temp);
-
-		// Shift right by 64 bits, don't perform arithmetic shifts (affects negative values), see
-		// https://gmplib.org/manual/Integer-Division
-		mpz_tdiv_q_2exp(temp, temp, CHUNK_BITS);
-	}
+	// see: https://gmplib.org/manual/Integer-Import-and-Export
+	mpz_export((void*)(values.data()), &written, order, sizeof(uint64_t), endian, nails, number);
 
 	// note: 0 is always positive here
-	bool positive = mpz_sgn(number) >= 0;
+	const bool positive = mpz_sgn(number) >= 0;
 
 	mpz_clear(number);
-	mpz_clear(temp);
+
+	if(written > num_chunks) {
+		throw std::runtime_error("values were written out of bounds");
+	}
+
+	values.resize(written);
+
+	if(written == 0) {
+		// number is 0
+		values.resize(1);
+		values.at(0) = 0;
+	}
 
 	test = BigIntTest(positive, std::move(values));
 }
@@ -152,9 +173,9 @@ static MPZWrapper get_gmp_value_from_bigint(const BigIntTest& test) {
 
 	MPZWrapper bigint{};
 
-	int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
-	int endian = 0; // host endian
-	int nails = 0;  // use all 64 bits of the number
+	const int order = -1; // -1 means the least significant uint64_t comes first, as we store it.
+	const int endian = 0; // host endian
+	const int nails = 0;  // use all 64 bits of the number
 
 	// see: https://gmplib.org/manual/Integer-Import-and-Export
 	mpz_import(*bigint, test.values().size(), order, sizeof(uint64_t), endian, nails,
@@ -215,7 +236,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 [[nodiscard]] std::string BigIntTest::to_string() const {
 	MPZWrapper number = get_gmp_value_from_bigint(*this);
 
-	size_t needed_size =
+	const size_t needed_size =
 	    mpz_sizeinbase(*number, 10) + 2; // one for the eventual "-" and one for the 0 terminator
 
 	char* buffer = (char*)malloc(needed_size * sizeof(char));
@@ -236,10 +257,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	free(result);
 
 	return str;
-}
-
-[[nodiscard]] bool BigIntTest::is_special_separator(char value) {
-	return value == '_' || value == '\'' || value == ',' || value == '.';
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator+(const BigIntTest& value2) const {
@@ -277,3 +294,230 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	return result;
 }
+
+#elif TEST_BACKEND_USE_IMPLEMENTATION == 1
+
+#define CHECK_MP_ERROR(err) \
+	do { \
+		if(err != MP_OKAY) { \
+			throw std::runtime_error{ mp_error_to_string(err) }; \
+		} \
+	} while(false)
+
+static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
+
+	mp_order order =
+	    MP_LSB_FIRST; // -1 means the least significant uint64_t comes first, as we store it.
+	mp_endian endian = MP_NATIVE_ENDIAN; // host endian
+	size_t nails = 0;                    // use all 64 bits of the number
+
+	size_t num_chunks = mp_pack_count(&number, nails, sizeof(uint64_t));
+
+	std::vector<uint64_t> values{};
+	values.resize(num_chunks);
+
+	size_t written = 0;
+
+	mp_err error = mp_pack((void*)(values.data()), num_chunks, &written, order, sizeof(uint64_t),
+	                       endian, nails, &number);
+
+	CHECK_MP_ERROR(error);
+
+	if(written > num_chunks) {
+		throw std::runtime_error("values were written out of bounds");
+	}
+
+	values.resize(written);
+
+	bool positive = !mp_isneg(&number);
+
+	if(written == 0) {
+		if(mp_iszero(&number)) {
+			values.resize(1);
+			values.at(0) = 0;
+		}
+	}
+
+	mp_clear(&number);
+
+	test = BigIntTest(positive, std::move(values));
+}
+
+#include <memory>
+
+namespace {
+
+class MPWrapper {
+  private:
+	std::shared_ptr<mp_int> m_value;
+
+  public:
+	MPWrapper() : m_value{ nullptr } {
+		mp_int* value = new mp_int{};
+
+		mp_err error = mp_init(value);
+		if(error != MP_OKAY) {
+			delete value;
+			throw std::runtime_error{ mp_error_to_string(error) };
+		}
+
+		m_value = std::shared_ptr<mp_int>(value, [](mp_int* p) {
+			mp_clear(p);
+			delete p;
+		});
+	}
+
+	MPWrapper(const MPWrapper&) = default;
+	MPWrapper& operator=(const MPWrapper&) = default;
+
+	[[nodiscard]] const mp_int* get() const { return m_value.get(); }
+	[[nodiscard]] const mp_int* operator*() const { return m_value.get(); }
+
+	[[nodiscard]] mp_int* get() { return m_value.get(); }
+	[[nodiscard]] mp_int* operator*() { return m_value.get(); }
+
+	~MPWrapper() = default;
+
+	MPWrapper(MPWrapper&& number) noexcept = default;
+
+	MPWrapper& operator=(MPWrapper&& number) = default;
+};
+
+} // namespace
+
+static MPWrapper get_tommath_value_from_bigint(const BigIntTest& test) {
+
+	MPWrapper bigint{};
+
+	mp_order order =
+	    MP_LSB_FIRST; // -1 means the least significant uint64_t comes first, as we store it.
+	mp_endian endian = MP_NATIVE_ENDIAN; // host endian
+	size_t nails = 0;                    // use all 64 bits of the number
+
+	mp_err error = mp_unpack(*bigint, test.values().size(), order, sizeof(uint64_t), endian, nails,
+	                         (void*)(test.values().data()));
+
+	CHECK_MP_ERROR(error);
+
+	(*bigint)->sign = test.positive() ? MP_ZPOS : MP_NEG;
+
+	return bigint;
+}
+
+// the same algorithm as in c, but using a external library, to verify the test result
+// see https://gmplib.org/manual/Concept-Index for gmp docs
+BigIntTest::BigIntTest(const std::string& str) : m_values{} {
+
+	// preprocess the string, to allow the same syntax as in the c library
+	std::string cleaned_str = str;
+	std::erase_if(cleaned_str, [](char digit) -> bool {
+		// Remove special characters like separators and also the "+" sign, as gmp doesn't allow
+		// that
+		return BigIntTest::is_special_separator(digit) || digit == '+';
+	});
+
+	mp_int bigint;
+	mp_err error = mp_init(&bigint);
+	CHECK_MP_ERROR(error);
+
+	// Parse the decimal string into the big integer
+	error = mp_read_radix(&bigint, cleaned_str.c_str(), 10);
+	if(error != MP_OKAY) {
+		mp_clear(&bigint);
+		throw std::runtime_error("Failed to parse bigint string: " + str +
+		                         " (cleaned: " + cleaned_str + ")" + mp_error_to_string(error));
+	}
+
+	initialize_bigint_from_tommath(*this, std::move(bigint));
+}
+
+BigIntTest::BigIntTest(const uint64_t& number) : m_values{} {
+	mp_int bigint;
+	mp_err error = mp_init(&bigint);
+	CHECK_MP_ERROR(error);
+
+	mp_set_u64(&bigint, number);
+
+	initialize_bigint_from_tommath(*this, std::move(bigint));
+}
+BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
+	mp_int bigint;
+	mp_err error = mp_init(&bigint);
+	CHECK_MP_ERROR(error);
+
+	mp_set_i64(&bigint, number);
+
+	initialize_bigint_from_tommath(*this, std::move(bigint));
+}
+
+[[nodiscard]] std::string BigIntTest::to_string() const {
+	MPWrapper number = get_tommath_value_from_bigint(*this);
+
+	int needed_size = 0;
+	mp_err error = mp_radix_size(*number, 10, &needed_size);
+	CHECK_MP_ERROR(error);
+
+	needed_size += 1; // for the \0 terminator
+
+	char* buffer = (char*)malloc(needed_size * sizeof(char));
+
+	if(buffer == nullptr) {
+		throw std::runtime_error("string conversion error");
+	}
+
+	size_t written = 0;
+
+	error = mp_to_radix(*number, buffer, needed_size, &written, 10);
+	CHECK_MP_ERROR(error);
+
+	std::string str{ buffer };
+
+	free(buffer);
+
+	return str;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator+(const BigIntTest& value2) const {
+
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_add(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator-(const BigIntTest& value2) const {
+
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_sub(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+#endif

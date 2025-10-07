@@ -55,7 +55,7 @@ s*/
 		if(const_utils::is_constant_evaluated()) { \
 			CONSTEVAL_ONLY_STATIC_ASSERT(CHECK, MSG); \
 		} else { \
-			assert((CHECK) && (MSG)); \
+			assert((CHECK) && (MSG)); /*NOLINT(cert-dcl03-c,misc-static-assert)*/ \
 		} \
 	} while(false)
 
@@ -107,12 +107,14 @@ struct Expected {
 
 // A string that can be used as a template parameter.
 template <std::size_t N> struct ConstString {
-	char str[N]{};
+	char str[N]{}; // NOLINT(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 
 	static constexpr std::size_t size = N - 1;
 
-	consteval ConstString() {}
-	consteval ConstString(const char (&new_str)[N]) {
+	consteval ConstString() = default; // NOLINT(google-explicit-constructor)
+	consteval ConstString(             // NOLINT(google-explicit-constructor)  //
+	    const char(         // NOLINT(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
+	        &new_str)[N]) { // NOLINT(cppcoreguidelines-avoid-c-arrays,modernize-avoid-c-arrays)
 		if(new_str[N - 1] != '\0') {
 			CONSTEVAL_STATIC_ASSERT(false, "Expected null terminated array (CString)");
 		};
@@ -122,13 +124,13 @@ template <std::size_t N> struct ConstString {
 
 template <typename T, size_t N> struct VectorLike {
   private:
-	std::array<T, N> values;
+	std::array<T, N> m_values;
 	size_t m_size;
 
 	// capacity is N
 
   public:
-	using value_type = T;
+	using value_type = T; // NOLINT(readability-identifier-naming)
 
 	[[nodiscard]] constexpr size_t size() const { return this->m_size; }
 
@@ -139,7 +141,7 @@ template <typename T, size_t N> struct VectorLike {
 			CONSTEVAL_STATIC_ASSERT(false, "Have no more capacity in const 'vector'");
 		}
 
-		values.at(m_size) = value;
+		m_values.at(m_size) = value;
 		m_size++;
 	}
 
@@ -148,7 +150,7 @@ template <typename T, size_t N> struct VectorLike {
 			CONSTEVAL_STATIC_ASSERT(false, "Have no more capacity in const 'vector'");
 		}
 
-		values.at(m_size) = std::move(value);
+		m_values.at(m_size) = std::move(value);
 		m_size++;
 	}
 
@@ -157,7 +159,7 @@ template <typename T, size_t N> struct VectorLike {
 			CONSTEVAL_STATIC_ASSERT(false, "index out of bound in const 'vector'");
 		}
 
-		return values.at(index);
+		return m_values.at(index);
 	}
 
 	constexpr T& operator[](size_t index) {
@@ -165,7 +167,7 @@ template <typename T, size_t N> struct VectorLike {
 			CONSTEVAL_STATIC_ASSERT(false, "index out of bound in const 'vector'");
 		}
 
-		return values.at(index);
+		return m_values.at(index);
 	}
 
 	constexpr void resize(size_t new_size) {

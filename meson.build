@@ -33,13 +33,17 @@ bigint_c_lib_header_install_dir = 'bigint_c'
 
 subdir('src')
 
+args = ['-DBIGINT_C_VERSION_STRING="' + bigint_c_lib_version + '"', '-DBIGINT_C_LIB_TYPE='
+            + (get_option('default_library') == 'static' ? '1' : '0')]
+
 
 bigint_c_lib = library(
     'bigint_c',
     src_files,
     dependencies: deps,
     include_directories: inc_dirs,
-    c_args: ['-DBIGINT_C_VERSION_STRING="' + bigint_c_lib_version + '"'],
+    c_args: args,
+    c_shared_args: ['-DBIGINT_C_LIB_EXPORT'],
     install: true,
     version: bigint_c_lib_version,
 )
@@ -52,10 +56,12 @@ pkg.generate(
     name: 'bigint_c',
     filebase: 'bigint_c',
     subdirs: [bigint_c_lib_header_install_dir / 'public'],
+    extra_cflags: args,
 )
 
 bigint_c_dep = declare_dependency(
     link_with: bigint_c_lib,
+    compile_args: args,
     include_directories: inc_dirs,
     dependencies: deps,
     version: bigint_c_lib_version,
@@ -63,6 +69,8 @@ bigint_c_dep = declare_dependency(
 
 meson.override_dependency('bigint_c', bigint_c_dep)
 
-if get_option('tests')
+tests = get_option('tests')
+
+if tests != 'false'
     subdir('test')
 endif

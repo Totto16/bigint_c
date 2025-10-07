@@ -22,14 +22,14 @@ void PrintTo(const BigIntTest& value, std::ostream* os) {
 	*os << "\n";
 }
 
-void PrintTo(const BigInt& value, std::ostream* os) {
+void PrintTo(const BigIntDebug& value, std::ostream* os) {
 
-	BigIntTest value_cpp = BigIntTest(value);
+	BigIntTest value_cpp = BigIntTest(value.value);
 
 	PrintTo(value_cpp, os);
 }
 
-std::ostream& operator<<(std::ostream& os, const BigInt& value) {
+std::ostream& operator<<(std::ostream& os, const BigIntDebug& value) {
 	PrintTo(value, &os);
 	return os;
 }

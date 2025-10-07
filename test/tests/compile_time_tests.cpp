@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include "../helper/helper.hpp"
-#include "../helper/matcher.hpp"
 #include "../helper/printer.hpp"
 
 static_assert(

@@ -1,6 +1,7 @@
 option(
     'tests',
-    type: 'boolean',
-    value: false,
-    description: 'build tests',
+    type: 'combo',
+    choices: ['false', 'true', 'auto', 'gmp', 'tommath'],
+    value: 'false',
+    description: 'build tests (or choose which "backend" to use',
 )
