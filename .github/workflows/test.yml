@@ -48,6 +48,13 @@ jobs:
             test_type: auto
             underlying_computation: normal
 
+          - name: Linux (ARM64, Auto, Normal)
+            os: ubuntu
+            os-version: 24.04-arm
+            arm: true
+            test_type: auto
+            underlying_computation: normal
+
     steps:
       - uses: actions/checkout@v4
         with:
