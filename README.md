@@ -33,10 +33,18 @@ This officially supports Linux, Windows and MacOS.
 - [x] Addition
 - [x] Subtraction
 - [x] Negation
-- [ ] Multiplication
-- [ ] Division (Bot Ceiling and Flooring)
+- [x] Multiplication
+- [ ] Division
 - [ ] Modulo
 - [ ] Exponentiation
+
+#### Bitwise Operations
+
+- [ ] Shift (right + Left)
+- [ ] Xor
+- [ ] Or
+- [ ] And
+- [ ] Complement (~)
 
 #### Other Operations
 
