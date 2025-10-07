@@ -1048,14 +1048,14 @@ NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carr
 NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
                                                              uint64_t value2,
                                                              uint64_t* result_out) {
-	uint64_t sum = value1 + value2;
+	const uint64_t sum = value1 + value2;
 	*result_out = sum + carry_in;
 
 	bool carry1 = sum < value1;
 	bool carry2 = *result_out < sum;
 
-	uint8_t carry_out = carry1 || carry2 ? 1 : 0;
-	return carry_out;
+	uint8_t carry = carry1 || carry2 ? 1 : 0;
+	return carry;
 }
 #endif
 
@@ -1126,13 +1126,20 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1
 				value2 = big_int2.numbers[i];
 			}
 
+			// check if the next subtraction would underflow
+			bool local_borrow = value1 < value2;
+
 			uint64_t temp = value1 - value2;
 
 			if(borrow != 0) {
+
+				// check if the next subtraction would underflow
+				local_borrow = local_borrow || (temp < borrow);
+
 				temp = temp - borrow;
 			}
 
-			borrow = (value1 < value2 + borrow) ? 1 : 0;
+			borrow = local_borrow ? 1 : 0;
 
 			result.numbers[i] = temp;
 		}
@@ -1619,18 +1626,18 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 
 		BigInt z_2 = bigint_mul_bigint_karatsuba_internal(a1, b1);
 
-		BigInt z_0 = bigint_mul_bigint_karatsuba(a2, b2);
+		const BigInt z_0 = bigint_mul_bigint_karatsuba(a2, b2);
 
-		BigInt z_1_temp1 = bigint_mul_bigint_karatsuba_add_internal(a1, a2);
+		const BigInt z_1_temp1 = bigint_mul_bigint_karatsuba_add_internal(a1, a2);
 
-		BigInt z_1_temp2 = bigint_mul_bigint_karatsuba_add_internal(b1, b2);
+		const BigInt z_1_temp2 = bigint_mul_bigint_karatsuba_add_internal(b1, b2);
 
-		BigInt z_1_mul_temp = bigint_mul_bigint_both_positive(z_1_temp1, z_1_temp2);
+		const BigInt z_1_mul_temp = bigint_mul_bigint_both_positive(z_1_temp1, z_1_temp2);
 
 		free_bigint_without_reset(z_1_temp1);
 		free_bigint_without_reset(z_1_temp2);
 
-		BigInt z_1_sub_temp = bigint_sub_bigint_both_positive(z_1_mul_temp, z_2);
+		const BigInt z_1_sub_temp = bigint_sub_bigint_both_positive(z_1_mul_temp, z_2);
 		ASSERT(z_1_sub_temp.positive, "result of this subtraction should always be positive!");
 
 		BigInt z_1 = bigint_sub_bigint_both_positive(z_1_sub_temp, z_0);
@@ -1650,7 +1657,7 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 
 		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_1, divide_at);
 
-		BigInt result_add_temp = bigint_add_bigint_both_positive(z_2, z_1);
+		const BigInt result_add_temp = bigint_add_bigint_both_positive(z_2, z_1);
 
 		free_bigint_without_reset(z_2);
 		free_bigint_without_reset(z_1);
