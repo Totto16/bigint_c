@@ -1591,6 +1591,9 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 
 		BigInt z_1_mul_temp = bigint_mul_bigint_both_positive(z_1_temp1, z_1_temp2);
 
+		free_bigint_without_reset(z_1_temp1);
+		free_bigint_without_reset(z_1_temp2);
+
 		BigInt z_1_sub_temp = bigint_sub_bigint_both_positive(z_1_mul_temp, z_2);
 		ASSERT(z_1_sub_temp.positive, "result of this subtraction should always be positive!");
 
@@ -1601,6 +1604,9 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 		// (a1 + a2) * (b1 + b2) > (a1 * b1) + (a2 * b2)
 		// (a1 * b1) + (a1 * b2) + (a2 * b1) + (a2 * b2) > (a1 * b1) + (a2 * b2)
 		// (a1 * b2) + (a2 * b1) > 0
+
+		free_bigint_without_reset(z_1_mul_temp);
+		free_bigint_without_reset(z_1_sub_temp);
 
 		// make the final number
 
@@ -1619,8 +1625,6 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 		free_bigint_without_reset(z_0);
 
 		bigint_helper_remove_leading_zeroes(&result);
-
-		// TODO: free all not anymore used bigints!
 
 		return result;
 	}
