@@ -1356,6 +1356,17 @@ typedef struct {
 	size_t number_count;
 } BigIntSlice;
 
+typedef struct {
+	const uint64_t* numbers;
+	size_t number_count;
+} BigIntNullableSlice;
+
+#define NULL_SLICE ((BigIntNullableSlice){ .numbers = NULL, .number_count = 0 })
+
+NODISCARD static inline BigIntSlice bigint_slice_from_nullable(BigIntNullableSlice big_int) {
+	return (*(BigIntSlice*)&big_int);
+}
+
 NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
 	return (BigIntSlice){ .numbers = big_int.numbers, .number_count = big_int.number_count };
 }
@@ -1410,7 +1421,7 @@ NODISCARD static inline size_t helper_ceil_div(size_t input, size_t divider) {
 //  being 0 to make this work, we need special checks in some places, where this could be used!
 // this are called "<x>_internal"
 
-NODISCARD static inline bool bigint_mul_karatsuba_is_zero_slice(BigIntSlice slice) {
+NODISCARD static inline bool bigint_mul_karatsuba_is_zero_slice(BigIntNullableSlice slice) {
 	return slice.number_count == 0 || slice.numbers == NULL;
 }
 
@@ -1425,8 +1436,8 @@ NODISCARD static inline BigInt bigint_helper_copy_of_slice(BigIntSlice big_int_s
 
 NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2);
 
-NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_internal(BigIntSlice big_int1,
-                                                                    BigIntSlice big_int2) {
+NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_internal(BigIntNullableSlice big_int1,
+                                                                    BigIntNullableSlice big_int2) {
 
 	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
 		return bigint_helper_zero();
@@ -1436,33 +1447,24 @@ NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_internal(BigIntSlice 
 		return bigint_helper_zero();
 	}
 
-	return bigint_mul_bigint_karatsuba(big_int1, big_int2);
+	return bigint_mul_bigint_karatsuba(bigint_slice_from_nullable(big_int1),
+	                                   bigint_slice_from_nullable(big_int2));
 }
 
-NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_add_internal(BigIntSlice big_int1,
-                                                                        BigIntSlice big_int2)
+NODISCARD static inline BigInt
+bigint_mul_bigint_karatsuba_add_internal(BigIntNullableSlice big_int1, BigIntSlice big_int2)
 
 {
 
 	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
 
-		if(bigint_mul_karatsuba_is_zero_slice(big_int2)) {
-			// 0 + 0
-			return bigint_helper_zero();
-		}
-
 		// 0 + +b = +b
 		return bigint_helper_copy_of_slice(big_int2);
 	}
 
-	if(bigint_mul_karatsuba_is_zero_slice(big_int2)) {
-		// +a + 0 = +a
-		return bigint_helper_copy_of_slice(big_int1);
-	}
-
 	// +a + +b
 
-	BigInt a = bigint_helper_copy_of_slice(big_int1);
+	BigInt a = bigint_helper_copy_of_slice(bigint_slice_from_nullable(big_int1));
 	BigInt b = bigint_helper_copy_of_slice(big_int2);
 
 	BigInt result = bigint_add_bigint_both_positive(a, b);
@@ -1473,11 +1475,11 @@ NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_add_internal(BigIntSl
 	return result;
 }
 
-// this adds <amount> 0 numbera to the end of the number, also known as <big_int> * (2^64)^<amount>
+// this adds <amount> 0 numbers to the end of the number, also known as <big_int> * (2^64)^<amount>
 static void bigint_mul_bigint_karatsuba_shift_bigint_internally_by(BigInt* big_int, size_t amount) {
 
-	if(amount == 0) {
-		return;
+	if(amount == 0) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
+		return;       // GCOVR_EXCL_LINE (see above)
 	}
 
 	size_t old_size = big_int->number_count;
@@ -1552,30 +1554,28 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 		// NOTE: PAY ATTENTION to the order, as the uint64_t values are stored in reverse order! but
 		// a1 is msb and a2 lsb
 
-		BigIntSlice a1 = { .numbers = NULL, .number_count = 0 };
-		BigIntSlice a2 = { .numbers = NULL, .number_count = 0 };
+		BigIntNullableSlice a1 = NULL_SLICE;
+		BigIntSlice a2 = { .numbers = big_int1.numbers, .number_count = 0 };
 
 		if(big_int1.number_count > divide_at) {
-			a1 = (BigIntSlice){ .numbers = big_int1.numbers + divide_at,
-				                .number_count = big_int1.number_count - divide_at };
-			a2 = (BigIntSlice){ .numbers = big_int1.numbers, .number_count = divide_at };
+			a1 = (BigIntNullableSlice){ .numbers = big_int1.numbers + divide_at,
+				                        .number_count = big_int1.number_count - divide_at };
+			a2.number_count = divide_at;
 
 		} else {
-			a2 =
-			    (BigIntSlice){ .numbers = big_int1.numbers, .number_count = big_int1.number_count };
+			a2.number_count = big_int1.number_count;
 		}
 
-		BigIntSlice b1 = { .numbers = NULL, .number_count = 0 };
-		BigIntSlice b2 = { .numbers = NULL, .number_count = 0 };
+		BigIntNullableSlice b1 = NULL_SLICE;
+		BigIntSlice b2 = { .numbers = big_int2.numbers, .number_count = 0 };
 
 		if(big_int2.number_count > divide_at) {
-			b1 = (BigIntSlice){ .numbers = big_int2.numbers + divide_at,
-				                .number_count = big_int2.number_count - divide_at };
-			b2 = (BigIntSlice){ .numbers = big_int2.numbers, .number_count = divide_at };
+			b1 = (BigIntNullableSlice){ .numbers = big_int2.numbers + divide_at,
+				                        .number_count = big_int2.number_count - divide_at };
+			b2.number_count = divide_at;
 
 		} else {
-			b2 =
-			    (BigIntSlice){ .numbers = big_int2.numbers, .number_count = big_int2.number_count };
+			b2.number_count = big_int2.number_count;
 		}
 
 		// do the necessary steps, use internal algorithm, where we could pass "fake" 0 bigint
