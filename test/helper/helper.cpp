@@ -338,6 +338,8 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 		}
 	}
 
+	mp_clear(&number);
+
 	test = BigIntTest(positive, std::move(values));
 }
 
