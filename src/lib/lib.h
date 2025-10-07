@@ -81,7 +81,8 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_signed_number(int64_t number
  * @param size
  * @return BigIntC - the result
  */
-NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(uint64_t* numbers, size_t size);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64_t* numbers,
+                                                                    size_t size);
 
 BIGINT_C_LIB_EXPORTED void free_bigint(BigIntC* big_int);
 

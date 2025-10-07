@@ -33,11 +33,11 @@ BIGINT_C_ONLY_LOCAL void custom_assert(const char* file, int line, bool cond, co
 	} while(false)
 #else
 
-#include "./assert.h"
+#include <assert.h>
 #define ASSERT(cond, message) custom_assert(__FILE__, __LINE__, cond, message)
 
 #define UNREACHABLE_WITH_MSG(msg) \
-	do { \
+	do { /*NOLINT(cppcoreguidelines-avoid-do-while)*/ \
 		custom_panic(__FILE__, __LINE__, \
 		             "UNREACHABLE: " msg); /*NOLINT(cert-dcl03-c,misc-static-assert)*/ \
 	} while(false)
