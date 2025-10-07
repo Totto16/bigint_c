@@ -125,4 +125,4 @@ NODISCARD BIGINT_C_LIB_EXPORTED int8_t bigint_compare_bigint(BigIntC big_int1, B
 
 BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int);
 
-BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2);

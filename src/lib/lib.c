@@ -1636,7 +1636,7 @@ NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, 
 	                                   bigint_slice_from_bigint(big_int2));
 }
 
-BIGINT_C_LIB_EXPORTED NODISCARD BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2) {
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2) {
 
 	if(big_int1.positive) {
 		if(big_int2.positive) {
