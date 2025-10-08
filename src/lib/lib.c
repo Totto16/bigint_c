@@ -1451,7 +1451,13 @@ typedef struct {
 #define NULL_SLICE ((BigIntNullableSlice){ .numbers = NULL, .number_count = 0 })
 
 NODISCARD static inline BigIntSlice bigint_slice_from_nullable(BigIntNullableSlice big_int) {
-	return (*(BigIntSlice*)&big_int);
+
+	union {
+		BigIntSlice normal;
+		BigIntNullableSlice nullable;
+	} value = { .nullable = big_int };
+
+	return value.normal;
 }
 
 NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
@@ -1486,7 +1492,7 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
                                         uint64_t* high) {
 
 	// see https://learn.microsoft.com/en-us/cpp/intrinsics/umul128?view=msvc-170
-	*low = _umul128(big_int1, big_int2, *high);
+	*low = _umul128(big_int1, big_int2, high);
 }
 
 #elif defined(_MSC_VER) && (defined(__aarch64__))
