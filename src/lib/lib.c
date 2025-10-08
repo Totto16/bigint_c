@@ -1080,6 +1080,34 @@ NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t bor
 #endif
 }
 
+#elif defined(__GNUC__)
+
+NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
+                                                                    uint64_t value1,
+                                                                    uint64_t value2,
+                                                                    uint64_t* result_out) {
+
+	uint64_t value1_r = 0;
+	bool carry1 = __builtin_add_overflow(value1, (uint64_t)carry_in, &value1_r);
+
+	bool carry2 = __builtin_add_overflow(value1_r, value2, result_out);
+
+	return carry1 || carry2 ? 1 : 0;
+}
+
+NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in,
+                                                                     uint64_t value1,
+                                                                     uint64_t value2,
+                                                                     uint64_t* result_out) {
+
+	uint64_t value2_r = 0;
+	bool borrow1 = __builtin_add_overflow(value2, (uint64_t)borrow_in, &value2_r);
+
+	bool borrow2 = __builtin_sub_overflow(value1, value2_r, result_out);
+
+	return borrow1 || borrow2 ? 1 : 0;
+}
+
 #else
 NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
                                                              uint64_t value2,
@@ -1443,7 +1471,9 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
 	*high = (uint64_t)(result >> 64);
 }
 
-#elif defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
+#else
+
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
 
 // use fast intrinsic on x86_64 (_umul128 is only supported in msvc, as gcc / clang and linux
 // support all operations on 128 bits numbers, but that is not enabled with
@@ -1456,6 +1486,22 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
 
 	// see https://learn.microsoft.com/en-us/cpp/intrinsics/umul128?view=msvc-170
 	*low = _umul128(big_int1, big_int2, *high);
+}
+
+#elif defined(_MSC_VER) && (defined(__aarch64__))
+
+// use fast intrinsic on aarch64 (__umulh is only supported in msvc, as gcc / clang and linux
+// support all operations on 128 bits numbers, but that is not enabled with
+// BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1)
+
+#include <intrin.h>
+
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
+
+	*low = (uint64_t)(big_int1 * big_int2);
+
+	*high = __umulh(big_int1, big_int2);
 }
 
 #else
@@ -1478,6 +1524,7 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
 	*low = res_ll + (res_lh << 32) + (res_hl << 32);
 	*high = res_hh + (res_lh >> 32) + (res_hl >> 32) + carry;
 }
+#endif
 #endif
 
 NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_t big_int2) {
