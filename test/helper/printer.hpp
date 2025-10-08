@@ -22,6 +22,13 @@ void PrintTo(const BigIntTest& value, std::ostream* os) {
 	*os << "\n";
 }
 
+void PrintTo(const BigInt& value, std::ostream* os) {
+
+	BigIntTest value_cpp = BigIntTest(value);
+
+	PrintTo(value_cpp, os);
+}
+
 void PrintTo(const BigIntDebug& value, std::ostream* os) {
 
 	BigIntTest value_cpp = BigIntTest(value.value);

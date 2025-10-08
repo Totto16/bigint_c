@@ -191,7 +191,7 @@ struct BigInt {
 
 	[[nodiscard]] BigInt operator-(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator*(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator*(const BigInt& value2) const;
 
 	[[nodiscard]] bool operator/(const BigInt& value2) const;
 
@@ -427,10 +427,10 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] bool BigInt::operator*(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+[[nodiscard]] BigInt BigInt::operator*(const BigInt& value2) const {
+	BigIntC result = bigint_mul_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] bool BigInt::operator/(const BigInt& value2) const {
@@ -457,21 +457,33 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 }
 
 [[nodiscard]] BigInt& BigInt::operator+=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_add_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator-=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_sub_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator*=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_mul_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator/=(const BigInt& value2) {

@@ -18,24 +18,42 @@ jobs:
             os: windows
             os-version: 2025
             test_type: auto
+            underlying_computation: auto
 
           - name: Linux (ARM64)
             os: ubuntu
             os-version: 24.04-arm
             arm: true
             test_type: auto
+            underlying_computation: auto
 
           - name: Linux (x86_64, GMP)
             os: ubuntu
             os-version: 24.04
             arm: false
             test_type: gmp
+            underlying_computation: auto
     
           - name: Linux (x86_64, Tommath)
             os: ubuntu
             os-version: 24.04
             arm: false
             test_type: tommath
+            underlying_computation: auto
+
+          - name: Linux (x86_64, Auto, Normal)
+            os: ubuntu
+            os-version: 24.04
+            arm: false
+            test_type: auto
+            underlying_computation: normal
+
+          - name: Linux (ARM64, Auto, Normal)
+            os: ubuntu
+            os-version: 24.04-arm
+            arm: true
+            test_type: auto
+            underlying_computation: normal
 
     steps:
       - uses: actions/checkout@v4
@@ -82,13 +100,13 @@ jobs:
           cmake --install . --config=Debug
 
       - name: Configure
-        run: meson setup build -Dbuildtype=debug -Db_coverage=true -Ddefault_library=${{( matrix.config.os == 'windows') && 'static' ||'shared' }} -Dtests=${{ matrix.config.test_type}} --fatal-meson-warnings
+        run: meson setup build -Dbuildtype=debug -Db_coverage=true -Ddefault_library=${{( matrix.config.os == 'windows') && 'static' ||'shared' }} -Dtests=${{ matrix.config.test_type}} -Dunderlying_computation=${{ matrix.config.underlying_computation}} --fatal-meson-warnings
 
       - name: Run tests
         run: meson test -C build --verbose
 
       - name: Generate Coverage File
-        if: matrix.config.os != 'windows'  
+        if: matrix.config.os != 'windows'
         run: |
           ninja coverage -C build
 
@@ -109,7 +127,7 @@ jobs:
           diff-branch: main
 
       - name: Upload test coverage artifacts
-        if: matrix.config.os == 'ubuntu' && matrix.config.test_type == 'gmp'  
+        if: matrix.config.os == 'ubuntu' && matrix.config.test_type == 'gmp'
         uses: actions/upload-artifact@v4
         with:
           name: Tests coverage artifacts

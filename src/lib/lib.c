@@ -479,7 +479,8 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 
 	bigint_helper_realloc_to_new_size(&result);
 
-	memcpy(result.numbers, big_int.numbers, sizeof(uint64_t) * big_int.number_count);
+	memcpy(result.numbers, big_int.numbers, // NOLINT(clang-analyzer-core.NonNullParamChecker)
+	       sizeof(uint64_t) * big_int.number_count);
 
 	return result;
 }
@@ -915,17 +916,18 @@ NODISCARD static size_t helper_max(size_t num1, size_t num2) {
 	return num2;
 }
 
-#if defined __GNUC__
-#if defined(__SIZEOF_INT128__)
-#define HAVE_128_BIT_NUMBERS
+#if !defined(BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION)
+#error "DEFINE BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION"
+#elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 typedef __uint128_t uint128_t; // NOLINT(readability-identifier-naming)
 typedef __int128_t int128_t;   // NOLINT(readability-identifier-naming)
+#elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1
 
+#else
+#error "unknown BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION"
 #endif
 
-#endif
-
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 
 NODISCARD static BigIntC bigint_add_bigint_both_positive_using_128_bit_numbers(BigIntC big_int1,
                                                                                BigIntC big_int2) {
@@ -1021,41 +1023,132 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_using_128_bit_numbers(B
 
 	return result;
 }
-#else
-
-#if defined(_MSC_VER)
-#include <intrin.h>
-#endif
+#elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1
 
 NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
                                                              uint64_t value2, uint64_t* result_out);
 
-// use fast intrinsic (in ASM ADC) on x86_64 (only on windows for now)
-#if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
+NODISCARD static uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in, uint64_t value1,
+                                                              uint64_t value2,
+                                                              uint64_t* result_out);
+
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+
+// use fast intrinsic (in ASM ADC) on x86_64
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
 
 NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
                                                                     uint64_t value1,
                                                                     uint64_t value2,
                                                                     uint64_t* result_out) {
 
+#if defined(_MSC_VER)
 	// see:
 	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_addcarry_u64&ig_expand=175
 	return _addcarry_u64(carry_in, value1, value2, result_out);
+#else
+	unsigned long long result = 0;
+	uint8_t res = _addcarry_u64(carry_in, value1, value2, &result);
+
+	*result_out = result;
+
+	return res;
+#endif
+}
+
+NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in,
+                                                                     uint64_t value1,
+                                                                     uint64_t value2,
+                                                                     uint64_t* result_out) {
+
+#if defined(_MSC_VER)
+	// see:
+	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_subborrow_u64&ig_expand=6666
+	return _subborrow_u64(borrow_in, value1, value2, result_out);
+#else
+	unsigned long long result = 0;
+	uint8_t res = _subborrow_u64(borrow_in, value1, value2, &result);
+
+	*result_out = result;
+
+	return res;
+
+#endif
+}
+
+#elif defined(__GNUC__)
+
+NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
+                                                                    uint64_t value1,
+                                                                    uint64_t value2,
+                                                                    uint64_t* result_out) {
+
+	uint64_t value1_r = 0;
+	bool carry1 = __builtin_add_overflow(value1, (uint64_t)carry_in, &value1_r);
+
+	bool carry2 = __builtin_add_overflow(value1_r, value2, result_out);
+
+	return carry1 || carry2 ? 1 : 0;
+}
+
+NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in,
+                                                                     uint64_t value1,
+                                                                     uint64_t value2,
+                                                                     uint64_t* result_out) {
+
+	uint64_t value2_r = 0;
+	bool borrow1 = __builtin_add_overflow(value2, (uint64_t)borrow_in, &value2_r);
+
+	bool borrow2 = __builtin_sub_overflow(value1, value2_r, result_out);
+
+	return borrow1 || borrow2 ? 1 : 0;
 }
 
 #else
 NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
                                                              uint64_t value2,
                                                              uint64_t* result_out) {
-	uint64_t sum = value1 + value2;
+	const uint64_t sum = value1 + value2;
 	*result_out = sum + carry_in;
 
-	bool carry1 = sum < a;
+	bool carry1 = sum < value1;
 	bool carry2 = *result_out < sum;
 
-	uint8_t carry_out = carry1 || carry2 ? 1 : 0;
-	return carry_out;
+	uint8_t carry = carry1 || carry2 ? 1 : 0;
+	return carry;
 }
+
+NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in,
+                                                                     uint64_t value1,
+                                                                     uint64_t value2,
+                                                                     uint64_t* result_out) {
+
+	uint64_t value2_r = value2;
+
+	bool local_borrow = false;
+
+	if(borrow_in != 0) {
+
+		value2_r = value2 + borrow_in;
+
+		local_borrow = (value2_r < value2);
+	}
+
+	// check if the next subtraction would underflow
+	local_borrow = local_borrow || value1 < value2_r;
+
+	uint64_t temp = value1 - value2_r;
+
+	*result_out = temp;
+
+	return local_borrow ? 1 : 0;
+}
+
 #endif
 
 NODISCARD static BigIntC bigint_add_bigint_both_positive_normal(BigIntC big_int1,
@@ -1125,15 +1218,8 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1
 				value2 = big_int2.numbers[i];
 			}
 
-			uint64_t temp = value1 - value2;
-
-			if(borrow != 0) {
-				temp = temp - borrow;
-			}
-
-			borrow = (value1 < value2 + borrow) ? 1 : 0;
-
-			result.numbers[i] = temp;
+			borrow =
+			    bigint_helper_sub_uint64_with_borrow(borrow, value1, value2, &(result.numbers[i]));
 		}
 
 		ASSERT(borrow == 0,
@@ -1144,11 +1230,13 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1
 
 	return result;
 }
+#else
+#error "unknown BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION"
 #endif
 
 NODISCARD static BigIntC bigint_add_bigint_both_positive(BigIntC big_int1, BigIntC big_int2) {
 
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
 	return bigint_add_bigint_both_positive_normal(big_int1, big_int2);
@@ -1194,7 +1282,7 @@ bigint_add_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-recurs
 
 NODISCARD static BigIntC bigint_sub_bigint_both_positive_impl(BigIntC big_int1, BigIntC big_int2) {
 
-#if defined(HAVE_128_BIT_NUMBERS)
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 	return bigint_sub_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
 	return bigint_sub_bigint_both_positive_normal(big_int1, big_int2);
@@ -1349,6 +1437,415 @@ BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int) {
 	}
 
 	big_int->positive = !big_int->positive;
+}
+
+typedef struct {
+	const uint64_t* numbers;
+	size_t number_count;
+} BigIntSlice;
+
+typedef struct {
+	const uint64_t* numbers;
+	size_t number_count;
+} BigIntNullableSlice;
+
+#define NULL_SLICE ((BigIntNullableSlice){ .numbers = NULL, .number_count = 0 })
+
+NODISCARD static inline BigIntSlice bigint_slice_from_nullable(BigIntNullableSlice big_int) {
+
+	union {
+		BigIntSlice normal;
+		BigIntNullableSlice nullable;
+	} value = { .nullable = big_int };
+
+	return value.normal;
+}
+
+NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
+	return (BigIntSlice){ .numbers = big_int.numbers, .number_count = big_int.number_count };
+}
+
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high);
+
+#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
+
+static void
+bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2,
+                            uint64_t* low, // NOLINT(bugprone-easily-swappable-parameters)
+                            uint64_t* high) {
+
+	uint128_t result = (uint128_t)big_int1 * (uint128_t)big_int2;
+
+	*low = (uint64_t)result;
+	*high =
+	    (uint64_t)(result >>
+	               64); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+}
+
+#else
+
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
+
+// use fast intrinsic on x86_64 (_umul128 is only supported in msvc, as gcc / clang and linux
+// support all operations on 128 bits numbers, but that is not enabled with
+// BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1)
+
+#include <intrin.h>
+
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
+
+	// see https://learn.microsoft.com/en-us/cpp/intrinsics/umul128?view=msvc-170
+	*low = _umul128(big_int1, big_int2, high);
+}
+
+#elif defined(_MSC_VER) && (defined(__aarch64__))
+
+// use fast intrinsic on aarch64 (__umulh is only supported in msvc, as gcc / clang and linux
+// support all operations on 128 bits numbers, but that is not enabled with
+// BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1)
+
+#include <intrin.h>
+
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
+
+	*low = (uint64_t)(big_int1 * big_int2);
+
+	*high = __umulh(big_int1, big_int2);
+}
+
+#else
+
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
+
+	uint64_t b1_low = (uint32_t)(big_int1);
+	uint64_t b1_high = big_int1 >> 32;
+	uint64_t b2_low = (uint32_t)(big_int2);
+	uint64_t b2_high = big_int2 >> 32;
+
+	uint64_t res_ll = b1_low * b2_low;
+	uint64_t res_lh = b1_low * b2_high;
+	uint64_t res_hl = b1_high * b2_low;
+	uint64_t res_hh = b1_high * b2_high;
+
+	uint64_t carry = ((res_ll >> 32) + (res_lh & 0xFFFFFFFF) + (res_hl & 0xFFFFFFFF)) >> 32;
+
+	*low = res_ll + (res_lh << 32) + (res_hl << 32);
+	*high = res_hh + (res_lh >> 32) + (res_hl >> 32) + carry;
+}
+#endif
+#endif
+
+NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_t big_int2) {
+
+	uint64_t low = U64(0);
+	uint64_t high = U64(0);
+
+	bigint_mul_two_numbers_impl(big_int1, big_int2, &low, &high);
+
+	bool need_two_numbers = high != 0;
+
+	BigInt result_big_int = { .positive = true,
+		                      .numbers = NULL,
+		                      .number_count = need_two_numbers ? 2 : 1 };
+
+	bigint_helper_realloc_to_new_size(&result_big_int);
+
+	result_big_int.numbers[0] = low;
+
+	if(need_two_numbers) {
+		result_big_int.numbers[1] = high;
+	}
+
+	return result_big_int;
+}
+
+NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1,
+                                                                uint64_t big_int2) {
+	return bigint_mul_two_numbers_normal(big_int1, big_int2);
+}
+
+NODISCARD static inline size_t helper_ceil_div(size_t input, size_t divider) {
+	return (input + divider - 1) / divider;
+}
+
+// NOTES: about "fake" 0 bigints:
+//  to make less memory allocations, we use bigint slices, that have NULL as numbers and count as 0,
+//  this represent 0, normally we would represent 0 by the numbers_count 0 and the first number
+//  being 0 to make this work, we need special checks in some places, where this could be used!
+// this are called "<x>_internal"
+
+NODISCARD static inline bool bigint_mul_karatsuba_is_zero_slice(BigIntNullableSlice slice) {
+	return slice.number_count == 0 || slice.numbers == NULL;
+}
+
+NODISCARD static inline BigInt bigint_helper_copy_of_slice(BigIntSlice big_int_slice) {
+
+	BigInt big_int = { .positive = true,
+		               .numbers = (uint64_t*)big_int_slice.numbers,
+		               .number_count = big_int_slice.number_count };
+
+	return bigint_helper_get_full_copy(big_int);
+}
+
+NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2);
+
+NODISCARD static inline BigInt
+bigint_mul_bigint_karatsuba_internal(BigIntNullableSlice big_int1, // NOLINT(misc-no-recursion)
+                                     BigIntNullableSlice big_int2) {
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
+		return bigint_helper_zero();
+	}
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int2)) {
+		return bigint_helper_zero();
+	}
+
+	return bigint_mul_bigint_karatsuba(bigint_slice_from_nullable(big_int1),
+	                                   bigint_slice_from_nullable(big_int2));
+}
+
+NODISCARD static inline BigInt
+bigint_mul_bigint_karatsuba_add_internal(BigIntNullableSlice big_int1, BigIntSlice big_int2)
+
+{
+
+	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
+
+		// 0 + +b = +b
+		return bigint_helper_copy_of_slice(big_int2);
+	}
+
+	// +a + +b
+
+	BigInt number_a = bigint_helper_copy_of_slice(bigint_slice_from_nullable(big_int1));
+	BigInt number_b = bigint_helper_copy_of_slice(big_int2);
+
+	BigInt result = bigint_add_bigint_both_positive(number_a, number_b);
+
+	free_bigint_without_reset(number_a);
+	free_bigint_without_reset(number_b);
+
+	return result;
+}
+
+// this adds <amount> 0 numbers to the end of the number, also known as <big_int> * (2^64)^<amount>
+static void bigint_mul_bigint_karatsuba_shift_bigint_internally_by(BigInt* big_int, size_t amount) {
+
+	if(amount == 0) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
+		return;       // GCOVR_EXCL_LINE (see above)
+	}
+
+	size_t old_size = big_int->number_count;
+
+	big_int->number_count = old_size + amount;
+	bigint_helper_realloc_to_new_size(big_int);
+
+	// move the old numbers to the right (inverse as in normal numbers), starting from the right, so
+	// this can be done in one swoop, all leftover numbers are set to 0
+	for(size_t i = big_int->number_count; i != 0; --i) {
+
+		if(i > amount) {
+			uint64_t number_to_move = big_int->numbers[i - amount - 1];
+			big_int->numbers[i - 1] = number_to_move;
+		} else {
+			big_int->numbers[i - 1] = U64(0);
+		}
+	}
+}
+
+NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2);
+
+NODISCARD static BigInt
+bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
+                            BigIntSlice big_int2) {
+
+	{ // check for simple bases cases e.g. * 0 or * 1
+
+		if(big_int1.number_count == 1) {
+
+			uint64_t number = big_int1.numbers[0];
+
+			if(number == 0) {
+				return bigint_helper_zero();
+			}
+
+			if(number == 1) {
+				return bigint_helper_copy_of_slice(big_int2);
+			}
+		}
+
+		if(big_int2.number_count == 1) {
+
+			uint64_t number = big_int2.numbers[0];
+
+			if(number == 0) {
+				return bigint_helper_zero();
+			}
+
+			if(number == 1) {
+				return bigint_helper_copy_of_slice(big_int1);
+			}
+		}
+	}
+
+	// basic algorihtm
+
+	// this is a divide and conquer algorithm based on en.wikipedia.org/wiki/Karatsuba_algorithm
+
+	// base case
+	if(big_int1.number_count == 1 && big_int2.number_count == 1) {
+		return bigint_mul_bigint_karatsuba_base(big_int1.numbers[0], big_int2.numbers[0]);
+	}
+
+	// recursive case
+
+	{
+		size_t max_count = helper_max(big_int1.number_count, big_int2.number_count);
+
+		size_t divide_at = helper_ceil_div(max_count, 2);
+
+		// get the 4 parts of the numbers, the first part can be NULL, as e.g. one can be smaller as
+		// the divide_at
+		// NOTE: PAY ATTENTION to the order, as the uint64_t values are stored in reverse order! but
+		// a1 is msb and a2 lsb
+
+		BigIntNullableSlice num_a1 = NULL_SLICE;
+		BigIntSlice num_a2 = { .numbers = big_int1.numbers, .number_count = 0 };
+
+		if(big_int1.number_count > divide_at) {
+			num_a1 = (BigIntNullableSlice){ .numbers = big_int1.numbers + divide_at,
+				                            .number_count = big_int1.number_count - divide_at };
+			num_a2.number_count = divide_at;
+
+		} else {
+			num_a2.number_count = big_int1.number_count;
+		}
+
+		BigIntNullableSlice num_b1 = NULL_SLICE;
+		BigIntSlice num_b2 = { .numbers = big_int2.numbers, .number_count = 0 };
+
+		if(big_int2.number_count > divide_at) {
+			num_b1 = (BigIntNullableSlice){ .numbers = big_int2.numbers + divide_at,
+				                            .number_count = big_int2.number_count - divide_at };
+			num_b2.number_count = divide_at;
+
+		} else {
+			num_b2.number_count = big_int2.number_count;
+		}
+
+		// do the necessary steps, use internal algorithm, where we could pass "fake" 0 bigint
+		// slices, see above what "fake" means
+
+		BigInt z_2 = bigint_mul_bigint_karatsuba_internal(num_a1, num_b1);
+
+		const BigInt z_0 = bigint_mul_bigint_karatsuba(num_a2, num_b2);
+
+		const BigInt z_1_temp1 = bigint_mul_bigint_karatsuba_add_internal(num_a1, num_a2);
+
+		const BigInt z_1_temp2 = bigint_mul_bigint_karatsuba_add_internal(num_b1, num_b2);
+
+		const BigInt z_1_mul_temp = bigint_mul_bigint_both_positive(z_1_temp1, z_1_temp2);
+
+		free_bigint_without_reset(z_1_temp1);
+		free_bigint_without_reset(z_1_temp2);
+
+		const BigInt z_1_sub_temp = bigint_sub_bigint_both_positive(z_1_mul_temp, z_2);
+		ASSERT(z_1_sub_temp.positive, "result of this subtraction should always be positive!");
+
+		BigInt z_1 = bigint_sub_bigint_both_positive(z_1_sub_temp, z_0);
+		ASSERT(z_1.positive, "result of this subtraction should always be positive!");
+
+		// these two asserts should always hold since:
+		// (a1 + a2) * (b1 + b2) > (a1 * b1) + (a2 * b2)
+		// (a1 * b1) + (a1 * b2) + (a2 * b1) + (a2 * b2) > (a1 * b1) + (a2 * b2)
+		// (a1 * b2) + (a2 * b1) > 0
+
+		free_bigint_without_reset(z_1_mul_temp);
+		free_bigint_without_reset(z_1_sub_temp);
+
+		// make the final number
+
+		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_2, divide_at * 2);
+
+		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_1, divide_at);
+
+		const BigInt result_add_temp = bigint_add_bigint_both_positive(z_2, z_1);
+
+		free_bigint_without_reset(z_2);
+		free_bigint_without_reset(z_1);
+
+		BigInt result = bigint_add_bigint_both_positive(result_add_temp, z_0);
+
+		free_bigint_without_reset(result_add_temp);
+		free_bigint_without_reset(z_0);
+
+		bigint_helper_remove_leading_zeroes(&result);
+
+		return result;
+	}
+}
+
+NODISCARD static inline BigInt
+bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2) { // NOLINT(misc-no-recursion)
+
+	return bigint_mul_bigint_karatsuba(bigint_slice_from_bigint(big_int1),
+	                                   bigint_slice_from_bigint(big_int2));
+}
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2) {
+
+	if(big_int1.positive) {
+		if(big_int2.positive) {
+			// +a * +b
+			return bigint_mul_bigint_both_positive(big_int1, big_int2);
+		}
+
+		// +a * -b = - (+a * +b)
+		big_int2.positive = true;
+		BigInt result = bigint_mul_bigint_both_positive(big_int1, big_int2);
+
+		result.positive = false;
+
+		// - 0 becomes +0
+		if(result.number_count == 1) {
+			if(result.numbers[0] == 0) {
+				result.positive = true;
+			}
+		}
+
+		return result;
+	}
+
+	if(big_int2.positive) {
+		// -a * +b = - (+b * +a)
+		big_int1.positive = true;
+		BigInt result = bigint_mul_bigint_both_positive(big_int1, big_int2);
+
+		result.positive = false;
+
+		// - 0 becomes +0
+		if(result.number_count == 1) {
+			if(result.numbers[0] == 0) {
+				result.positive = true;
+			}
+		}
+
+		return result;
+	}
+
+	// both are negative
+
+	// -a * -b = + ( +a * +b )
+
+	big_int1.positive = true;
+	big_int2.positive = true;
+
+	return bigint_mul_bigint_both_positive(big_int1, big_int2);
 }
 
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)

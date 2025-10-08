@@ -5,3 +5,11 @@ option(
     value: 'false',
     description: 'build tests (or choose which "backend" to use',
 )
+
+option(
+    'underlying_computation',
+    type: 'combo',
+    choices: ['auto', '128bit', 'normal'],
+    value: 'auto',
+    description: 'set the underlying computation method, auto uses the best available',
+)

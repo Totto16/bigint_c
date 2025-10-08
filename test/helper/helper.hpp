@@ -35,6 +35,8 @@ struct BigIntTest {
 	[[nodiscard]] BigIntTest operator+(const BigIntTest& value2) const;
 
 	[[nodiscard]] BigIntTest operator-(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest operator*(const BigIntTest& value2) const;
 };
 
 struct BigIntDebug {

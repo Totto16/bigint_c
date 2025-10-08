@@ -1332,6 +1332,9 @@ TEST(BigInt, IntegerSubtraction) {
 		}
 	}
 
+	tests.emplace_back(BigInt::get_from_string("+680564733841876926963642703010955526140").value(),
+	                   BigInt::get_from_string("+680564733841876926926749214863536422910").value());
+
 	for(const TestType& test : tests) {
 
 		const auto& [value1, value2] = test;
@@ -1339,6 +1342,155 @@ TEST(BigInt, IntegerSubtraction) {
 		const BigInt actual_result = value1 - value2;
 
 		const BigIntTest result_expected = BigIntTest(value1) - BigIntTest(value2);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerMultiplication) {
+	using TestType = std::tuple<BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL });
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL });
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-2131215135135132515135").value());
+	tests.emplace_back(BigInt::get_from_string("-1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("-1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-2131215135135").value());
+	tests.emplace_back(BigInt::get_from_string("0").value(),
+	                   BigInt::get_from_string("+2131215135135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
+	                   BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
+	                   BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("+0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+21312151351351323495781541456378747474735463736465"
+	                                           "37364647384747474747474747566383938475727424515135")
+	                       .value(),
+	                   BigInt::get_from_string("+352785318753").value());
+
+	tests.emplace_back(BigInt::get_from_string("+352785318753").value(),
+	                   BigInt::get_from_string("+21312151351351323495781541456378747474735463736465"
+	                                           "37364647384747474747474747566383938475727424515135")
+	                       .value());
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+
+	std::vector<BigInt> numbers{};
+
+	numbers.emplace_back((int64_t)10);
+	numbers.emplace_back((int64_t)5);
+	numbers.emplace_back((int64_t)3);
+	numbers.emplace_back((int64_t)2);
+	numbers.emplace_back(BigInt::get_from_string("+0").value());
+	numbers.emplace_back(BigInt::get_from_string("0").value());
+	numbers.emplace_back((int64_t)-2);
+	numbers.emplace_back((int64_t)-3);
+	numbers.emplace_back((int64_t)-5);
+	numbers.emplace_back((int64_t)-10);
+
+	for(size_t i = 0; i < numbers.size(); ++i) {
+
+		for(size_t j = 0; j < numbers.size(); ++j) {
+
+			const BigInt& value1 = numbers.at(i);
+			const BigInt& value2 = numbers.at(j);
+
+			tests.emplace_back(value1.copy(), value2.copy());
+		}
+	}
+
+	tests.emplace_back(
+	    BigInt::get_from_string(
+	        "35132632464234632432532749452368534748774747474747574563458934574389573498573458934758"
+	        "93475983457938457349857345845475475757777777777777777777777777777777777777777777777777"
+	        "77777775457457475477252574365782456785786827346752577328452378563279852978352379532578"
+	        "93255789088010871451780521572161276188761076576805218675867125867051287652186702768706"
+	        "54076257801256427855521708561270502716512761526781567085102678516780152678152678512671"
+	        "35267352167521367257615236715236715286780152367821678125678513267805236781526780152675"
+	        "8123671523363633532562340963427646346346363632")
+	        .value(),
+	    BigInt::get_from_string(
+	        "35132632464234632432532749452368534748774747474747574563458934574389573498573458934758"
+	        "93475983457938457349857345845475475757777777777777777777777777777777777777777777777777"
+	        "77777775457457475477252574365782456785786827346752577328452378563279852978352379532578"
+	        "93255789088010871451780521572161276188761076576805218675867125867051287652186702768706"
+	        "54076257801256427855521708561270502716512761526781567085102678516780152678152678512671"
+	        "35267352167521367257615236715236715286780152367821678125678513267805236781526780152675"
+	        "8123671523363633532562340963427646346346363631")
+	        .value());
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 * value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) * BigIntTest(value2);
 
 		EXPECT_EQ(actual_result, result_expected)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
