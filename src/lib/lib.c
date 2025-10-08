@@ -1024,24 +1024,54 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_using_128_bit_numbers(B
 }
 #elif BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1
 
-#if defined(_MSC_VER)
-#include <intrin.h>
-#endif
-
 NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, uint64_t value1,
                                                              uint64_t value2, uint64_t* result_out);
 
-// use fast intrinsic (in ASM ADC) on x86_64 (only on windows for now)
-#if defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
+NODISCARD static uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in, uint64_t value1,
+                                                              uint64_t value2,
+                                                              uint64_t* result_out);
+
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+
+// use fast intrinsic (in ASM ADC) on x86_64
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
 
 NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in,
                                                                     uint64_t value1,
                                                                     uint64_t value2,
                                                                     uint64_t* result_out) {
 
+#if defined(_MSC_VER)
 	// see:
 	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_addcarry_u64&ig_expand=175
 	return _addcarry_u64(carry_in, value1, value2, result_out);
+#else
+	unsigned long long result = 0;
+	uint8_t res = _addcarry_u64(carry_in, value1, value2, &result);
+
+	*result_out = result;
+
+	return res;
+#endif
+}
+
+NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in,
+                                                                     uint64_t value1,
+                                                                     uint64_t value2,
+                                                                     uint64_t* result_out) {
+
+#if defined(_MSC_VER)
+	// see:
+	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_subborrow_u64&ig_expand=6666
+	return _subborrow_u64(borrow_in, value1, value2, result_out);
+#else
+#error "TODO"
+#endif
 }
 
 #else
@@ -1057,6 +1087,32 @@ NODISCARD static uint8_t bigint_helper_add_uint64_with_carry(uint8_t carry_in, u
 	uint8_t carry = carry1 || carry2 ? 1 : 0;
 	return carry;
 }
+
+NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t borrow_in,
+                                                                     uint64_t value1,
+                                                                     uint64_t value2,
+                                                                     uint64_t* result_out) {
+
+	// TODO: add borrow_in to value2 instead of this complicated mess
+
+	// check if the next subtraction would underflow
+	bool local_borrow = value1 < value2;
+
+	uint64_t temp = value1 - value2;
+
+	if(borrow_in != 0) {
+
+		// check if the next subtraction would underflow
+		local_borrow = local_borrow || (temp < borrow_in);
+
+		temp = temp - borrow_in;
+	}
+
+	*result_out = temp;
+
+	return local_borrow ? 1 : 0;
+}
+
 #endif
 
 NODISCARD static BigIntC bigint_add_bigint_both_positive_normal(BigIntC big_int1,
@@ -1126,22 +1182,8 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1
 				value2 = big_int2.numbers[i];
 			}
 
-			// check if the next subtraction would underflow
-			bool local_borrow = value1 < value2;
-
-			uint64_t temp = value1 - value2;
-
-			if(borrow != 0) {
-
-				// check if the next subtraction would underflow
-				local_borrow = local_borrow || (temp < borrow);
-
-				temp = temp - borrow;
-			}
-
-			borrow = local_borrow ? 1 : 0;
-
-			result.numbers[i] = temp;
+			borrow =
+			    bigint_helper_sub_uint64_with_borrow(borrow, value1, value2, &(result.numbers[i]));
 		}
 
 		ASSERT(borrow == 0,
@@ -1381,36 +1423,45 @@ NODISCARD static inline BigIntSlice bigint_slice_from_bigint(BigInt big_int) {
 	return (BigIntSlice){ .numbers = big_int.numbers, .number_count = big_int.number_count };
 }
 
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high);
+
 #if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 
-NODISCARD static BigInt bigint_mul_two_numbers_using_128_bit_numbers(uint64_t big_int1,
-                                                                     uint64_t big_int2) {
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
 
 	uint128_t result = (uint128_t)big_int1 * (uint128_t)big_int2;
 
-	uint64_t low = (uint64_t)result;
-	uint64_t high = (uint64_t)(result >> 64);
+	*low = (uint64_t)result;
+	*high = (uint64_t)(result >> 64);
+}
 
-	bool need_two_numbers = high != 0;
+#elif defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
-	BigInt result_big_int = { .positive = true,
-		                      .numbers = NULL,
-		                      .number_count = need_two_numbers ? 2 : 1 };
+// use fast intrinsic on x86_64
 
-	bigint_helper_realloc_to_new_size(&result_big_int);
+#if defined(_MSC_VER)
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#endif
 
-	result_big_int.numbers[0] = low;
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
 
-	if(need_two_numbers) {
-		result_big_int.numbers[1] = high;
-	}
-
-	return result_big_int;
+#if defined(_MSC_VER)
+	uint64_t low_res = _umul128(big_int1, big_int2, *high);
+	*low = low_res;
+#else
+#error "TODO"
+#endif
 }
 
 #else
 
-NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_t big_int2) {
+static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
+                                        uint64_t* high) {
 
 	uint64_t b1_low = (uint32_t)(big_int1);
 	uint64_t b1_high = big_int1 >> 32;
@@ -1424,8 +1475,17 @@ NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_
 
 	uint64_t carry = ((res_ll >> 32) + (res_lh & 0xFFFFFFFF) + (res_hl & 0xFFFFFFFF)) >> 32;
 
-	uint64_t low = res_ll + (res_lh << 32) + (res_hl << 32);
-	uint64_t high = res_hh + (res_lh >> 32) + (res_hl >> 32) + carry;
+	*low = res_ll + (res_lh << 32) + (res_hl << 32);
+	*high = res_hh + (res_lh >> 32) + (res_hl >> 32) + carry;
+}
+#endif
+
+NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_t big_int2) {
+
+	uint64_t low = U64(0);
+	uint64_t high = U64(0);
+
+	bigint_mul_two_numbers_impl(big_int1, big_int2, &low, &high);
 
 	bool need_two_numbers = high != 0;
 
@@ -1444,14 +1504,9 @@ NODISCARD static BigInt bigint_mul_two_numbers_normal(uint64_t big_int1, uint64_
 	return result_big_int;
 }
 
-#endif
-
-NODISCARD static BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1, uint64_t big_int2) {
-#if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
-	return bigint_mul_two_numbers_using_128_bit_numbers(big_int1, big_int2);
-#else
+NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int1,
+                                                                uint64_t big_int2) {
 	return bigint_mul_two_numbers_normal(big_int1, big_int2);
-#endif
 }
 
 NODISCARD static inline size_t helper_ceil_div(size_t input, size_t divider) {
