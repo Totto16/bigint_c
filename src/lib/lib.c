@@ -479,7 +479,8 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 
 	bigint_helper_realloc_to_new_size(&result);
 
-	memcpy(result.numbers, big_int.numbers, sizeof(uint64_t) * big_int.number_count);
+	memcpy(result.numbers, big_int.numbers, // NOLINT(clang-analyzer-core.NonNullParamChecker)
+	       sizeof(uint64_t) * big_int.number_count);
 
 	return result;
 }
@@ -1469,13 +1470,17 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
 
 #if BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 0
 
-static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
-                                        uint64_t* high) {
+static void
+bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2,
+                            uint64_t* low, // NOLINT(bugprone-easily-swappable-parameters)
+                            uint64_t* high) {
 
 	uint128_t result = (uint128_t)big_int1 * (uint128_t)big_int2;
 
 	*low = (uint64_t)result;
-	*high = (uint64_t)(result >> 64);
+	*high =
+	    (uint64_t)(result >>
+	               64); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
 }
 
 #else
@@ -1588,8 +1593,9 @@ NODISCARD static inline BigInt bigint_helper_copy_of_slice(BigIntSlice big_int_s
 
 NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2);
 
-NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_internal(BigIntNullableSlice big_int1,
-                                                                    BigIntNullableSlice big_int2) {
+NODISCARD static inline BigInt
+bigint_mul_bigint_karatsuba_internal(BigIntNullableSlice big_int1, // NOLINT(misc-no-recursion)
+                                     BigIntNullableSlice big_int2) {
 
 	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
 		return bigint_helper_zero();
@@ -1616,13 +1622,13 @@ bigint_mul_bigint_karatsuba_add_internal(BigIntNullableSlice big_int1, BigIntSli
 
 	// +a + +b
 
-	BigInt a = bigint_helper_copy_of_slice(bigint_slice_from_nullable(big_int1));
-	BigInt b = bigint_helper_copy_of_slice(big_int2);
+	BigInt number_a = bigint_helper_copy_of_slice(bigint_slice_from_nullable(big_int1));
+	BigInt number_b = bigint_helper_copy_of_slice(big_int2);
 
-	BigInt result = bigint_add_bigint_both_positive(a, b);
+	BigInt result = bigint_add_bigint_both_positive(number_a, number_b);
 
-	free_bigint_without_reset(a);
-	free_bigint_without_reset(b);
+	free_bigint_without_reset(number_a);
+	free_bigint_without_reset(number_b);
 
 	return result;
 }
@@ -1654,7 +1660,9 @@ static void bigint_mul_bigint_karatsuba_shift_bigint_internally_by(BigInt* big_i
 
 NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2);
 
-NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2) {
+NODISCARD static BigInt
+bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
+                            BigIntSlice big_int2) {
 
 	{ // check for simple bases cases e.g. * 0 or * 1
 
@@ -1706,40 +1714,40 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 		// NOTE: PAY ATTENTION to the order, as the uint64_t values are stored in reverse order! but
 		// a1 is msb and a2 lsb
 
-		BigIntNullableSlice a1 = NULL_SLICE;
-		BigIntSlice a2 = { .numbers = big_int1.numbers, .number_count = 0 };
+		BigIntNullableSlice num_a1 = NULL_SLICE;
+		BigIntSlice num_a2 = { .numbers = big_int1.numbers, .number_count = 0 };
 
 		if(big_int1.number_count > divide_at) {
-			a1 = (BigIntNullableSlice){ .numbers = big_int1.numbers + divide_at,
-				                        .number_count = big_int1.number_count - divide_at };
-			a2.number_count = divide_at;
+			num_a1 = (BigIntNullableSlice){ .numbers = big_int1.numbers + divide_at,
+				                            .number_count = big_int1.number_count - divide_at };
+			num_a2.number_count = divide_at;
 
 		} else {
-			a2.number_count = big_int1.number_count;
+			num_a2.number_count = big_int1.number_count;
 		}
 
-		BigIntNullableSlice b1 = NULL_SLICE;
-		BigIntSlice b2 = { .numbers = big_int2.numbers, .number_count = 0 };
+		BigIntNullableSlice num_b1 = NULL_SLICE;
+		BigIntSlice num_b2 = { .numbers = big_int2.numbers, .number_count = 0 };
 
 		if(big_int2.number_count > divide_at) {
-			b1 = (BigIntNullableSlice){ .numbers = big_int2.numbers + divide_at,
-				                        .number_count = big_int2.number_count - divide_at };
-			b2.number_count = divide_at;
+			num_b1 = (BigIntNullableSlice){ .numbers = big_int2.numbers + divide_at,
+				                            .number_count = big_int2.number_count - divide_at };
+			num_b2.number_count = divide_at;
 
 		} else {
-			b2.number_count = big_int2.number_count;
+			num_b2.number_count = big_int2.number_count;
 		}
 
 		// do the necessary steps, use internal algorithm, where we could pass "fake" 0 bigint
 		// slices, see above what "fake" means
 
-		BigInt z_2 = bigint_mul_bigint_karatsuba_internal(a1, b1);
+		BigInt z_2 = bigint_mul_bigint_karatsuba_internal(num_a1, num_b1);
 
-		const BigInt z_0 = bigint_mul_bigint_karatsuba(a2, b2);
+		const BigInt z_0 = bigint_mul_bigint_karatsuba(num_a2, num_b2);
 
-		const BigInt z_1_temp1 = bigint_mul_bigint_karatsuba_add_internal(a1, a2);
+		const BigInt z_1_temp1 = bigint_mul_bigint_karatsuba_add_internal(num_a1, num_a2);
 
-		const BigInt z_1_temp2 = bigint_mul_bigint_karatsuba_add_internal(b1, b2);
+		const BigInt z_1_temp2 = bigint_mul_bigint_karatsuba_add_internal(num_b1, num_b2);
 
 		const BigInt z_1_mul_temp = bigint_mul_bigint_both_positive(z_1_temp1, z_1_temp2);
 
@@ -1782,7 +1790,8 @@ NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigInt
 	}
 }
 
-NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2) {
+NODISCARD static inline BigInt
+bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2) { // NOLINT(misc-no-recursion)
 
 	return bigint_mul_bigint_karatsuba(bigint_slice_from_bigint(big_int1),
 	                                   bigint_slice_from_bigint(big_int2));
