@@ -1127,20 +1127,21 @@ NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t bor
                                                                      uint64_t value2,
                                                                      uint64_t* result_out) {
 
-	// TODO: add borrow_in to value2 instead of this complicated mess
+	uint64_t value2_r = value2;
 
-	// check if the next subtraction would underflow
-	bool local_borrow = value1 < value2;
-
-	uint64_t temp = value1 - value2;
+	bool local_borrow = false;
 
 	if(borrow_in != 0) {
 
-		// check if the next subtraction would underflow
-		local_borrow = local_borrow || (temp < borrow_in);
+		value2_r = value2 + borrow_in;
 
-		temp = temp - borrow_in;
+		local_borrow = (value2_r < value2);
 	}
+
+	// check if the next subtraction would underflow
+	local_borrow = local_borrow || value1 < value2_r;
+
+	uint64_t temp = value1 - value2_r;
 
 	*result_out = temp;
 
