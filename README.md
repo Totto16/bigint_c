@@ -4,7 +4,7 @@
 
 ## What is this?
 
-This is a cross-platform BigInt Libraray written in C with Builtin C++ support. (bnot just wrappers, but operator overloading etc.)
+This is a cross-platform BigInt library written in C with Builtin C++ support. (not just wrappers, but operator overloading etc.)
 
 ## Platform support
 
@@ -20,11 +20,11 @@ This officially supports Linux, Windows and MacOS.
 - The C++ Struct has overloaded operators for all supported arithmetic instructions (e.g. `+`)
 - The C++ Struct supports implicit conversions from uin64_t and int64_t.
 - Supports serialization to string in dec, bin and hex
-- Completely tested, by comparing computation results to the `gmp` library
-- THe C++ library is header only and in the style of stb libraries, see tests on how to use it, it is completely optional and no C++ compiler is needed, if you only use the C library.
+- Completely tested, by comparing computation results to the `gmp` or `tommath` library
+- The C++ library is header only and in the style of stb libraries, see tests on how to use it, it is completely optional and no C++ compiler is needed, if you only use the C library.
 - This implementation stores the underlying data memory efficiently as an uint64_t array
 - supports C++ hash, it can be used as index in hashmaps and similar data structures
-- supports stream output with settings like `std::io_base::bin` and similar
+- supports stream output with io modifiers like `std::bin` and similar
 
 ### Operations
 
@@ -40,7 +40,7 @@ This officially supports Linux, Windows and MacOS.
 
 #### Bitwise Operations
 
-- [ ] Shift (right + Left)
+- [ ] Shift (right + left)
 - [ ] Xor
 - [ ] Or
 - [ ] And
