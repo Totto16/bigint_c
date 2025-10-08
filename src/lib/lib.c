@@ -1070,7 +1070,13 @@ NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t bor
 	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_subborrow_u64&ig_expand=6666
 	return _subborrow_u64(borrow_in, value1, value2, result_out);
 #else
-#error "TODO"
+	unsigned long long result = 0;
+	uint8_t res = _subborrow_u64(borrow_in, value1, value2, &result);
+
+	*result_out = result;
+
+	return res;
+
 #endif
 }
 
@@ -1437,25 +1443,19 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
 	*high = (uint64_t)(result >> 64);
 }
 
-#elif defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__))
 
-// use fast intrinsic on x86_64
+// use fast intrinsic on x86_64 (_umul128 is only supported in msvc, as gcc / clang and linux
+// support all operations on 128 bits numbers, but that is not enabled with
+// BIGINT_C_UNDERLYING_COMPUTATION_IMPLEMENTATION == 1)
 
-#if defined(_MSC_VER)
 #include <intrin.h>
-#else
-#include <x86intrin.h>
-#endif
 
 static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
                                         uint64_t* high) {
 
-#if defined(_MSC_VER)
-	uint64_t low_res = _umul128(big_int1, big_int2, *high);
-	*low = low_res;
-#else
-#error "TODO"
-#endif
+	// see https://learn.microsoft.com/en-us/cpp/intrinsics/umul128?view=msvc-170
+	*low = _umul128(big_int1, big_int2, *high);
 }
 
 #else
