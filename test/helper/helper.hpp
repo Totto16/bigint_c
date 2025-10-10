@@ -37,6 +37,16 @@ struct BigIntTest {
 	[[nodiscard]] BigIntTest operator-(const BigIntTest& value2) const;
 
 	[[nodiscard]] BigIntTest operator*(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest& operator++();
+
+	[[nodiscard]] BigIntTest& operator--();
+
+	[[nodiscard]] BigIntTest operator++(int);
+
+	[[nodiscard]] BigIntTest operator--(int);
+
+	[[nodiscard]] BigIntTest copy() const;
 };
 
 struct BigIntDebug {
@@ -47,6 +57,10 @@ struct BigIntDebug {
 
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2);
+
+[[nodiscard]] bool operator==(const BigIntTest& value1, const BigInt& value2);
+
+[[nodiscard]] bool operator==(const BigIntTest& value1, const BigIntTest& value2);
 
 namespace bigint {
 

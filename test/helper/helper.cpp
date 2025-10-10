@@ -52,17 +52,24 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2) {
+	return BigIntTest{ value1 } == value2;
+}
 
-	if(value1.underlying().positive != value2.positive()) {
+[[nodiscard]] bool operator==(const BigIntTest& value1, const BigInt& value2) {
+	return value1 == BigIntTest{ value2 };
+}
+
+[[nodiscard]] bool operator==(const BigIntTest& value1, const BigIntTest& value2) {
+	if(value1.positive() != value2.positive()) {
 		return false;
 	}
 
-	if(value1.underlying().number_count != value2.values().size()) {
+	if(value1.values().size() != value2.values().size()) {
 		return false;
 	}
 
-	for(size_t i = 0; i < value1.underlying().number_count; ++i) {
-		if(value1.underlying().numbers[i] != value2.values().at(i)) {
+	for(size_t i = 0; i < value1.values().size(); ++i) {
+		if(value1.values().at(i) != value2.values().at(i)) {
 			return false;
 		}
 	}
@@ -81,6 +88,18 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 	}
 
 	return (std::string{ error1.message() } == std::string{ error2.message() });
+}
+
+[[nodiscard]] BigIntTest BigIntTest::copy() const {
+
+	std::vector<uint64_t> values_copy = {};
+	values_copy.reserve(m_values.size());
+
+	for(const auto& value : m_values) {
+		values_copy.push_back(value);
+	}
+
+	return BigIntTest(m_positive, values_copy);
 }
 
 [[nodiscard]] bool BigIntTest::is_special_separator(char value) {
@@ -313,6 +332,50 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	return result;
 }
 
+[[nodiscard]] BigIntTest& BigIntTest::operator++() {
+	const MPZWrapper number = get_gmp_value_from_bigint(*this);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_add_ui(result_number, *number, 1);
+
+	initialize_bigint_from_gmp(*this, std::move(result_number));
+
+	return *this;
+}
+
+[[nodiscard]] BigIntTest& BigIntTest::operator--() {
+	const MPZWrapper number = get_gmp_value_from_bigint(*this);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_sub_ui(result_number, *number, 1);
+
+	initialize_bigint_from_gmp(*this, std::move(result_number));
+
+	return *this;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator++(int) {
+	BigIntTest copy = this->copy();
+
+	std::ignore = this->operator++();
+
+	return BigIntTest(std::move(copy));
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator--(int) {
+	BigIntTest copy = this->copy();
+
+	std::ignore = this->operator--();
+
+	return BigIntTest(std::move(copy));
+}
+
 #elif TEST_BACKEND_USE_IMPLEMENTATION == 1
 
 #define CHECK_MP_ERROR(err) \
@@ -393,6 +456,17 @@ class MPWrapper {
 
 	[[nodiscard]] mp_int* get() { return m_value.get(); }
 	[[nodiscard]] mp_int* operator*() { return m_value.get(); }
+
+	[[nodiscard]] mp_int release() {
+		mp_int* res = m_value.get();
+		m_value = nullptr;
+
+		mp_int result = *res;
+
+		delete res;
+
+		return result;
+	}
 
 	~MPWrapper() = default;
 
@@ -559,6 +633,44 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	initialize_bigint_from_tommath(result, std::move(result_number));
 
 	return result;
+}
+
+[[nodiscard]] BigIntTest& BigIntTest::operator++() {
+	MPWrapper number = get_tommath_value_from_bigint(*this);
+
+	mp_err error = mp_incr(*number);
+	CHECK_MP_ERROR(error);
+
+	initialize_bigint_from_tommath(*this, number.release());
+
+	return *this;
+}
+
+[[nodiscard]] BigIntTest& BigIntTest::operator--() {
+	MPWrapper number = get_tommath_value_from_bigint(*this);
+
+	mp_err error = mp_decr(*number);
+	CHECK_MP_ERROR(error);
+
+	initialize_bigint_from_tommath(*this, number.release());
+
+	return *this;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator++(int) {
+	BigIntTest copy = this->copy();
+
+	std::ignore = this->operator++();
+
+	return BigIntTest(std::move(copy));
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator--(int) {
+	BigIntTest copy = this->copy();
+
+	std::ignore = this->operator--();
+
+	return BigIntTest(std::move(copy));
 }
 
 #endif
