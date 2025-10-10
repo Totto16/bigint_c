@@ -1386,6 +1386,10 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 
 		if(*number != 0) {
 			--(*number);
+
+			// we may have created some zeroes!
+			bigint_helper_remove_leading_zeroes(big_int1);
+
 			return;
 		} else {
 			if(big_int1->number_count == 1) {

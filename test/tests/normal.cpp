@@ -1561,7 +1561,7 @@ TEST(BigInt, IntegerPreIncrement) {
 	{ // test 0 always being positive
 
 		BigInt test_value1 = BigInt{ (int64_t)-1LL };
-		std::ignore = test_value1++;
+		std::ignore = ++test_value1;
 
 		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
 	}
@@ -1600,6 +1600,128 @@ TEST(BigInt, IntegerPreIncrement) {
 		BigIntTest test1 = orig_test.copy();
 
 		const BigIntTest& result_expected = ++test1;
+
+		EXPECT_EQ(orig_value, orig_test);
+
+		EXPECT_EQ(actual_result, result_expected);
+
+		EXPECT_NE(actual_result, orig_value);
+
+		EXPECT_EQ(actual_result, value1);
+
+		EXPECT_NE(result_expected, orig_test);
+
+		EXPECT_EQ(result_expected, test1);
+	}
+}
+
+TEST(BigInt, IntegerPostDecrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (uint64_t)1LL };
+		std::ignore = test_value1--;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
+	std::vector<BigInt> tests{};
+
+	tests.emplace_back((int64_t)-1LL);
+	tests.emplace_back((int64_t)-2LL);
+	tests.emplace_back((uint64_t)1ULL);
+	tests.emplace_back((uint64_t)0ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(BigInt::get_from_string("-351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("-351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(std::numeric_limits<uint64_t>::max());
+	tests.emplace_back(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)1, 0, 0, 0, 0, 0, 0, 0);
+
+	tests.emplace_back((uint64_t)1, 0, 0, 2323, 0, 0, 0, 0);
+
+	for(const BigInt& orig_value : tests) {
+
+		BigInt value1 = orig_value.copy();
+
+		const BigInt actual_result = value1--;
+
+		const BigIntTest orig_test = BigIntTest(orig_value);
+
+		BigIntTest test1 = orig_test.copy();
+
+		const BigIntTest result_expected = test1--;
+
+		EXPECT_EQ(orig_value, orig_test);
+
+		EXPECT_EQ(actual_result, result_expected);
+
+		EXPECT_EQ(actual_result, orig_value);
+
+		EXPECT_NE(actual_result, value1);
+
+		EXPECT_EQ(result_expected, orig_test);
+
+		EXPECT_NE(result_expected, test1);
+	}
+}
+
+TEST(BigInt, IntegerPreDecrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (uint64_t)1LL };
+		std::ignore = --test_value1;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
+	std::vector<BigInt> tests{};
+
+	tests.emplace_back((int64_t)-1LL);
+	tests.emplace_back((int64_t)-2LL);
+	tests.emplace_back((uint64_t)1ULL);
+	tests.emplace_back((uint64_t)0ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(BigInt::get_from_string("-351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("-351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(std::numeric_limits<uint64_t>::max());
+	tests.emplace_back(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)2ULL, std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)1, 0, 0, 0, 0, 0, 0, 0);
+
+	tests.emplace_back((uint64_t)1, 0, 0, 2323, 0, 0, 0, 0);
+
+	for(const BigInt& orig_value : tests) {
+
+		BigInt value1 = orig_value.copy();
+
+		const BigInt& actual_result = --value1;
+
+		const BigIntTest orig_test = BigIntTest(orig_value);
+
+		BigIntTest test1 = orig_test.copy();
+
+		const BigIntTest& result_expected = --test1;
 
 		EXPECT_EQ(orig_value, orig_test);
 
