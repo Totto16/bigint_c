@@ -1345,6 +1345,137 @@ bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-recurs
 	return result;
 }
 
+static void bigint_increment_bigint_positive_or_zero_impl(BigIntC* big_int1) {
+	// no need for a fast track, as the fast track is the first loop iteration
+
+	// also 0 is handled correctly in here, as it is just assumed to be positive and 0 ++ = 1
+
+	// increment the first uint64_t, that isn't maxed out, so that it adds one, if it is max, set
+	// it to 0, as it carries to the next one, we may never exit, if all numbers are max, than we
+	// need another digit!
+	for(size_t i = 0; i < big_int1->number_count; ++i) {
+
+		uint64_t* number = &(big_int1->numbers[i]);
+
+		if(*number != LLONG_MAX) {
+			++(*number);
+			return;
+		} else {
+			*number = 0;
+		}
+	}
+
+	++(big_int1->number_count);
+	bigint_helper_realloc_to_new_size(big_int1);
+
+	big_int1->numbers[big_int1->number_count - 1] = 1;
+	return;
+}
+
+static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
+	// no need for a fast track, as the fast track is the first loop iteration
+
+	// also 0 is not handled correctly in here, so never pass 0!
+
+	// decrement the first uint64_t, that isn't 0, so that it removes one, if it is 0, set
+	// it to LLONG_MAX, as it borrows to the next one, we HAVE TO EXIT, except if all numbers are 0,
+	// which should never happen, but it is asseretd here too!
+	for(size_t i = 0; i < big_int1->number_count; ++i) {
+
+		uint64_t* number = &(big_int1->numbers[i]);
+
+		if(*number != 0) {
+			--(*number);
+			return;
+		} else {
+			if(big_int1->number_count == 1) {
+				UNREACHABLE_WITH_MSG("not supporting 0 in this function");
+			}
+
+			// big_int1->number_count is always > 0, asserted by calling functions
+			if(i == big_int1->number_count - 1) {
+				UNREACHABLE_WITH_MSG("leading zeros detected");
+			}
+
+			*number = LLONG_MAX;
+		}
+	}
+
+	UNREACHABLE_WITH_MSG("leading zeros detected");
+}
+
+// TODO: make bigint_helper_is_zero() helper, as it is used often in this code!
+
+BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
+
+	if(big_int1 == NULL) {
+		UNREACHABLE_WITH_MSG("passed in NULL pointer");
+	}
+
+	if(big_int1->number_count == 0) {
+		UNREACHABLE_WITH_MSG("invalid bigint passed");
+	}
+
+	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
+	// would break
+	if(big_int1->number_count == 0) {
+		if(big_int1->numbers[0] == 0) {
+			big_int1->numbers[0] = 1;
+			big_int1->positive = true;
+			return;
+		}
+	}
+
+	if(big_int1->positive) {
+		bigint_increment_bigint_positive_or_zero_impl(big_int1);
+		return;
+	}
+
+	// -a ++ = -a + +1 =  (-1 * +a) + (-1 * -1) = -1 * ( +a + -1) = - ( +a - +1) = - (+a --)
+
+	big_int1->positive = true;
+	bigint_decrement_bigint_positive_not_zero_impl(big_int1);
+	big_int1->positive = false;
+
+	return;
+}
+
+BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1) {
+
+	if(big_int1 == NULL) {
+		UNREACHABLE_WITH_MSG("passed in NULL pointer");
+	}
+
+	if(big_int1->number_count == 0) {
+		UNREACHABLE_WITH_MSG("invalid bigint passed");
+	}
+
+	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
+	// would break
+	if(big_int1->number_count == 0) {
+		if(big_int1->numbers[0] == 0) {
+			big_int1->numbers[0] = 1;
+			big_int1->positive = false;
+			return;
+		}
+	}
+
+	if(!big_int1->positive) {
+
+		// -a -- = -a - +1 =  -a + -1 = - (+a + +1) = - (+a ++)
+
+		big_int1->positive = true;
+		bigint_increment_bigint_positive_or_zero_impl(big_int1);
+		big_int1->positive = false;
+
+		return;
+	}
+
+	bigint_decrement_bigint_positive_not_zero_impl(big_int1);
+
+	return;
+}
+
 NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
 	if(big_int1.positive != big_int2.positive) {
 		return false;

@@ -563,23 +563,31 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 }
 
 [[nodiscard]] BigInt& BigInt::operator++() {
-	// TODO
-	throw std::runtime_error("TODO");
+	bigint_increment_bigint(&(this->m_c_value));
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator--() {
-	// TODO
-	throw std::runtime_error("TODO");
+	bigint_decrement_bigint(&(this->m_c_value));
+
+	return *this;
 }
 
 [[nodiscard]] BigInt BigInt::operator++(int) {
-	// TODO
-	throw std::runtime_error("TODO");
+	BigIntC copy = bigint_copy(this->m_c_value);
+
+	bigint_increment_bigint(&(this->m_c_value));
+
+	return BigInt(std::move(copy));
 }
 
 [[nodiscard]] BigInt BigInt::operator--(int) {
-	// TODO
-	throw std::runtime_error("TODO");
+	BigIntC copy = bigint_copy(this->m_c_value);
+
+	bigint_decrement_bigint(&(this->m_c_value));
+
+	return BigInt(std::move(copy));
 }
 
 [[nodiscard]] std::string BigInt::to_string() const {
