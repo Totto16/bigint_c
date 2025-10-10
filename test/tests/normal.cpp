@@ -1499,6 +1499,14 @@ TEST(BigInt, IntegerMultiplication) {
 
 TEST(BigInt, IntegerPostIncrement) {
 
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (int64_t)-1LL };
+		std::ignore = test_value1++;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
 	std::vector<BigInt> tests{};
 
 	tests.emplace_back((int64_t)-1LL);
@@ -1549,6 +1557,14 @@ TEST(BigInt, IntegerPostIncrement) {
 }
 
 TEST(BigInt, IntegerPreIncrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (int64_t)-1LL };
+		std::ignore = test_value1++;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
 
 	std::vector<BigInt> tests{};
 

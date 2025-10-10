@@ -1418,7 +1418,7 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 
 	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
 	// would break
-	if(big_int1->number_count == 0) {
+	if(big_int1->number_count == 1) {
 		if(big_int1->numbers[0] == 0) {
 			big_int1->numbers[0] = 1;
 			big_int1->positive = true;
@@ -1435,6 +1435,14 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 
 	big_int1->positive = true;
 	bigint_decrement_bigint_positive_not_zero_impl(big_int1);
+
+	if(big_int1->number_count == 1) {
+		if(big_int1->numbers[0] == 0) {
+			big_int1->positive = true;
+			return;
+		}
+	}
+
 	big_int1->positive = false;
 
 	return;
@@ -1452,7 +1460,7 @@ BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1) {
 
 	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
 	// would break
-	if(big_int1->number_count == 0) {
+	if(big_int1->number_count == 1) {
 		if(big_int1->numbers[0] == 0) {
 			big_int1->numbers[0] = 1;
 			big_int1->positive = false;
