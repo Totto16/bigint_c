@@ -458,7 +458,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_signed_number(int64_t number
 	if(number < 0LL) {
 		result.positive = false;
 		// overflow, when using - on int64_t
-		if(number < -LLONG_MAX) {
+		if(number < -INT64_MAX) {
 			result.numbers[0] = (uint64_t)(-(number + 1LL)) + 1ULL;
 		} else {
 			result.numbers[0] = (uint64_t)(-number);
@@ -1357,7 +1357,7 @@ static void bigint_increment_bigint_positive_or_zero_impl(BigIntC* big_int1) {
 
 		uint64_t* number = &(big_int1->numbers[i]);
 
-		if(*number != LLONG_MAX) {
+		if(*number != UINT64_MAX) {
 			++(*number);
 			return;
 		} else {
@@ -1378,8 +1378,8 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 	// also 0 is not handled correctly in here, so never pass 0!
 
 	// decrement the first uint64_t, that isn't 0, so that it removes one, if it is 0, set
-	// it to LLONG_MAX, as it borrows to the next one, we HAVE TO EXIT, except if all numbers are 0,
-	// which should never happen, but it is asseretd here too!
+	// it to UINT64_MAX, as it borrows to the next one, we HAVE TO EXIT, except if all numbers are
+	// 0, which should never happen, but it is asseretd here too!
 	for(size_t i = 0; i < big_int1->number_count; ++i) {
 
 		uint64_t* number = &(big_int1->numbers[i]);
@@ -1397,7 +1397,7 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 				UNREACHABLE_WITH_MSG("leading zeros detected");
 			}
 
-			*number = LLONG_MAX;
+			*number = UINT64_MAX;
 		}
 	}
 
