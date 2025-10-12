@@ -1379,9 +1379,11 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 
 	// decrement the first uint64_t, that isn't 0, so that it removes one, if it is 0, set
 	// it to UINT64_MAX, as it borrows to the next one, we HAVE TO EXIT, except if all numbers are
-	// 0, which should never happen, but it is asseretd here too!
-	for(size_t i = 0; i < big_int1->number_count; ++i) {
+	// 0, which should never happen, but it is asserted here too!
+	for(size_t i = 0; i < big_int1->number_count; // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts,
+	                                              // the end condition is an assert)
 
+	    ++i) {
 		uint64_t* number = &(big_int1->numbers[i]);
 
 		if(*number != 0) {
@@ -1392,33 +1394,29 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 
 			return;
 		} else {
-			if(big_int1->number_count == 1) {
-				UNREACHABLE_WITH_MSG("not supporting 0 in this function");
-			}
-
-			// big_int1->number_count is always > 0, asserted by calling functions
-			if(i == big_int1->number_count - 1) {
-				UNREACHABLE_WITH_MSG("leading zeros detected");
-			}
+			if(big_int1->number_count == 1) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
+				UNREACHABLE_WITH_MSG(         // GCOVR_EXCL_LINE (see above)
+				    "not supporting 0 in this function");
+			} // GCOVR_EXCL_LINE (see above)
 
 			*number = UINT64_MAX;
 		}
 	}
 
-	UNREACHABLE_WITH_MSG("leading zeros detected");
+	UNREACHABLE_WITH_MSG("leading zeros detected"); // GCOVR_EXCL_LINE (gcovr can't detect asserts)
 }
 
 // TODO: make bigint_helper_is_zero() helper, as it is used often in this code!
 
 BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 
-	if(big_int1 == NULL) {
-		UNREACHABLE_WITH_MSG("passed in NULL pointer");
-	}
+	if(big_int1 == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
-	if(big_int1->number_count == 0) {
-		UNREACHABLE_WITH_MSG("invalid bigint passed");
-	}
+	if(big_int1->number_count == 0) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("invalid bigint passed"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
 	// would break
@@ -1454,13 +1452,13 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 
 BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1) {
 
-	if(big_int1 == NULL) {
-		UNREACHABLE_WITH_MSG("passed in NULL pointer");
-	}
+	if(big_int1 == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
-	if(big_int1->number_count == 0) {
-		UNREACHABLE_WITH_MSG("invalid bigint passed");
-	}
+	if(big_int1->number_count == 0) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("invalid bigint passed"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
 	// would break
@@ -1572,6 +1570,10 @@ bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2) { // NOLINT(misc-no-re
 }
 
 BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int) {
+
+	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	if(big_int->number_count == 1) {
 		if(big_int->numbers[0] == 0) {
