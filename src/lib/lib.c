@@ -60,6 +60,10 @@ static BigIntC bigint_helper_zero(void) {
 	return result;
 }
 
+static inline bool bigint_helper_is_zero(BigIntC big_int) {
+	return big_int.number_count == 1 && big_int.numbers[0] == 0;
+}
+
 typedef uint8_t BCDDigit;
 
 typedef struct {
@@ -260,7 +264,7 @@ static void bigint_helper_remove_leading_zeroes(BigIntC* big_int) {
 
 	if(big_int->number_count == 1) {
 #ifndef NDEBUG
-		if(big_int->numbers[0] == 0) {
+		if(bigint_helper_is_zero(*big_int)) {
 			ASSERT(big_int->positive, "0 can't be negative");
 		}
 #endif
@@ -277,10 +281,8 @@ static void bigint_helper_remove_leading_zeroes(BigIntC* big_int) {
 	}
 
 #ifndef NDEBUG
-	if(big_int->number_count == 1) {
-		if(big_int->numbers[0] == 0) {
-			ASSERT(big_int->positive, "0 can't be negative");
-		}
+	if(bigint_helper_is_zero(*big_int)) {
+		ASSERT(big_int->positive, "0 can't be negative");
 	}
 #endif
 
@@ -425,17 +427,15 @@ NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr s
 
 	free_bcd_digits(bcd_digits);
 
-	if(result.number_count == 1) {
-		if(result.numbers[0] == 0) {
-			if(!result.positive) {
-				free_bigint(&result);
-				return (MaybeBigIntC){ .error = true,
-					                   .data = { .error = (MaybeBigIntError){
-					                                 .message = "-0 is not allowed",
-					                                 .index = index,
-					                                 .symbol = NO_SYMBOL,
-					                             } } };
-			}
+	if(bigint_helper_is_zero(result)) {
+		if(!result.positive) {
+			free_bigint(&result);
+			return (MaybeBigIntC){ .error = true,
+				                   .data = { .error = (MaybeBigIntError){
+				                                 .message = "-0 is not allowed",
+				                                 .index = index,
+				                                 .symbol = NO_SYMBOL,
+				                             } } };
 		}
 	}
 
@@ -1406,8 +1406,6 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 	UNREACHABLE_WITH_MSG("leading zeros detected"); // GCOVR_EXCL_LINE (gcovr can't detect asserts)
 }
 
-// TODO: make bigint_helper_is_zero() helper, as it is used often in this code!
-
 BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 
 	if(big_int1 == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
@@ -1420,12 +1418,10 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 
 	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
 	// would break
-	if(big_int1->number_count == 1) {
-		if(big_int1->numbers[0] == 0) {
-			big_int1->numbers[0] = 1;
-			big_int1->positive = true;
-			return;
-		}
+	if(bigint_helper_is_zero(*big_int1)) {
+		big_int1->numbers[0] = 1;
+		big_int1->positive = true;
+		return;
 	}
 
 	if(big_int1->positive) {
@@ -1438,11 +1434,9 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 	big_int1->positive = true;
 	bigint_decrement_bigint_positive_not_zero_impl(big_int1);
 
-	if(big_int1->number_count == 1) {
-		if(big_int1->numbers[0] == 0) {
-			big_int1->positive = true;
-			return;
-		}
+	if(bigint_helper_is_zero(*big_int1)) {
+		big_int1->positive = true;
+		return;
 	}
 
 	big_int1->positive = false;
@@ -1462,12 +1456,10 @@ BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1) {
 
 	// treat 0 as special case, as it NEVER should be -, but if it would be, the code afterwards
 	// would break
-	if(big_int1->number_count == 1) {
-		if(big_int1->numbers[0] == 0) {
-			big_int1->numbers[0] = 1;
-			big_int1->positive = false;
-			return;
-		}
+	if(bigint_helper_is_zero(*big_int1)) {
+		big_int1->numbers[0] = 1;
+		big_int1->positive = false;
+		return;
 	}
 
 	if(!big_int1->positive) {
@@ -1575,10 +1567,8 @@ BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int) {
 		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
 	} // GCOVR_EXCL_LINE (see above)
 
-	if(big_int->number_count == 1) {
-		if(big_int->numbers[0] == 0) {
-			return;
-		}
+	if(bigint_helper_is_zero(*big_int)) {
+		return;
 	}
 
 	big_int->positive = !big_int->positive;
@@ -1957,10 +1947,8 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 		result.positive = false;
 
 		// - 0 becomes +0
-		if(result.number_count == 1) {
-			if(result.numbers[0] == 0) {
-				result.positive = true;
-			}
+		if(bigint_helper_is_zero(result)) {
+			result.positive = true;
 		}
 
 		return result;
@@ -1974,10 +1962,8 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 		result.positive = false;
 
 		// - 0 becomes +0
-		if(result.number_count == 1) {
-			if(result.numbers[0] == 0) {
-				result.positive = true;
-			}
+		if(bigint_helper_is_zero(result)) {
+			result.positive = true;
 		}
 
 		return result;
