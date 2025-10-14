@@ -193,11 +193,11 @@ struct BigInt {
 
 	[[nodiscard]] BigInt operator*(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator/(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator/(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator%(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator%(const BigInt& value2) const;
 
-	[[nodiscard]] bool operator^(const BigInt& value2) const;
+	[[nodiscard]] BigInt operator^(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt& operator-();
 
@@ -209,9 +209,9 @@ struct BigInt {
 
 	[[nodiscard]] BigInt& operator/=(const BigInt& value2);
 
-	[[nodiscard]] BigInt& operator%=(const BigInt& value2) const;
+	[[nodiscard]] BigInt& operator%=(const BigInt& value2);
 
-	[[nodiscard]] BigInt& operator^=(const BigInt& value2) const;
+	[[nodiscard]] BigInt& operator^=(const BigInt& value2);
 
 	[[nodiscard]] BigInt operator<<(const BigInt& value2) const;
 
@@ -441,19 +441,19 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] bool BigInt::operator/(const BigInt& value2) const {
+[[nodiscard]] BigInt BigInt::operator/(const BigInt& value2) const {
 	BigIntC result = bigint_div_bigint(this->m_c_value, value2.m_c_value);
 
 	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] bool BigInt::operator%(const BigInt& value2) const {
+[[nodiscard]] BigInt BigInt::operator%(const BigInt& value2) const {
 	BigIntC result = bigint_mod_bigint(this->m_c_value, value2.m_c_value);
 
 	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] bool BigInt::operator^(const BigInt& value2) const {
+[[nodiscard]] BigInt BigInt::operator^(const BigInt& value2) const {
 	// TODO
 	UNUSED(value2);
 	throw std::runtime_error("TODO");
@@ -504,7 +504,7 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return *this;
 }
 
-[[nodiscard]] BigInt& BigInt::operator%=(const BigInt& value2) const {
+[[nodiscard]] BigInt& BigInt::operator%=(const BigInt& value2) {
 	BigIntC result = bigint_mod_bigint(this->m_c_value, value2.m_c_value);
 
 	free_bigint(&(this->m_c_value));
@@ -514,7 +514,7 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return *this;
 }
 
-[[nodiscard]] BigInt& BigInt::operator^=(const BigInt& value2) const {
+[[nodiscard]] BigInt& BigInt::operator^=(const BigInt& value2) {
 	// TODO
 	UNUSED(value2);
 	throw std::runtime_error("TODO");
@@ -555,65 +555,57 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 }
 
 [[nodiscard]] BigInt BigInt::operator<<(const BigInt& value2) const {
-	BigIntC result = bigint_shift_left_bigint(this->m_c_value, value2.m_c_value);
+	BigIntC result = bigint_copy(this->m_c_value);
+
+	bigint_shift_left_bigint(&result, value2.m_c_value);
 
 	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt BigInt::operator<<(uint64_t value2) const {
-	BigIntC result = bigint_shift_left_unsigned(this->m_c_value, value2);
+	BigIntC result = bigint_copy(this->m_c_value);
+
+	bigint_shift_left_unsigned(&result, value2);
 
 	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt BigInt::operator>>(const BigInt& value2) const {
-	BigIntC result = bigint_shift_right_bigint(this->m_c_value, value2.m_c_value);
+	BigIntC result = bigint_copy(this->m_c_value);
+
+	bigint_shift_right_bigint(&result, value2.m_c_value);
 
 	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt BigInt::operator>>(uint64_t value2) const {
-	BigIntC result = bigint_shift_right_unsigned(this->m_c_value, value2);
+	BigIntC result = bigint_copy(this->m_c_value);
+
+	bigint_shift_right_unsigned(&result, value2);
 
 	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt& BigInt::operator<<=(const BigInt& value2) {
-	BigIntC result = bigint_shift_left_bigint(this->m_c_value, value2.m_c_value);
-
-	free_bigint(&(this->m_c_value));
-
-	this->m_c_value = result;
+	bigint_shift_left_bigint(&(this->m_c_value), value2.m_c_value);
 
 	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator<<=(uint64_t value2) {
-	BigIntC result = bigint_shift_left_unsigned(this->m_c_value, value2);
-
-	free_bigint(&(this->m_c_value));
-
-	this->m_c_value = result;
+	bigint_shift_left_unsigned(&(this->m_c_value), value2);
 
 	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
-	BigIntC result = bigint_shift_right_bigint(this->m_c_value, value2.m_c_value);
-
-	free_bigint(&(this->m_c_value));
-
-	this->m_c_value = result;
+	bigint_shift_right_bigint(&(this->m_c_value), value2.m_c_value);
 
 	return *this;
 }
 
-[[nodiscard]] BigInt& BigInt::operator>>=(uint64_tvalue2) {
-	BigIntC result = bigint_shift_right_unsigned(this->m_c_value, value2);
-
-	free_bigint(&(this->m_c_value));
-
-	this->m_c_value = result;
+[[nodiscard]] BigInt& BigInt::operator>>=(uint64_t value2) {
+	bigint_shift_right_unsigned(&(this->m_c_value), value2);
 
 	return *this;
 }
