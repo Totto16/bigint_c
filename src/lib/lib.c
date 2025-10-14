@@ -2084,7 +2084,21 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 	return bigint_mul_bigint_both_positive(big_int1, big_int2);
 }
 
-BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, size_t amount) {
+static void bigint_helper_shift_right_unsigned_impl(BigIntC* big_int, uint64_t amount) {
+
+	// TODO
+	UNUSED(big_int);
+	UNUSED(amount);
+}
+
+static void bigint_helper_shift_right_bigint_impl(BigIntC* big_int, const BigIntC amount_bigint) {
+
+	// TODO
+	UNUSED(big_int);
+	UNUSED(amount_bigint);
+}
+
+BIGINT_C_LIB_EXPORTED void bigint_shift_right_bigint(BigIntC* big_int, BigIntC amount) {
 	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
 		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
 	} // GCOVR_EXCL_LINE (see above)
@@ -2093,11 +2107,21 @@ BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, size_t amount) {
 		return;
 	}
 
-	// TODO
-	UNUSED(amount);
+	bigint_helper_shift_right_bigint_impl(big_int, amount);
 }
 
-static void bigint_helper_shift_left_impl(BigIntC* big_int, size_t amount) {
+BIGINT_C_LIB_EXPORTED void bigint_shift_right_unsigned(BigIntC* big_int, uint64_t amount) {
+	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
+
+	if(bigint_helper_is_zero(*big_int)) {
+		return;
+	}
+
+	bigint_helper_shift_right_unsigned_impl(big_int, amount);
+}
+static void bigint_helper_shift_left_unsigned_impl(BigIntC* big_int, uint64_t amount) {
 
 	if(amount == 0) {
 		return;
@@ -2151,7 +2175,81 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, size_t amount) {
 	}
 }
 
-BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, size_t amount) {
+static void bigint_helper_shift_left_bigint_impl(BigIntC* big_int, const BigIntC amount_bigint) {
+
+	if(bigint_helper_is_zero(amount_bigint)) {
+		return;
+	}
+
+	if(amount_bigint.number_count == 1) {
+		bigint_helper_shift_left_unsigned_impl(big_int, amount_bigint.numbers[0]);
+		return;
+	}
+
+	BigIntC bit_count = bigint_from_unsigned_number(BIGINT_BIT_COUNT);
+
+	BigIntC newly_needed_parts_n;
+	BigIntC amount_n;
+
+	bigint_div_mod_bigint_advanced(amount_bigint, bit_count, &newly_needed_parts_n, &amount_n,
+	                               DivisionRoundingCeil, ModuloRoundingTruncated);
+
+	free_bigint(&bit_count);
+
+	if(newly_needed_parts_n.number_count != 1) {
+		UNREACHABLE_WITH_MSG("can't allocate bigints that have more than uint64_t::max limbs!");
+		return;
+	}
+
+	const uint64_t newly_needed_parts = newly_needed_parts_n.numbers[0];
+
+	big_int->number_count = big_int->number_count + newly_needed_parts;
+	bigint_helper_realloc_to_new_size(big_int);
+
+	// move the numbers and fill the rest with 0s
+	for(size_t i = big_int->number_count; i != 0; --i) {
+
+		if(i <= newly_needed_parts) {
+			big_int->numbers[i - 1] = U64(0);
+		} else {
+			big_int->numbers[i - 1] = big_int->numbers[i - 1 - newly_needed_parts];
+		}
+	}
+
+	ASSERT(amount_n.number_count == 1 && amount_n.numbers[0] < BIGINT_BIT_COUNT,
+	       "implementation error");
+
+	const uint64_t amount = amount_n.numbers[0];
+
+	bool needs_new_digit =
+	    bigint_helper_bits_of_number_used(big_int->numbers[big_int->number_count - 1]) >=
+	    (BIGINT_BIT_COUNT + 1 - amount);
+
+	if(needs_new_digit) {
+		big_int->number_count++;
+		bigint_helper_realloc_to_new_size(big_int);
+		big_int->numbers[big_int->number_count - 1] = U64(0);
+	}
+
+	// shift each limb separate, pay attention to the order of the limbs (LSB)
+	for(size_t i = big_int->number_count; i != 0; --i) {
+
+		uint64_t* restrict number = &(big_int->numbers[i - 1]);
+		// first shift the current limb by amount
+		*number = *number << amount;
+
+		// than get the bits of the last number and add it to the number
+		if(i > 1) {
+			const uint64_t value = big_int->numbers[i - 2];
+			const uint8_t first_bits = (value >> (BIGINT_BIT_COUNT - amount)) & ((1 << amount) - 1);
+			if(first_bits != 0) {
+				*number = *number | first_bits;
+			}
+		}
+	}
+}
+
+BIGINT_C_LIB_EXPORTED void bigint_shift_left_bigint(BigIntC* big_int, BigIntC amount) {
 	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
 		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
 	} // GCOVR_EXCL_LINE (see above)
@@ -2160,5 +2258,17 @@ BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, size_t amount) {
 		return;
 	}
 
-	bigint_helper_shift_left_impl(big_int, amount);
+	bigint_helper_shift_left_bigint_impl(big_int, amount);
+}
+
+BIGINT_C_LIB_EXPORTED void bigint_shift_left_unsigned(BigIntC* big_int, uint64_t amount) {
+	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
+
+	if(bigint_helper_is_zero(*big_int)) {
+		return;
+	}
+
+	bigint_helper_shift_left_unsigned_impl(big_int, amount);
 }
