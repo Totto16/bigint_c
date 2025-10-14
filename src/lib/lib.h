@@ -113,8 +113,8 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_sub_bigint(BigIntC big_int1, BigI
 BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1);
 
 /**
- * @brief This decrements the bigint by one, it is faster, as it is optimized for only subtracting one, so
- * no complicated multibyte subtraction is performed
+ * @brief This decrements the bigint by one, it is faster, as it is optimized for only subtracting
+ * one, so no complicated multibyte subtraction is performed
  *
  * @param big_int1 in_out
  * @return void
@@ -144,3 +144,21 @@ NODISCARD BIGINT_C_LIB_EXPORTED int8_t bigint_compare_bigint(BigIntC big_int1, B
 BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int);
 
 NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2);
+
+/**
+ * @brief Shifts the bits of the underlying value by <amount> to the right same as  x / (2**x), sign
+ * is ignored
+ *
+ * @param big_int {in_out}
+ * @param amount
+ */
+BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, size_t amount);
+
+/**
+ * @brief Shifts the bits of the underlying value by <amount> to the left same as  x * (2**x), sign
+ * is ignored
+ *
+ * @param big_int {in_out}
+ * @param amount
+ */
+BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, size_t amount);

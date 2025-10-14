@@ -106,7 +106,9 @@ static void helper_add_value_to_bcd_digits(BCDDigits* digits, BCDDigit digit) {
 	++(digits->count);
 }
 
-#define BIGINT_BIT_COUNT_FOR_BCD_ALG 64
+#define BIGINT_BIT_COUNT 64
+
+#define BIGINT_BIT_COUNT_FOR_BCD_ALG BIGINT_BIT_COUNT
 #define BCD_DIGIT_BIT_COUNT_FOR_BCD_ALG 4
 
 static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_digits) {
@@ -522,6 +524,12 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_copy(BigIntC big_int) {
 	return bigint_helper_get_full_copy(big_int);
 }
 
+/**
+ * @brief gets the amount of bits used, in the range 0 -64
+ *
+ * @param number
+ * @return used bits
+ */
 NODISCARD static size_t bigint_helper_bits_of_number_used(uint64_t number) {
 
 	uint64_t temp = number;
@@ -788,10 +796,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_hex(BigIntC big_int, bool p
 		if(trim_first_number) {
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
-				start_point =
-				    (64 - // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-				     bits_used) /
-				    4;
+				start_point = (BIGINT_BIT_COUNT - bits_used) / 4;
 				if(start_point == SIZEOF_VALUE_AS_HEX_STR) {
 					start_point =
 					    SIZEOF_VALUE_AS_HEX_STR - 1; // print one 0, even if it's a not a 1
@@ -801,7 +806,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_hex(BigIntC big_int, bool p
 		}
 
 		for(size_t j = start_point; j < SIZEOF_VALUE_AS_HEX_STR; ++index, ++j) {
-			const uint8_t digit = (number >> ((64 - ((j + 1) * 4)))) & 0x0F;
+			const uint8_t digit = (number >> ((BIGINT_BIT_COUNT - ((j + 1) * 4)))) & 0x0F;
 			str[index] = helper_digit_to_hex_char_checked(digit, uppercase);
 		}
 
@@ -878,9 +883,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_bin(BigIntC big_int, bool p
 		if(trim_first_number) {
 			if(current_number == big_int.number_count) {
 				const size_t bits_used = bigint_helper_bits_of_number_used(number);
-				start_point =
-				    64 - // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-				    bits_used;
+				start_point = BIGINT_BIT_COUNT - bits_used;
 				if(start_point == SIZEOF_VALUE_AS_BIN_STR) {
 					start_point =
 					    SIZEOF_VALUE_AS_BIN_STR - 1; // print one 0, even if it's a not a 1
@@ -890,7 +893,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED Str bigint_to_string_bin(BigIntC big_int, bool p
 		}
 
 		for(size_t j = start_point; j < SIZEOF_VALUE_AS_BIN_STR; ++index, ++j) {
-			const uint8_t digit = (number >> ((64 - ((j + 1))))) & 0x01;
+			const uint8_t digit = (number >> ((BIGINT_BIT_COUNT - ((j + 1))))) & 0x01;
 			str[index] = digit == 0 ? '0' : '1';
 		}
 
@@ -1240,7 +1243,6 @@ NODISCARD static BigIntC bigint_add_bigint_both_positive(BigIntC big_int1, BigIn
 	return bigint_add_bigint_both_positive_using_128_bit_numbers(big_int1, big_int2);
 #else
 	return bigint_add_bigint_both_positive_normal(big_int1, big_int2);
-// TODO: use asm if on x86_64 or arm64 / or standard c way!
 #endif
 }
 
@@ -1717,13 +1719,24 @@ NODISCARD static inline bool bigint_mul_karatsuba_is_zero_slice(BigIntNullableSl
 	return slice.number_count == 0 || slice.numbers == NULL;
 }
 
-NODISCARD static inline BigInt bigint_helper_copy_of_slice(BigIntSlice big_int_slice) {
+NODISCARD static inline BigInt bigint_helper_copy_of_slice(BigIntSlice big_int_slice,
+                                                           bool positive) {
 
-	BigInt big_int = { .positive = true,
+	BigInt big_int = { .positive = positive,
 		               .numbers = (uint64_t*)big_int_slice.numbers,
 		               .number_count = big_int_slice.number_count };
 
 	return bigint_helper_get_full_copy(big_int);
+}
+
+NODISCARD static inline BigInt bigint_helper_as_ref_bigint(BigIntSlice big_int_slice,
+                                                           bool positive) {
+
+	BigInt big_int = { .positive = positive,
+		               .numbers = (uint64_t*)big_int_slice.numbers,
+		               .number_count = big_int_slice.number_count };
+
+	return big_int;
 }
 
 NODISCARD static BigInt bigint_mul_bigint_karatsuba(BigIntSlice big_int1, BigIntSlice big_int2);
@@ -1752,13 +1765,13 @@ bigint_mul_bigint_karatsuba_add_internal(BigIntNullableSlice big_int1, BigIntSli
 	if(bigint_mul_karatsuba_is_zero_slice(big_int1)) {
 
 		// 0 + +b = +b
-		return bigint_helper_copy_of_slice(big_int2);
+		return bigint_helper_copy_of_slice(big_int2, true);
 	}
 
 	// +a + +b
 
-	BigInt number_a = bigint_helper_copy_of_slice(bigint_slice_from_nullable(big_int1));
-	BigInt number_b = bigint_helper_copy_of_slice(big_int2);
+	BigInt number_a = bigint_helper_copy_of_slice(bigint_slice_from_nullable(big_int1), true);
+	BigInt number_b = bigint_helper_copy_of_slice(big_int2, true);
 
 	BigInt result = bigint_add_bigint_both_positive(number_a, number_b);
 
@@ -1810,7 +1823,7 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 			}
 
 			if(number == 1) {
-				return bigint_helper_copy_of_slice(big_int2);
+				return bigint_helper_copy_of_slice(big_int2, true);
 			}
 		}
 
@@ -1823,14 +1836,23 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 			}
 
 			if(number == 1) {
-				return bigint_helper_copy_of_slice(big_int1);
+				return bigint_helper_copy_of_slice(big_int1, true);
 			}
 		}
 	}
 
+	/* { // check for another simple base case  * 2x
+
+	    if(bigint_helper_is_multiple_of_2(big_int2)) {
+	        // TODO. implement shift and use it here
+	        return todo();
+	    }
+	} */
+
 	// basic algorihtm
 
-	// this is a divide and conquer algorithm based on en.wikipedia.org/wiki/Karatsuba_algorithm
+	// this is a divide and conquer algorithm based on
+	// https://en.wikipedia.org/wiki/Karatsuba_algorithm
 
 	// base case
 	if(big_int1.number_count == 1 && big_int2.number_count == 1) {
@@ -1979,4 +2001,81 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 	return bigint_mul_bigint_both_positive(big_int1, big_int2);
 }
 
-// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)
+BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, size_t amount) {
+	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
+
+	if(bigint_helper_is_zero(*big_int)) {
+		return;
+	}
+
+	// TODO
+	UNUSED(amount);
+}
+
+static void bigint_helper_shift_left_impl(BigIntC* big_int, size_t amount) {
+
+	if(amount == 0) {
+		return;
+	}
+
+	if(amount >= BIGINT_BIT_COUNT) {
+		size_t newly_needed_parts = helper_ceil_div(amount, BIGINT_BIT_COUNT);
+		amount = amount % BIGINT_BIT_COUNT;
+
+		big_int->number_count = big_int->number_count + newly_needed_parts;
+		bigint_helper_realloc_to_new_size(big_int);
+
+		// move the numbers and fill the rest with 0s
+		for(size_t i = big_int->number_count; i != 0; --i) {
+
+			if(i <= newly_needed_parts) {
+				big_int->numbers[i - 1] = U64(0);
+			} else {
+				big_int->numbers[i - 1] = big_int->numbers[i - 1 - newly_needed_parts];
+			}
+		}
+	}
+
+	ASSERT(amount < BIGINT_BIT_COUNT, "implementation error");
+
+	bool needs_new_digit =
+	    bigint_helper_bits_of_number_used(big_int->numbers[big_int->number_count - 1]) >=
+	    (BIGINT_BIT_COUNT + 1 - amount);
+
+	if(needs_new_digit) {
+		big_int->number_count++;
+		bigint_helper_realloc_to_new_size(big_int);
+		big_int->numbers[big_int->number_count - 1] = U64(0);
+	}
+
+	// shift each limb separate, pay attention to the order of the limbs (LSB)
+	for(size_t i = big_int->number_count; i != 0; --i) {
+
+		uint64_t* restrict number = &(big_int->numbers[i - 1]);
+		// first shift the current limb by amount
+		*number = *number << amount;
+
+		// than get the bits of the last number and add it to the number
+		if(i > 1) {
+			const uint64_t value = big_int->numbers[i - 2];
+			const uint8_t first_bits = (value >> (BIGINT_BIT_COUNT - amount)) & ((1 << amount) - 1);
+			if(first_bits != 0) {
+				*number = *number | first_bits;
+			}
+		}
+	}
+}
+
+BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, size_t amount) {
+	if(big_int == NULL) { // GCOVR_EXCL_BR_LINE (gcovr can't detect asserts)
+		UNREACHABLE_WITH_MSG("passed in NULL pointer"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
+
+	if(bigint_helper_is_zero(*big_int)) {
+		return;
+	}
+
+	bigint_helper_shift_left_impl(big_int, amount);
+}
