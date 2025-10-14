@@ -49,15 +49,19 @@ static void bigint_helper_realloc_to_new_size(BigIntC* big_int) {
 	big_int->numbers = new_numbers;
 }
 
-static BigIntC bigint_helper_zero(void) {
+NODISCARD static inline BigIntC bigint_helper_number_impl(uint64_t number, bool positive) {
 
-	BigIntC result = { .positive = true, .numbers = NULL, .number_count = 1 };
+	BigIntC result = { .positive = positive, .numbers = NULL, .number_count = 1 };
 
 	bigint_helper_realloc_to_new_size(&result);
 
-	result.numbers[0] = U64(0);
+	result.numbers[0] = number;
 
 	return result;
+}
+
+NODISCARD static inline BigIntC bigint_helper_zero(void) {
+	return bigint_helper_number_impl(0, true);
 }
 
 static inline bool bigint_helper_is_zero(BigIntC big_int) {
@@ -447,9 +451,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr s
 }
 
 NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_unsigned_number(uint64_t number) {
-	BigIntC result = bigint_helper_zero();
-	result.positive = true;
-	result.numbers[0] = number;
+	BigIntC result = bigint_helper_number_impl(number, true);
 
 	return result;
 }
@@ -525,7 +527,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_copy(BigIntC big_int) {
 }
 
 /**
- * @brief gets the amount of bits used, in the range 0 -64
+ * @brief gets the amount of bits used, in the range 0 - 64
  *
  * @param number
  * @return used bits
