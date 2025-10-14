@@ -180,3 +180,35 @@ BIGINT_C_LIB_EXPORTED void bigint_shift_left_bigint(BigIntC* big_int, BigIntC am
  * @param amount
  */
 BIGINT_C_LIB_EXPORTED void bigint_shift_left_unsigned(BigIntC* big_int, uint64_t amount);
+
+typedef enum {
+	DivisionRoundingFloor,
+	DivisionRoundingCeil,
+	DivisionRoundingTowardsZero,
+} DivisionRounding;
+
+typedef enum {
+	ModuloRoundingTruncated,
+	ModuloRoundingFloored,
+	ModuloRoundingEuclidean,
+} ModuloRounding;
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_div_bigint(BigIntC dividend, BigIntC divisor);
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_div_bigint_advanced(BigIntC dividend,
+                                                                   BigIntC divisor,
+                                                                   DivisionRounding rounding);
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint(BigIntC dividend, BigIntC divisor);
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint_advanced(BigIntC dividend,
+                                                                   BigIntC divisor,
+                                                                   ModuloRounding rounding);
+
+BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint(BigIntC dividend, BigIntC divisor,
+                                                 BigIntC* out_div, BigIntC* out_mod);
+
+BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint_advanced(BigIntC dividend, BigIntC divisor,
+                                                          BigIntC* out_div, BigIntC* out_mod,
+                                                          DivisionRounding div_rounding,
+                                                          ModuloRounding mod_rounding);
