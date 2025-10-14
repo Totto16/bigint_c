@@ -5,6 +5,7 @@
 
 // NOLINTBEGIN(modernize-deprecated-headers)
 
+#include <fenv.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -2272,3 +2273,243 @@ BIGINT_C_LIB_EXPORTED void bigint_shift_left_unsigned(BigIntC* big_int, uint64_t
 
 	bigint_helper_shift_left_unsigned_impl(big_int, amount);
 }
+
+#define DEFAULT_DIV_ROUNDING DivisionRoundingTowardsZero
+
+#define DEFAULT_MOD_ROUNDING ModuloRoundingTruncated
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_div_bigint(BigIntC dividend, BigIntC divisor) {
+	return bigint_div_bigint_advanced(dividend, divisor, DEFAULT_DIV_ROUNDING);
+}
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_div_bigint_advanced(BigIntC dividend,
+                                                                   BigIntC divisor,
+                                                                   DivisionRounding rounding) {
+
+	BigIntC out_div = {};
+
+	bigint_div_mod_bigint_advanced(dividend, divisor, &out_div, NULL, rounding,
+	                               DEFAULT_MOD_ROUNDING);
+
+	return out_div;
+}
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint(BigIntC dividend, BigIntC divisor) {
+	return bigint_mod_bigint_advanced(dividend, divisor, DEFAULT_MOD_ROUNDING);
+}
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint_advanced(BigIntC dividend,
+                                                                   BigIntC divisor,
+                                                                   ModuloRounding rounding) {
+
+	BigIntC out_mod = {};
+
+	bigint_div_mod_bigint_advanced(dividend, divisor, NULL, &out_mod, DEFAULT_DIV_ROUNDING,
+	                               rounding);
+
+	return out_mod;
+}
+
+BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint(BigIntC dividend, BigIntC divisor,
+                                                 BigIntC* out_div, BigIntC* out_mod) {
+	bigint_div_mod_bigint_advanced(dividend, divisor, out_div, out_mod, DEFAULT_DIV_ROUNDING,
+	                               DEFAULT_MOD_ROUNDING);
+}
+
+static NO_RETURN void helper_raise_floating_point_exception(int exceptions) {
+	if(feraiseexcept(exceptions) != 0) {
+		// an error occurred while raising
+		abort();
+	}
+
+	abort();
+}
+
+// TODO: remove and use generic shift impl!
+static void bigint_helper_mod_shift_bigint_by_one_bit(BigInt* big_int) {
+
+	bool needs_new_digit = bigint_helper_bits_of_number_used(
+	                           big_int->numbers[big_int->number_count - 1]) == BIGINT_BIT_COUNT;
+
+	if(needs_new_digit) {
+		big_int->number_count++;
+		bigint_helper_realloc_to_new_size(big_int);
+		big_int->numbers[big_int->number_count - 1] = U64(0);
+	}
+
+	// shift each limb separate, pay attention to the order of the limbs (LSB)
+	for(size_t i = big_int->number_count; i != 0; --i) {
+
+		uint64_t* restrict number = &(big_int->numbers[i - 1]);
+		// first shift the current limb by one
+		*number = *number << 1;
+
+		// than get the bit of the last number and add it to the number
+		if(i > 1) {
+			const uint64_t value = big_int->numbers[i - 2];
+			const uint8_t first_bit = (value >> (BIGINT_BIT_COUNT - 1)) & 0x01;
+			if(first_bit != 0) {
+				*number = *number | 0x01;
+			}
+		}
+	}
+}
+
+NODISCARD static BigInt bigint_helper_only_mod_positive_impl(const BigIntSlice dividend,
+                                                             const BigIntSlice divisor) {
+
+	{ // check for simple base case % 1
+
+		if(divisor.number_count == 1) {
+
+			uint64_t number = divisor.numbers[0];
+
+			if(number == 1) {
+				return bigint_helper_zero();
+			}
+		}
+	}
+
+	{ // check for other simple cases, e.g.  a == b or a < b
+
+		const int8_t compared = bigint_compare_bigint(bigint_helper_as_ref_bigint(dividend, true),
+		                                              bigint_helper_as_ref_bigint(divisor, true));
+
+		if(compared == 0) {
+			// a == b => result is zero
+			return bigint_helper_zero();
+		}
+
+		if(compared < 0) {
+			// if a < b => result is a
+
+			return bigint_helper_copy_of_slice(dividend, true);
+		}
+	}
+
+	{ // actual algorithm, using a bitshift  + subtraction algorithm
+
+		BigInt shifted_divisor = bigint_helper_copy_of_slice(divisor, true);
+
+		BigInt dividend_copy = bigint_helper_copy_of_slice(dividend, true);
+
+		while(true) {
+
+			bigint_helper_mod_shift_bigint_by_one_bit(&shifted_divisor);
+
+			const int8_t compared = bigint_compare_bigint(shifted_divisor, dividend_copy);
+
+			if(compared <= 0) {
+				// TODO: here
+			}
+		}
+	}
+}
+
+NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC divisor,
+                                                     ModuloRounding mod_rounding) {
+
+	bool final_is_positive = true;
+
+	// see e.g. https://en.wikipedia.org/wiki/Modulo#Variants_of_the_definition
+	switch(mod_rounding) {
+		case ModuloRoundingTruncated: {
+			// the defintions says, it is always the sign as the dividend
+			final_is_positive = dividend.positive;
+			break;
+		}
+		case ModuloRoundingFloored: {
+			// the defintions says, it is always the sign as the divisor
+			final_is_positive = divisor.positive;
+			break;
+		}
+		case ModuloRoundingEuclidean: {
+			// the defintions says, it is always positive
+			final_is_positive = true;
+			break;
+		}
+		default: {
+			helper_raise_floating_point_exception(FE_INVALID);
+		}
+	}
+
+	// perform the operation, the final sign is
+	// set by the switch case, we use the BigIntSlice, that has no sign to signify that both would
+	// be positive
+
+	{
+
+		BigInt result = bigint_helper_only_mod_positive_impl(bigint_slice_from_bigint(dividend),
+		                                                     bigint_slice_from_bigint(divisor));
+
+		result.positive = final_is_positive;
+		return result;
+	}
+}
+
+static void bigint_helper_only_div_impl(BigIntC dividend, BigIntC divisor, BigIntC* out_div,
+                                        DivisionRounding div_rounding) {
+
+	// TODO
+	UNUSED(dividend);
+	UNUSED(divisor);
+	UNUSED(out_div);
+
+	switch(div_rounding) {
+		case DivisionRoundingFloor: {
+		}
+		case DivisionRoundingCeil: {
+		}
+		case DivisionRoundingTowardsZero: {
+		}
+		default: {
+			helper_raise_floating_point_exception(FE_INVALID);
+			return;
+		}
+	}
+}
+
+static void bigint_helper_div_mod_impl(BigIntC dividend, BigIntC divisor, BigIntC* out_div,
+                                       BigIntC* out_mod, DivisionRounding div_rounding,
+                                       ModuloRounding mod_rounding) {
+	// TODO
+	UNUSED(dividend);
+	UNUSED(divisor);
+	UNUSED(out_div);
+	UNUSED(out_mod);
+	UNUSED(div_rounding);
+	UNUSED(mod_rounding);
+}
+
+BIGINT_C_LIB_EXPORTED
+void bigint_div_mod_bigint_advanced(BigIntC dividend, BigIntC divisor, BigIntC* out_div,
+                                    BigIntC* out_mod, DivisionRounding div_rounding,
+                                    ModuloRounding mod_rounding) {
+
+	if(bigint_helper_is_zero(divisor)) {
+		helper_raise_floating_point_exception(FE_DIVBYZERO);
+		return;
+	}
+
+	if(out_div == NULL) {
+		if(out_mod == NULL) {
+			// no need to compute anything
+			return;
+		}
+
+		// only compute mod
+		*out_mod = bigint_helper_only_mod_impl(dividend, divisor, mod_rounding);
+		return;
+	}
+
+	if(out_mod == NULL) {
+		// only compute div
+		bigint_helper_only_div_impl(dividend, divisor, out_div, div_rounding);
+		return;
+	}
+
+	bigint_helper_div_mod_impl(dividend, divisor, out_div, out_mod, div_rounding, mod_rounding);
+	return;
+}
+
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)
