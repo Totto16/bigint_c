@@ -1808,6 +1808,72 @@ static void bigint_mul_bigint_karatsuba_shift_bigint_internally_by(BigInt* big_i
 	}
 }
 
+NODISCARD static inline bool bigint_helper_is_power_of_2_unsigned(uint64_t value) {
+	return value != 0 && (value & (value - 1)) == 0;
+}
+
+NODISCARD static bool bigint_helper_is_power_of_2(BigIntSlice big_int) {
+
+	for(size_t i = big_int.number_count; i != 0; --i) {
+		if(i == big_int.number_count) {
+			if(!bigint_helper_is_power_of_2_unsigned(big_int.numbers[i - 1])) {
+				return false;
+			}
+		} else {
+			if(big_int.numbers[i - 1] != 0) {
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
+/**
+ * @brief assumes that bigint_helper_is_power_of_2 returned true
+ *
+ * @param big_int
+ * @return
+ */
+NODISCARD static BigIntC bigint_helper_get_power_of_2(BigIntSlice big_int) {
+
+	size_t start_amount = (big_int.number_count - 1);
+
+	size_t head_amount =
+	    bigint_helper_bits_of_number_used(big_int.numbers[big_int.number_count - 1]);
+
+	ASSERT(head_amount != 0, "precondition of bigint_helper_is_power_of_2 not met!");
+
+	{ // fast addition of BigInt and and amount, that is likely never bigger than uint64_t::max
+		if(helper_ceil_div(UINT64_MAX, BIGINT_BIT_COUNT) < start_amount) {
+			size_t amount = start_amount * BIGINT_BIT_COUNT;
+
+			if(UINT64_MAX - amount >= head_amount) {
+				amount = amount + (head_amount - 1);
+				BigIntC result = bigint_from_unsigned_number(amount);
+				return result;
+			}
+		}
+
+		// slow add, extremely unlikely, and even if we use mul in here, and that uses this in
+		// certain cases, it can't result in infinite loop, as we only multiple by 64 here, which
+		// never overflow uint64_t::max, even when multiplied by 64
+		BigIntC value1 = bigint_from_unsigned_number(start_amount);
+		BigIntC value2 = bigint_from_unsigned_number(BIGINT_BIT_COUNT);
+
+		BigIntC value3 = bigint_mul_bigint(value1, value2);
+
+		BigIntC value4 = bigint_from_unsigned_number((head_amount - 1));
+
+		BigInt result = bigint_add_bigint(value3, value4);
+
+		free_bigint_without_reset(value1);
+		free_bigint_without_reset(value2);
+		free_bigint_without_reset(value3);
+		free_bigint_without_reset(value4);
+		return result;
+	}
+}
+
 NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2);
 
 NODISCARD static BigInt
@@ -1843,13 +1909,18 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 		}
 	}
 
-	/* { // check for another simple base case  * 2x
+	{ // check for another simple base case  * 2**x
 
-	    if(bigint_helper_is_multiple_of_2(big_int2)) {
-	        // TODO. implement shift and use it here
-	        return todo();
-	    }
-	} */
+		if(bigint_helper_is_power_of_2(big_int2)) {
+
+			BigIntC copy_of_big_int1 = bigint_helper_copy_of_slice(big_int1, true);
+
+			BigIntC amount = bigint_helper_get_power_of_2(big_int2);
+
+			bigint_shift_left_bigint(&copy_of_big_int1, amount);
+			return copy_of_big_int1;
+		}
+	}
 
 	// basic algorihtm
 
