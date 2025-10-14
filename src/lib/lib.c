@@ -1707,7 +1707,7 @@ NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int
 	return bigint_mul_two_numbers_normal(big_int1, big_int2);
 }
 
-NODISCARD static inline size_t helper_ceil_div(size_t input, size_t divider) {
+NODISCARD static inline uint64_t helper_ceil_div(uint64_t input, uint64_t divider) {
 	return (input + divider - 1) / divider;
 }
 
