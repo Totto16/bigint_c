@@ -215,11 +215,19 @@ struct BigInt {
 
 	[[nodiscard]] BigInt operator<<(const BigInt& value2) const;
 
+	[[nodiscard]] BigInt operator<<(uint64_t value2) const;
+
 	[[nodiscard]] BigInt operator>>(const BigInt& value2) const;
+
+	[[nodiscard]] BigInt operator>>(uint64_t value2) const;
+
+	[[nodiscard]] BigInt& operator<<=(const BigInt& value2);
+
+	[[nodiscard]] BigInt& operator<<=(uint64_t value2);
 
 	[[nodiscard]] BigInt& operator>>=(const BigInt& value2);
 
-	[[nodiscard]] BigInt& operator<<=(const BigInt& value2);
+	[[nodiscard]] BigInt& operator>>=(uint64_t value2);
 
 	[[nodiscard]] BigInt& operator++();
 
@@ -434,15 +442,15 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 }
 
 [[nodiscard]] bool BigInt::operator/(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_div_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] bool BigInt::operator%(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_mod_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] bool BigInt::operator^(const BigInt& value2) const {
@@ -487,15 +495,23 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 }
 
 [[nodiscard]] BigInt& BigInt::operator/=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_div_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator%=(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_mod_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator^=(const BigInt& value2) const {
@@ -539,27 +555,67 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 }
 
 [[nodiscard]] BigInt BigInt::operator<<(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_shift_left_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
+}
+
+[[nodiscard]] BigInt BigInt::operator<<(uint64_t value2) const {
+	BigIntC result = bigint_shift_left_unsigned(this->m_c_value, value2);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt BigInt::operator>>(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_shift_right_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+[[nodiscard]] BigInt BigInt::operator>>(uint64_t value2) const {
+	BigIntC result = bigint_shift_right_unsigned(this->m_c_value, value2);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt& BigInt::operator<<=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_shift_left_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
+}
+
+[[nodiscard]] BigInt& BigInt::operator<<=(uint64_t value2) {
+	BigIntC result = bigint_shift_left_unsigned(this->m_c_value, value2);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
+}
+
+[[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
+	BigIntC result = bigint_shift_right_bigint(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
+}
+
+[[nodiscard]] BigInt& BigInt::operator>>=(uint64_tvalue2) {
+	BigIntC result = bigint_shift_right_unsigned(this->m_c_value, value2);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator++() {
