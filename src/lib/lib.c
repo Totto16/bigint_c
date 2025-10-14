@@ -1911,6 +1911,16 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 
 	{ // check for another simple base case  * 2**x
 
+		if(bigint_helper_is_power_of_2(big_int1)) {
+
+			BigIntC copy_of_big_int2 = bigint_helper_copy_of_slice(big_int2, true);
+
+			BigIntC amount = bigint_helper_get_power_of_2(big_int1);
+
+			bigint_shift_left_bigint(&copy_of_big_int2, amount);
+			return copy_of_big_int2;
+		}
+
 		if(bigint_helper_is_power_of_2(big_int2)) {
 
 			BigIntC copy_of_big_int1 = bigint_helper_copy_of_slice(big_int1, true);
