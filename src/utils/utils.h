@@ -1,6 +1,6 @@
 #pragma once
 
-#if __STDC_VERSION__ >= 202000 || __cplusplus
+#if __STDC_VERSION__ >= 202311L || defined(__cplusplus)
 #define NODISCARD [[nodiscard]]
 #else
 // see e.g. https://www.gnu.org/software/gnulib/manual/html_node/Attributes.html
@@ -14,6 +14,15 @@
 #else
 #define NODISCARD __attribute__((__warn_unused_result__))
 #endif
+#endif
+
+#if __STDC_VERSION__ >= 202311L || defined(__cplusplus)
+#define STATIC_ASSERT(check, message) static_assert(check, message)
+#elif __STDC_VERSION__ < 201112L
+// empty, as not supported
+#define STATIC_ASSERT(check, message)
+#else
+#define STATIC_ASSERT(check, message) _Static_assert(check, message)
 #endif
 
 #define UNUSED(v) ((void)(v))

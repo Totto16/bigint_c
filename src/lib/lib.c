@@ -8,6 +8,7 @@
 #include <fenv.h>
 #include <limits.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // NOLINTEND(modernize-deprecated-headers)
@@ -1058,6 +1059,8 @@ NODISCARD static inline uint8_t bigint_helper_add_uint64_with_carry(uint8_t carr
 	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_addcarry_u64&ig_expand=175
 	return _addcarry_u64(carry_in, value1, value2, result_out);
 #else
+	STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t),
+	              "we must use the same type for ass intrinsics");
 	unsigned long long result = 0;
 	uint8_t res = _addcarry_u64(carry_in, value1, value2, &result);
 
@@ -1077,6 +1080,8 @@ NODISCARD static inline uint8_t bigint_helper_sub_uint64_with_borrow(uint8_t bor
 	// https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html#text=_subborrow_u64&ig_expand=6666
 	return _subborrow_u64(borrow_in, value1, value2, result_out);
 #else
+	STATIC_ASSERT(sizeof(unsigned long long) == sizeof(uint64_t),
+	              "we must use the same type for sub intrinsics");
 	unsigned long long result = 0;
 	uint8_t res = _subborrow_u64(borrow_in, value1, value2, &result);
 
@@ -1708,8 +1713,41 @@ NODISCARD static inline BigInt bigint_mul_bigint_karatsuba_base(uint64_t big_int
 	return bigint_mul_two_numbers_normal(big_int1, big_int2);
 }
 
-NODISCARD static inline uint64_t helper_ceil_div(uint64_t input, uint64_t divider) {
-	return (input + divider - 1) / divider;
+typedef struct {
+	uint64_t div;
+	uint64_t mod;
+} DivModU64;
+
+NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor);
+
+#if defined(__GNUC__)
+
+NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor) {
+	DivModU64 res = {};
+	// TODO: use divmod if the architecture has it, e.g. x86_64 shoudl have it, but it has to work
+	// for 64 unsigned bit integers too!
+	res.div = dividend / divisor;
+	res.mod = dividend % divisor;
+
+	return res;
+}
+#else
+NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor) {
+
+	DivModU64 res = {};
+
+	res.div = dividend / divisor;
+	res.mod = dividend % divisor;
+
+	return res;
+}
+#endif
+
+NODISCARD static inline uint64_t helper_ceil_div(uint64_t dividend, uint64_t divisor) {
+
+	DivModU64 res = helper_div_mod_u64_impl(dividend, divisor);
+
+	return res.div + ((res.mod != 0) ? 1 : 0);
 }
 
 // NOTES: about "fake" 0 bigints:
@@ -1845,7 +1883,7 @@ NODISCARD static BigIntC bigint_helper_get_power_of_2(BigIntSlice big_int) {
 	ASSERT(head_amount != 0, "precondition of bigint_helper_is_power_of_2 not met!");
 
 	{ // fast addition of BigInt and and amount, that is likely never bigger than uint64_t::max
-		if(helper_ceil_div(UINT64_MAX, BIGINT_BIT_COUNT) < start_amount) {
+		if(helper_ceil_div(UINT64_MAX, BIGINT_BIT_COUNT) > start_amount) {
 			size_t amount = start_amount * BIGINT_BIT_COUNT;
 
 			if(UINT64_MAX - amount >= head_amount) {
