@@ -213,19 +213,11 @@ struct BigInt {
 
 	[[nodiscard]] BigInt& operator^=(const BigInt& value2);
 
-	[[nodiscard]] BigInt operator<<(const BigInt& value2) const;
-
 	[[nodiscard]] BigInt operator<<(uint64_t value2) const;
-
-	[[nodiscard]] BigInt operator>>(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt operator>>(uint64_t value2) const;
 
-	[[nodiscard]] BigInt& operator<<=(const BigInt& value2);
-
 	[[nodiscard]] BigInt& operator<<=(uint64_t value2);
-
-	[[nodiscard]] BigInt& operator>>=(const BigInt& value2);
 
 	[[nodiscard]] BigInt& operator>>=(uint64_t value2);
 
@@ -554,26 +546,10 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 	throw std::runtime_error("TODO");
 }
 
-[[nodiscard]] BigInt BigInt::operator<<(const BigInt& value2) const {
-	BigIntC result = bigint_copy(this->m_c_value);
-
-	bigint_shift_left_bigint(&result, value2.m_c_value);
-
-	return BigInt{ std::move(result) };
-}
-
 [[nodiscard]] BigInt BigInt::operator<<(uint64_t value2) const {
 	BigIntC result = bigint_copy(this->m_c_value);
 
-	bigint_shift_left_unsigned(&result, value2);
-
-	return BigInt{ std::move(result) };
-}
-
-[[nodiscard]] BigInt BigInt::operator>>(const BigInt& value2) const {
-	BigIntC result = bigint_copy(this->m_c_value);
-
-	bigint_shift_right_bigint(&result, value2.m_c_value);
+	bigint_shift_left(&result, value2);
 
 	return BigInt{ std::move(result) };
 }
@@ -581,31 +557,19 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 [[nodiscard]] BigInt BigInt::operator>>(uint64_t value2) const {
 	BigIntC result = bigint_copy(this->m_c_value);
 
-	bigint_shift_right_unsigned(&result, value2);
+	bigint_shift_right(&result, value2);
 
 	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] BigInt& BigInt::operator<<=(const BigInt& value2) {
-	bigint_shift_left_bigint(&(this->m_c_value), value2.m_c_value);
-
-	return *this;
-}
-
 [[nodiscard]] BigInt& BigInt::operator<<=(uint64_t value2) {
-	bigint_shift_left_unsigned(&(this->m_c_value), value2);
-
-	return *this;
-}
-
-[[nodiscard]] BigInt& BigInt::operator>>=(const BigInt& value2) {
-	bigint_shift_right_bigint(&(this->m_c_value), value2.m_c_value);
+	bigint_shift_left(&(this->m_c_value), value2);
 
 	return *this;
 }
 
 [[nodiscard]] BigInt& BigInt::operator>>=(uint64_t value2) {
-	bigint_shift_right_unsigned(&(this->m_c_value), value2);
+	bigint_shift_right(&(this->m_c_value), value2);
 
 	return *this;
 }

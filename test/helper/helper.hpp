@@ -48,9 +48,9 @@ struct BigIntTest {
 
 	[[nodiscard]] BigIntTest copy() const;
 
-	[[nodiscard]] BigIntTest operator<<(const BigIntTest& value2) const;
+	[[nodiscard]] BigIntTest operator<<(uint64_t value2) const;
 
-	[[nodiscard]] BigIntTest operator>>(const BigIntTest& value2) const;
+	[[nodiscard]] BigIntTest operator>>(uint64_t value2) const;
 };
 
 struct BigIntDebug {

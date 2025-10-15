@@ -152,16 +152,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
  * @param big_int {in_out}
  * @param amount
  */
-BIGINT_C_LIB_EXPORTED void bigint_shift_right_bigint(BigIntC* big_int, BigIntC amount);
-
-/**
- * @brief Shifts the bits of the underlying value by <amount> to the right same as  x / (2**x), sign
- * is ignored
- *
- * @param big_int {in_out}
- * @param amount
- */
-BIGINT_C_LIB_EXPORTED void bigint_shift_right_unsigned(BigIntC* big_int, uint64_t amount);
+BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, uint64_t amount);
 
 /**
  * @brief Shifts the bits of the underlying value by <amount> to the left same as  x * (2**x), sign
@@ -170,16 +161,7 @@ BIGINT_C_LIB_EXPORTED void bigint_shift_right_unsigned(BigIntC* big_int, uint64_
  * @param big_int {in_out}
  * @param amount
  */
-BIGINT_C_LIB_EXPORTED void bigint_shift_left_bigint(BigIntC* big_int, BigIntC amount);
-
-/**
- * @brief Shifts the bits of the underlying value by <amount> to the left same as  x * (2**x), sign
- * is ignored
- *
- * @param big_int {in_out}
- * @param amount
- */
-BIGINT_C_LIB_EXPORTED void bigint_shift_left_unsigned(BigIntC* big_int, uint64_t amount);
+BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, uint64_t amount);
 
 typedef enum {
 	DivisionRoundingFloor,
