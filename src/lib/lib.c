@@ -2087,9 +2087,47 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
 
 static void bigint_helper_shift_right_unsigned_impl(BigIntC* big_int, uint64_t amount) {
 
-	// TODO
-	UNUSED(big_int);
-	UNUSED(amount);
+	if(amount == 0) {
+		return;
+	}
+
+	if(amount >= BIGINT_BIT_COUNT) {
+		size_t removed_parts_count = amount / BIGINT_BIT_COUNT;
+		amount = amount % BIGINT_BIT_COUNT;
+
+		if(removed_parts_count >= big_int->number_count) {
+			big_int->number_count = 1;
+			bigint_helper_realloc_to_new_size(big_int);
+			big_int->numbers[0] = U64(0);
+			return;
+		}
+
+		// move the numbers and remove the rest later
+		for(size_t i = 0; i < big_int->number_count - removed_parts_count; ++i) {
+			big_int->numbers[i] = big_int->numbers[removed_parts_count + i];
+		}
+		big_int->number_count = big_int->number_count - removed_parts_count;
+		bigint_helper_realloc_to_new_size(big_int);
+	}
+
+	ASSERT(amount < BIGINT_BIT_COUNT, "implementation error");
+
+	// shift each limb separate, pay attention to the order of the limbs (LSB)
+	for(size_t i = 0; i < big_int->number_count; ++i) {
+
+		uint64_t* restrict number = &(big_int->numbers[i]);
+		// first shift the current limb by amount
+		*number = *number >> amount;
+
+		// than get the bits of the last number and add it to the number
+		if(i + 1 < big_int->number_count) {
+			const uint64_t value = big_int->numbers[i + 1];
+			const uint8_t last_bits = value & ((1 << amount) - 1);
+			if(last_bits != 0) {
+				*number = *number | (last_bits << (BIGINT_BIT_COUNT - amount));
+			}
+		}
+	}
 }
 
 static void bigint_helper_shift_right_bigint_impl(BigIntC* big_int, const BigIntC amount_bigint) {
