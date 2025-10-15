@@ -165,6 +165,22 @@ class MPZWrapper {
 	[[nodiscard]] mpz_t& get() { return *m_value; }
 	[[nodiscard]] mpz_t& operator*() { return *m_value; }
 
+	void negate() { mpz_neg(*m_value, *m_value); }
+
+	[[nodiscard]] std::optional<uint64_t> get_as_u64() const {
+
+		if(mpz_sgn(*m_value) < 0) {
+			// negative number, not an u64
+			return std::nullopt;
+		}
+
+		if(mpz_sizeinbase(*m_value, 2) > 64) {
+			return std::nullopt;
+		}
+
+		return mpz_get_ui(*m_value);
+	}
+
 	~MPZWrapper() {
 		if(m_value != nullptr) {
 			mpz_clear(*m_value);
@@ -365,7 +381,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	std::ignore = this->operator++();
 
-	return BigIntTest(std::move(copy));
+	return BigIntTest{ std::move(copy) };
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator--(int) {
@@ -373,7 +389,40 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	std::ignore = this->operator--();
 
-	return BigIntTest(std::move(copy));
+	return BigIntTest{ std::move(copy) };
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator<<(const BigIntTest& value2) const {
+
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	if(mpz_sgn(*number2) < 0) {
+		number2.negate();
+	}
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	std::optional<uint64_t> u64_num2 = number2.get_as_u64();
+
+	if(u64_num2.has_value()) {
+		mpz_mul_2exp(result_number, *number1, u64_num2.value());
+	} else {
+		throw std::runtime_error("larger than u64 bitshifts not implemented atm");
+	}
+
+	BigIntTest result{ true, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator>>(const BigIntTest& value2) const {
+	throw std::runtime_error("TODO: not implemented atm");
+	(void)value2;
 }
 
 #elif TEST_BACKEND_USE_IMPLEMENTATION == 1
@@ -662,7 +711,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	std::ignore = this->operator++();
 
-	return BigIntTest(std::move(copy));
+	return BigIntTest{ std::move(copy) };
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator--(int) {
@@ -670,7 +719,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 
 	std::ignore = this->operator--();
 
-	return BigIntTest(std::move(copy));
+	return BigIntTest{ std::move(copy) };
 }
 
 #endif
