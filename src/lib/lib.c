@@ -1873,7 +1873,7 @@ NODISCARD static bool bigint_helper_is_power_of_2(BigIntSlice big_int) {
  * @param big_int
  * @return
  */
-NODISCARD static BigIntC bigint_helper_get_power_of_2(BigIntSlice big_int) {
+NODISCARD static uint64_t bigint_helper_get_power_of_2(BigIntSlice big_int) {
 
 	size_t start_amount = (big_int.number_count - 1);
 
@@ -1888,29 +1888,13 @@ NODISCARD static BigIntC bigint_helper_get_power_of_2(BigIntSlice big_int) {
 
 			if(UINT64_MAX - amount >= head_amount) {
 				amount = amount + (head_amount - 1);
-				BigIntC result = bigint_from_unsigned_number(amount);
-				return result;
+				return amount;
 			}
 		}
-
-		// slow add, extremely unlikely, and even if we use mul in here, and that uses this in
-		// certain cases, it can't result in infinite loop, as we only multiple by 64 here, which
-		// never overflow uint64_t::max, even when multiplied by 64
-		BigIntC value1 = bigint_from_unsigned_number(start_amount);
-		BigIntC value2 = bigint_from_unsigned_number(BIGINT_BIT_COUNT);
-
-		BigIntC value3 = bigint_mul_bigint(value1, value2);
-
-		BigIntC value4 = bigint_from_unsigned_number((head_amount - 1));
-
-		BigInt result = bigint_add_bigint(value3, value4);
-
-		free_bigint_without_reset(value1);
-		free_bigint_without_reset(value2);
-		free_bigint_without_reset(value3);
-		free_bigint_without_reset(value4);
-		return result;
 	}
+
+	UNREACHABLE_WITH_MSG("Can't bit shift larger amounts, so this fast path fails here, it should "
+	                     "never come to that, as TB of RAM is needed for that!");
 }
 
 NODISCARD static inline BigInt bigint_mul_bigint_both_positive(BigInt big_int1, BigInt big_int2);
