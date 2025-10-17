@@ -1948,9 +1948,9 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 
 			BigIntC copy_of_big_int1 = bigint_helper_copy_of_slice(big_int1, true);
 
-			BigIntC amount = bigint_helper_get_power_of_2(big_int2);
+			uint64_t amount = bigint_helper_get_power_of_2(big_int2);
 
-			bigint_shift_left_bigint(&copy_of_big_int1, amount);
+			bigint_shift_left(&copy_of_big_int1, amount);
 			return copy_of_big_int1;
 		}
 	}
