@@ -1932,15 +1932,26 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 		}
 	}
 
-	{ // check for another simple base case  * 2**x
+	// basic algorihtm
+
+	// this is a divide and conquer algorithm based on
+	// https://en.wikipedia.org/wiki/Karatsuba_algorithm
+
+	// base case
+	if(big_int1.number_count == 1 && big_int2.number_count == 1) {
+		return bigint_mul_bigint_karatsuba_base(big_int1.numbers[0], big_int2.numbers[0]);
+	}
+
+	{ // check for another simple base case  * 2**x, do that after the base case detection, as that
+	  // is a faster path
 
 		if(bigint_helper_is_power_of_2(big_int1)) {
 
 			BigIntC copy_of_big_int2 = bigint_helper_copy_of_slice(big_int2, true);
 
-			BigIntC amount = bigint_helper_get_power_of_2(big_int1);
+			uint64_t amount = bigint_helper_get_power_of_2(big_int1);
 
-			bigint_shift_left_bigint(&copy_of_big_int2, amount);
+			bigint_shift_left(&copy_of_big_int2, amount);
 			return copy_of_big_int2;
 		}
 
@@ -1953,16 +1964,6 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 			bigint_shift_left(&copy_of_big_int1, amount);
 			return copy_of_big_int1;
 		}
-	}
-
-	// basic algorihtm
-
-	// this is a divide and conquer algorithm based on
-	// https://en.wikipedia.org/wiki/Karatsuba_algorithm
-
-	// base case
-	if(big_int1.number_count == 1 && big_int2.number_count == 1) {
-		return bigint_mul_bigint_karatsuba_base(big_int1.numbers[0], big_int2.numbers[0]);
 	}
 
 	// recursive case
