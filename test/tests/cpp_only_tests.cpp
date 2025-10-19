@@ -296,4 +296,24 @@ TEST(BigInt, IntegertoStringOsStream) {
 	}
 }
 
+TEST(BigInt, ParseSuccess0Normalize) {
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string(
+	    "+0000000000000000000000000000000000000000000000000000000000000000000000000000000");
+
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
+
+	BigInt big_int = std::move(maybe_big_int.value());
+
+	BigIntTest result = BigIntTest(true, { 0ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	const auto& underlying = big_int.underlying();
+
+	EXPECT_TRUE(underlying.positive);
+
+	EXPECT_EQ(underlying.number_count, 1ULL);
+	EXPECT_EQ(underlying.numbers[0], 0ULL);
+}
+
 // TODO: test other cpp only features

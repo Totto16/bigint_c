@@ -191,6 +191,19 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 	}
 }
 
+TEST(BigInt, ParseSuccess0Normalize) {
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string(
+	    "+0000000000000000000000000000000000000000000000000000000000000000000000000000000");
+
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
+
+	BigInt big_int = std::move(maybe_big_int.value());
+
+	BigIntTest result = BigIntTest(true, { 0ULL });
+
+	EXPECT_EQ(big_int, result);
+}
+
 TEST(BigInt, IntegerToBigIntU) {
 	std::vector<uint64_t> tests{ 4351325ULL, 0ULL, 1313131ULL,
 		                         std::numeric_limits<uint64_t>::max() };
@@ -1839,6 +1852,17 @@ TEST(BigInt, IntegerShiftRight) {
 	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
 	            std::numeric_limits<uint64_t>::max() },
 	    32235ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   125ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(), 0LL);
+	tests.emplace_back(BigInt::get_from_string("+0").value(), 125ULL);
+	tests.emplace_back(
+	    BigInt::get_from_string("252579235623235235235235235235235235235235235235256235723652756234"
+	                            "732447474747473747234235631965137956139561395635623523756239562395"
+	                            "62394238742375237351326324642346363634634634636363")
+	        .value(),
+	    125ULL);
+	tests.emplace_back(BigInt::get_from_string("123241414214214222424").value(), 69ULL);
 
 	for(const TestType& test : tests) {
 
