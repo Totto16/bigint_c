@@ -2145,8 +2145,10 @@ static void bigint_helper_shift_right_impl(BigIntC* big_int, uint64_t amount) {
 		size_t removed_parts_count = amount / BIGINT_BIT_COUNT;
 		amount = amount % BIGINT_BIT_COUNT;
 
+		// make a +0, when the shift is large enough!
 		if(removed_parts_count >= big_int->number_count) {
 			big_int->number_count = 1;
+			big_int->positive = true;
 			bigint_helper_realloc_to_new_size(big_int);
 			big_int->numbers[0] = U64(0);
 			return;
