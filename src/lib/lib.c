@@ -1823,7 +1823,7 @@ bigint_mul_bigint_karatsuba_add_internal(BigIntNullableSlice big_int1, BigIntSli
 }
 
 // this adds <amount> 0 numbers to the end of the number, also known as <big_int> * (2^64)^<amount>
-static void bigint_mul_bigint_karatsuba_shift_bigint_internally_by(BigInt* big_int, size_t amount) {
+static void bigint_mul_bigint_karatsuba_shift_bigint_numbers_internally_by(BigInt* big_int, size_t amount) {
 
 	if(amount == 0) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
 		return;       // GCOVR_EXCL_LINE (see above)
@@ -2034,9 +2034,9 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 
 		// make the final number
 
-		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_2, divide_at * 2);
+		bigint_mul_bigint_karatsuba_shift_bigint_numbers_internally_by(&z_2, divide_at * 2);
 
-		bigint_mul_bigint_karatsuba_shift_bigint_internally_by(&z_1, divide_at);
+		bigint_mul_bigint_karatsuba_shift_bigint_numbers_internally_by(&z_1, divide_at);
 
 		const BigInt result_add_temp = bigint_add_bigint_both_positive(z_2, z_1);
 
