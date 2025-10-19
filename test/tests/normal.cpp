@@ -1750,6 +1750,13 @@ TEST(BigInt, IntegerShiftLeft) {
 	    32235ULL);
 
 	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(), 65);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    127);
+
+	tests.emplace_back(
 	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
 	    32235ULL);
 

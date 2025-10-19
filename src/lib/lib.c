@@ -2145,7 +2145,7 @@ static void bigint_helper_shift_right_impl(BigIntC* big_int, uint64_t amount) {
 		// than get the bits of the last number and add it to the number
 		if(i + 1 < big_int->number_count) {
 			const uint64_t value = big_int->numbers[i + 1];
-			const uint8_t last_bits = value & ((1 << amount) - 1);
+			const uint64_t last_bits = value & ((U64(1) << amount) - 1);
 			if(last_bits != 0) {
 				*number = *number | (last_bits << (BIGINT_BIT_COUNT - amount));
 			}
@@ -2172,25 +2172,33 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, uint64_t amount) {
 	}
 
 	if(amount >= BIGINT_BIT_COUNT) {
-		size_t newly_needed_parts = helper_ceil_div(amount, BIGINT_BIT_COUNT);
+		const size_t newly_needed_parts = helper_ceil_div(amount, BIGINT_BIT_COUNT);
 		amount = amount % BIGINT_BIT_COUNT;
 
 		big_int->number_count = big_int->number_count + newly_needed_parts;
 		bigint_helper_realloc_to_new_size(big_int);
 
+		ASSERT(newly_needed_parts != 0,
+		       "unreachable, as by impl of ceil div and condition amount >= 64");
+		const size_t move_by_amount = newly_needed_parts - 1;
+
 		// move the numbers and fill the rest with 0s
 		for(size_t i = big_int->number_count; i != 0; --i) {
 
-			if(i <= newly_needed_parts) {
+			if(i <= move_by_amount) {
+				big_int->numbers[i - 1] = U64(0);
+			} else if(i == big_int->number_count) {
 				big_int->numbers[i - 1] = U64(0);
 			} else {
-				big_int->numbers[i - 1] = big_int->numbers[i - 1 - newly_needed_parts];
+				big_int->numbers[i - 1] = big_int->numbers[i - 1 - move_by_amount];
 			}
 		}
 	}
 
 	ASSERT(amount < BIGINT_BIT_COUNT, "implementation error");
 
+	// Note: this is needed, as when the condition of amount >= 64 fails, we could need an over
+	// allocation, otherwise the last number is always 0, so this does no harm either
 	bool needs_new_digit =
 	    bigint_helper_bits_of_number_used(big_int->numbers[big_int->number_count - 1]) >=
 	    (BIGINT_BIT_COUNT + 1 - amount);
@@ -2205,18 +2213,23 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, uint64_t amount) {
 	for(size_t i = big_int->number_count; i != 0; --i) {
 
 		uint64_t* restrict number = &(big_int->numbers[i - 1]);
+
+
 		// first shift the current limb by amount
 		*number = *number << amount;
 
 		// than get the bits of the last number and add it to the number
 		if(i > 1) {
 			const uint64_t value = big_int->numbers[i - 2];
-			const uint8_t first_bits = (value >> (BIGINT_BIT_COUNT - amount)) & ((1 << amount) - 1);
+			const uint64_t first_bits =
+			    (value >> (BIGINT_BIT_COUNT - amount)) & ((U64(1) << amount) - 1);
 			if(first_bits != 0) {
 				*number = *number | first_bits;
 			}
 		}
 	}
+
+	bigint_helper_remove_leading_zeroes(big_int);
 }
 
 BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, uint64_t amount) {
