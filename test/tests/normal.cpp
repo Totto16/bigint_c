@@ -1768,6 +1768,7 @@ TEST(BigInt, IntegerShiftLeft) {
 	tests.emplace_back(BigInt::get_from_string("0").value(), 32235ULL);
 
 	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 2ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 0ULL);
 	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 32235ULL);
 	tests.emplace_back(
 	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
