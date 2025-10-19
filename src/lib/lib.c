@@ -264,18 +264,16 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 	free_bigint(&temp);
 }
 
-static void bigint_helper_remove_leading_zeroes(BigIntC* big_int) {
+static void bigint_helper_normalize(BigIntC* big_int) {
 	if(big_int->number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
 		UNREACHABLE_WITH_MSG(        // GCOVR_EXCL_LINE (see above)
 		    "big_int has to have at least one number!"); // GCOVR_EXCL_LINE (see above)
 	} // GCOVR_EXCL_LINE (see above)
 
 	if(big_int->number_count == 1) {
-#ifndef NDEBUG
 		if(bigint_helper_is_zero(*big_int)) {
-			ASSERT(big_int->positive, "0 can't be negative");
+			big_int->positive = true;
 		}
-#endif
 
 		return;
 	}
@@ -288,11 +286,39 @@ static void bigint_helper_remove_leading_zeroes(BigIntC* big_int) {
 		}
 	}
 
-#ifndef NDEBUG
 	if(bigint_helper_is_zero(*big_int)) {
-		ASSERT(big_int->positive, "0 can't be negative");
+		big_int->positive = true;
 	}
-#endif
+
+	bigint_helper_realloc_to_new_size(big_int);
+}
+
+static void bigint_helper_remove_leading_zeroes_but_not_normalize(BigIntC* big_int) {
+	if(big_int->number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		UNREACHABLE_WITH_MSG(        // GCOVR_EXCL_LINE (see above)
+		    "big_int has to have at least one number!"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
+
+	if(big_int->number_count == 1) {
+		if(bigint_helper_is_zero(*big_int)) {
+			ASSERT(big_int->positive,
+			       "0 can't be negative, call 'bigint_helper_normalize' instead");
+		}
+
+		return;
+	}
+
+	for(size_t i = big_int->number_count; i > 1; --i) {
+		if(big_int->numbers[i - 1] == 0) {
+			--(big_int->number_count);
+		} else {
+			break;
+		}
+	}
+
+	if(bigint_helper_is_zero(*big_int)) {
+		ASSERT(big_int->positive, "0 can't be negative, call 'bigint_helper_normalize' instead");
+	}
 
 	bigint_helper_realloc_to_new_size(big_int);
 }
@@ -447,7 +473,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr s
 		}
 	}
 
-	bigint_helper_remove_leading_zeroes(&result);
+	bigint_helper_normalize(&result);
 
 	return (MaybeBigIntC){ .error = false, .data = { .result = result } };
 }
@@ -502,7 +528,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64
 		result.numbers[size - i - 1] = numbers[i];
 	}
 
-	bigint_helper_remove_leading_zeroes(&result);
+	bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
 
 	return result;
 }
@@ -972,7 +998,7 @@ NODISCARD static BigIntC bigint_add_bigint_both_positive_using_128_bit_numbers(B
 		       "The carry at the end has to be zero, otherwise we would have an overflow");
 	}
 
-	bigint_helper_remove_leading_zeroes(&result);
+	bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
 
 	return result;
 }
@@ -1026,7 +1052,7 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_using_128_bit_numbers(B
 		       "The borrow at the end has to be zero, otherwise we would have an overflow");
 	}
 
-	bigint_helper_remove_leading_zeroes(&result);
+	bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
 
 	return result;
 }
@@ -1400,7 +1426,7 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 			--(*number);
 
 			// we may have created some zeroes!
-			bigint_helper_remove_leading_zeroes(big_int1);
+			bigint_helper_remove_leading_zeroes_but_not_normalize(big_int1);
 
 			return;
 		} else {
@@ -1823,7 +1849,8 @@ bigint_mul_bigint_karatsuba_add_internal(BigIntNullableSlice big_int1, BigIntSli
 }
 
 // this adds <amount> 0 numbers to the end of the number, also known as <big_int> * (2^64)^<amount>
-static void bigint_mul_bigint_karatsuba_shift_bigint_numbers_internally_by(BigInt* big_int, size_t amount) {
+static void bigint_mul_bigint_karatsuba_shift_bigint_numbers_internally_by(BigInt* big_int,
+                                                                           size_t amount) {
 
 	if(amount == 0) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
 		return;       // GCOVR_EXCL_LINE (see above)
@@ -2048,7 +2075,7 @@ bigint_mul_bigint_karatsuba(BigIntSlice big_int1, // NOLINT(misc-no-recursion)
 		free_bigint_without_reset(result_add_temp);
 		free_bigint_without_reset(z_0);
 
-		bigint_helper_remove_leading_zeroes(&result);
+		bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
 
 		return result;
 	}
@@ -2151,6 +2178,8 @@ static void bigint_helper_shift_right_impl(BigIntC* big_int, uint64_t amount) {
 			}
 		}
 	}
+
+	bigint_helper_normalize(big_int);
 }
 
 BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, uint64_t amount) {
@@ -2214,7 +2243,6 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, uint64_t amount) {
 
 		uint64_t* restrict number = &(big_int->numbers[i - 1]);
 
-
 		// first shift the current limb by amount
 		*number = *number << amount;
 
@@ -2229,7 +2257,7 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, uint64_t amount) {
 		}
 	}
 
-	bigint_helper_remove_leading_zeroes(big_int);
+	bigint_helper_remove_leading_zeroes_but_not_normalize(big_int);
 }
 
 BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, uint64_t amount) {

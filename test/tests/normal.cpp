@@ -1794,3 +1794,61 @@ TEST(BigInt, IntegerShiftLeft) {
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
+
+TEST(BigInt, IntegerShiftRight) {
+	using TestType = std::tuple<BigInt, uint64_t>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, 1ULL);
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, 2ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(), 2ULL);
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    32235ULL);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(), 65);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    127);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    32235ULL);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    32235ULL);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, 32235ULL);
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), 32235ULL);
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 2ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 0ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 32235ULL);
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    2ULL);
+
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    32235ULL);
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 >> value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) >> value2;
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
