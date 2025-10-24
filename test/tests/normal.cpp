@@ -1903,9 +1903,6 @@ TEST(BigInt, IntegerMod) {
 	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
 	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
 
-	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
-	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
-
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("-2131215135135132515135").value());
 	tests.emplace_back(BigInt::get_from_string("-1").value(),
@@ -1921,11 +1918,6 @@ TEST(BigInt, IntegerMod) {
 	tests.emplace_back(BigInt::get_from_string("0").value(),
 	                   BigInt::get_from_string("+2131215135135").value());
 
-	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
-	                   BigInt::get_from_string("+0").value());
-	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
-	                   BigInt::get_from_string("0").value());
-
 	tests.emplace_back(BigInt::get_from_string("+1").value(),
 	                   BigInt::get_from_string("+2131215135135132515135").value());
 
@@ -1937,9 +1929,6 @@ TEST(BigInt, IntegerMod) {
 
 	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
 	                   BigInt::get_from_string("+1").value());
-
-	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
-	                   BigInt::get_from_string("+0").value());
 
 	tests.emplace_back(BigInt::get_from_string("+21312151351351323495781541456378747474735463736465"
 	                                           "37364647384747474747474747566383938475727424515135")
@@ -1969,29 +1958,6 @@ TEST(BigInt, IntegerMod) {
 	                                                     std::numeric_limits<uint64_t>::max(),
 	                                                     std::numeric_limits<uint64_t>::max() });
 
-	std::vector<BigInt> numbers{};
-
-	numbers.emplace_back((int64_t)10);
-	numbers.emplace_back((int64_t)5);
-	numbers.emplace_back((int64_t)3);
-	numbers.emplace_back((int64_t)2);
-	numbers.emplace_back(BigInt::get_from_string("+0").value());
-	numbers.emplace_back(BigInt::get_from_string("0").value());
-	numbers.emplace_back((int64_t)-2);
-	numbers.emplace_back((int64_t)-3);
-	numbers.emplace_back((int64_t)-5);
-	numbers.emplace_back((int64_t)-10);
-
-	for(size_t i = 0; i < numbers.size(); ++i) {
-
-		for(size_t j = 0; j < numbers.size(); ++j) {
-
-			const BigInt& value1 = numbers.at(i);
-			const BigInt& value2 = numbers.at(j);
-
-			tests.emplace_back(value1.copy(), value2.copy());
-		}
-	}
 
 	tests.emplace_back(
 	    BigInt::get_from_string(

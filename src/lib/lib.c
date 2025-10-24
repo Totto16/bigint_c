@@ -2465,7 +2465,12 @@ NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC d
 		BigInt result = bigint_helper_only_mod_positive_impl(bigint_slice_from_bigint(dividend),
 		                                                     bigint_slice_from_bigint(divisor));
 
-		result.positive = final_is_positive;
+		if(bigint_helper_is_zero(result)) {
+			result.positive = true;
+		} else {
+			result.positive = final_is_positive;
+		}
+
 		return result;
 	}
 }
