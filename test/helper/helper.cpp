@@ -407,6 +407,48 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	return result;
 }
 
+[[nodiscard]] BigIntTest BigIntTest::operator%(const BigIntTest& value2) const {
+
+	return this->mod(value2, ModuloRoundingTruncated);
+}
+
+[[nodiscard]] BigIntTest BigIntTest::mod(const BigIntTest& value2, ModuloRounding rounding) const {
+
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	switch(rounding) {
+		case ModuloRoundingTruncated: {
+			// truncated div r
+			mpz_tdiv_r(result_number, *number1, *number2);
+			break;
+		}
+		case ModuloRoundingFloored: {
+			// floored div r
+			mpz_fdiv_r(result_number, *number1, *number2);
+			break;
+		}
+		case ModuloRoundingEuclidean: {
+			// always positive result
+			mpz_mod(result_number, *number1, *number2);
+			break;
+		}
+		default: {
+			throw new std::runtime_error("Not expected rounding mode");
+		}
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
 #elif TEST_BACKEND_USE_IMPLEMENTATION == 1
 
 #define CHECK_MP_ERROR(err) \

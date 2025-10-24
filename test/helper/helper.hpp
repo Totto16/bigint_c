@@ -51,6 +51,10 @@ struct BigIntTest {
 	[[nodiscard]] BigIntTest operator<<(uint64_t value2) const;
 
 	[[nodiscard]] BigIntTest operator>>(uint64_t value2) const;
+
+	[[nodiscard]] BigIntTest operator%(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest mod(const BigIntTest& value2, ModuloRounding rounding) const;
 };
 
 struct BigIntDebug {

@@ -2325,36 +2325,6 @@ static NO_RETURN void helper_raise_floating_point_exception(int exceptions) {
 	abort();
 }
 
-// TODO: remove and use generic shift impl!
-static void bigint_helper_mod_shift_bigint_by_one_bit(BigInt* big_int) {
-
-	bool needs_new_digit = bigint_helper_bits_of_number_used(
-	                           big_int->numbers[big_int->number_count - 1]) == BIGINT_BIT_COUNT;
-
-	if(needs_new_digit) {
-		big_int->number_count++;
-		bigint_helper_realloc_to_new_size(big_int);
-		big_int->numbers[big_int->number_count - 1] = U64(0);
-	}
-
-	// shift each limb separate, pay attention to the order of the limbs (LSB)
-	for(size_t i = big_int->number_count; i != 0; --i) {
-
-		uint64_t* restrict number = &(big_int->numbers[i - 1]);
-		// first shift the current limb by one
-		*number = *number << 1;
-
-		// than get the bit of the last number and add it to the number
-		if(i > 1) {
-			const uint64_t value = big_int->numbers[i - 2];
-			const uint8_t first_bit = (value >> (BIGINT_BIT_COUNT - 1)) & 0x01;
-			if(first_bit != 0) {
-				*number = *number | 0x01;
-			}
-		}
-	}
-}
-
 NODISCARD static BigInt bigint_helper_only_mod_positive_impl(const BigIntSlice dividend,
                                                              const BigIntSlice divisor) {
 
@@ -2387,20 +2357,73 @@ NODISCARD static BigInt bigint_helper_only_mod_positive_impl(const BigIntSlice d
 		}
 	}
 
+	// TODO: power of 2 optimization!
+
 	{ // actual algorithm, using a bitshift  + subtraction algorithm
 
 		BigInt shifted_divisor = bigint_helper_copy_of_slice(divisor, true);
 
-		BigInt dividend_copy = bigint_helper_copy_of_slice(dividend, true);
+		BigInt dividend_result = bigint_helper_copy_of_slice(dividend, true);
 
+		// shift until shifted_divisor is > dividend_result
 		while(true) {
 
-			bigint_helper_mod_shift_bigint_by_one_bit(&shifted_divisor);
+			bigint_helper_shift_left_impl(&shifted_divisor, 1);
 
-			const int8_t compared = bigint_compare_bigint(shifted_divisor, dividend_copy);
+			const int8_t compared = bigint_compare_bigint(shifted_divisor, dividend_result);
 
-			if(compared <= 0) {
-				// TODO: here
+			if(compared > 0) {
+				break;
+			}
+		}
+
+		// unshift one bit
+		bigint_helper_shift_right_impl(&shifted_divisor, 1);
+
+		// subtract shifted values from  dividend_result until it is <= shifted_divisor
+		while(true) {
+
+			{ // "inline" subtraction
+				BigIntC new_dividend_result = bigint_sub_bigint(dividend_result, shifted_divisor);
+
+				ASSERT(new_dividend_result.positive,
+				       "implementation error: new_dividend_result should always be positive");
+				free_bigint_without_reset(dividend_result);
+				dividend_result = new_dividend_result;
+			}
+
+			{ // check if we got the result
+
+				const int8_t compared = bigint_compare_bigint(
+				    dividend_result, bigint_helper_as_ref_bigint(divisor, true));
+
+				if(compared == 0) {
+					free_bigint_without_reset(dividend_result);
+					free_bigint_without_reset(shifted_divisor);
+
+					// a == b => result is zero
+					return bigint_helper_zero();
+				}
+
+				if(compared < 0) {
+					free_bigint_without_reset(shifted_divisor);
+
+					// if a < b => result is a
+
+					return dividend_result;
+				}
+			}
+
+			// make shifted_divisor <=  dividend_result
+			while(true) {
+
+				bigint_helper_shift_right_impl(&shifted_divisor, 1);
+
+				const int8_t compared = bigint_compare_bigint(shifted_divisor, dividend_result);
+
+				if(compared <= 0) {
+					break;
+				}
 			}
 		}
 	}

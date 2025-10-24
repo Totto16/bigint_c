@@ -197,6 +197,8 @@ struct BigInt {
 
 	[[nodiscard]] BigInt operator%(const BigInt& value2) const;
 
+	[[nodiscard]] BigInt mod(const BigInt& value2, ModuloRounding rounding) const;
+
 	[[nodiscard]] BigInt operator^(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt& operator-();
@@ -441,6 +443,12 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 
 [[nodiscard]] BigInt BigInt::operator%(const BigInt& value2) const {
 	BigIntC result = bigint_mod_bigint(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
+}
+
+[[nodiscard]] BigInt BigInt::mod(const BigInt& value2, ModuloRounding rounding) const {
+	BigIntC result = bigint_mod_bigint_advanced(this->m_c_value, value2.m_c_value, rounding);
 
 	return BigInt{ std::move(result) };
 }
