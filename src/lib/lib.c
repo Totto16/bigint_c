@@ -518,9 +518,9 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 }
 
 NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64_t* const numbers,
-                                                                    size_t size) {
+                                                                    size_t size, bool positive) {
 
-	BigIntC result = { .positive = true, .numbers = NULL, .number_count = size };
+	BigIntC result = { .positive = positive, .numbers = NULL, .number_count = size };
 
 	bigint_helper_realloc_to_new_size(&result);
 
@@ -528,7 +528,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64
 		result.numbers[size - i - 1] = numbers[i];
 	}
 
-	bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
+	bigint_helper_normalize(&result);
 
 	return result;
 }

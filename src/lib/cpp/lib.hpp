@@ -108,6 +108,21 @@ struct BigInt {
 
 	BigInt(int64_t value) noexcept; // NOLINT(google-explicit-constructor)
 
+	BigInt(bool positive, const std::vector<uint64_t>& values) noexcept;
+
+	template <typename... Args>
+	    requires(sizeof...(Args) >= 1) &&
+	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
+	BigInt(bool positive, Args... args) noexcept
+	    : m_c_value{} { // NOLINT(google-explicit-constructor)
+
+		std::vector<uint64_t> values = { static_cast<uint64_t>( // GCOVR_EXCL_BR_LINE (c++ template)
+			args)... };                                         // GCOVR_EXCL_BR_LINE (c++ template)
+		m_c_value = bigint_from_list_of_numbers(values.data(),  // GCOVR_EXCL_BR_LINE (c++ template)
+		                                        values.size(),
+		                                        positive); // GCOVR_EXCL_BR_LINE (c++ template)
+	}
+
 	template <typename... Args>
 	    requires(sizeof...(Args) >= 2) &&
 	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
@@ -115,8 +130,9 @@ struct BigInt {
 
 		std::vector<uint64_t> values = { static_cast<uint64_t>( // GCOVR_EXCL_BR_LINE (c++ template)
 			args)... };                                         // GCOVR_EXCL_BR_LINE (c++ template)
-		m_c_value = bigint_from_list_of_numbers(values.data(),  // GCOVR_EXCL_BR_LINE (c++ template)
-		                                        values.size()); // GCOVR_EXCL_BR_LINE (c++ template)
+		m_c_value =
+		    bigint_from_list_of_numbers(values.data(),        // GCOVR_EXCL_BR_LINE (c++ template)
+		                                values.size(), true); // GCOVR_EXCL_BR_LINE (c++ template)
 	}
 
 	[[nodiscard]] static std::expected<BigInt, bigint::ParseError>
@@ -319,6 +335,13 @@ BigInt::BigInt(uint64_t value) noexcept {
 
 BigInt::BigInt(int64_t value) noexcept {
 	m_c_value = bigint_from_signed_number(value); // GCOVR_EXCL_BR_LINE (c++ assignment branches)
+}
+
+BigInt::BigInt(bool positive, const std::vector<uint64_t>& values) noexcept {
+
+	m_c_value = bigint_from_list_of_numbers(values.data(), // GCOVR_EXCL_BR_LINE (c++ template)
+	                                        values.size(),
+	                                        positive); // GCOVR_EXCL_BR_LINE (c++ template)
 }
 
 [[nodiscard]] std::expected<BigInt, bigint::ParseError>
