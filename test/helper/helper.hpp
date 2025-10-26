@@ -11,7 +11,7 @@ struct BigIntTest {
 	std::vector<uint64_t> m_values;
 
   public:
-	BigIntTest(bool positive, std::vector<uint64_t> values) noexcept;
+	BigIntTest(bool positive, const std::vector<uint64_t>& values) noexcept;
 
 	explicit BigIntTest(const BigInt& big_int_c) noexcept;
 	explicit BigIntTest(const std::string& str);

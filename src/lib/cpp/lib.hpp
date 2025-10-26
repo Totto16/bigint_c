@@ -261,6 +261,8 @@ struct BigInt {
 	[[nodiscard]] std::size_t hash() const;
 
 	[[nodiscard]] BigInt copy() const;
+
+	[[nodiscard]] bool is_positive() const;
 };
 
 std::ostream& operator<<(std::ostream& out_stream, const BigInt& value);
@@ -669,6 +671,10 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 	BigIntC copy = bigint_copy(this->m_c_value);
 
 	return BigInt(std::move(copy));
+}
+
+[[nodiscard]] bool BigInt::is_positive() const {
+	return this->m_c_value.positive;
 }
 
 std::string std::to_string(const BigInt& value) {

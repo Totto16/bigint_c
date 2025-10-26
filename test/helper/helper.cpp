@@ -15,8 +15,15 @@
 
 #include <stdexcept>
 
-BigIntTest::BigIntTest(bool positive, std::vector<uint64_t> values) noexcept
-    : m_positive{ positive }, m_values{ std::move(values) } {}
+BigIntTest::BigIntTest(bool positive, const std::vector<uint64_t>& values) noexcept
+    : m_positive{ positive }, m_values{} {
+
+	m_values.resize(values.size());
+
+	for(size_t i = 0; i < values.size(); ++i) {
+		m_values.at(values.size() - i - 1) = values.at(i);
+	}
+}
 
 BigIntTest::BigIntTest(const BigInt& big_int_c) noexcept
     : m_positive{ big_int_c.underlying().positive }, m_values{} {
