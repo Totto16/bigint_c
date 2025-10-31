@@ -113,7 +113,7 @@ struct BigInt {
 	template <typename... Args>
 	    requires(sizeof...(Args) >= 1) &&
 	            (std::conjunction_v<std::is_convertible<Args, uint64_t>...>)
-	BigInt(bool positive, Args... args) noexcept
+	explicit BigInt(bool positive, Args... args) noexcept
 	    : m_c_value{} { // NOLINT(google-explicit-constructor)
 
 		std::vector<uint64_t> values = { static_cast<uint64_t>( // GCOVR_EXCL_BR_LINE (c++ template)
@@ -218,6 +218,8 @@ struct BigInt {
 	[[nodiscard]] BigInt operator^(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt& operator-();
+
+	[[nodiscard]] BigInt operator-() const;
 
 	[[nodiscard]] BigInt& operator+=(const BigInt& value2);
 
@@ -489,6 +491,14 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return *this;
 }
 
+[[nodiscard]] BigInt BigInt::operator-() const {
+	BigIntC copy = bigint_copy(this->m_c_value);
+
+	bigint_negate(&copy);
+
+	return BigInt(std::move(copy));
+}
+
 [[nodiscard]] BigInt& BigInt::operator+=(const BigInt& value2) {
 	BigIntC result = bigint_add_bigint(this->m_c_value, value2.m_c_value);
 
@@ -667,7 +677,6 @@ std::istream& operator>>(std::istream& in_stream, const BigInt& value) {
 }
 
 [[nodiscard]] BigInt BigInt::copy() const {
-
 	BigIntC copy = bigint_copy(this->m_c_value);
 
 	return BigInt(std::move(copy));

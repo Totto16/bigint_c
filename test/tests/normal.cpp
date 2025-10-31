@@ -1882,14 +1882,50 @@ TEST(BigInt, IntegerModTruncated) {
 
 	std::vector<TestType> tests{};
 
-	tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
-	                   BigInt{ (int64_t)-85LL });
-	tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
-	                   BigInt{ (int64_t)-85LL });
-	tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
-	                   BigInt{ (uint64_t)85LL });
-	tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
-	                   BigInt{ (uint64_t)85LL });
+	{ // small tests
+		// + % + => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)85LL });
+		// - % + => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (int64_t)-85LL });
+		// - % - => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (int64_t)-85LL });
+		// + % - => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)85LL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => +
+			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
+			// - % + => -
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   std::move(-(remainder.copy())));
+			// - % - => -
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   std::move(-(remainder.copy())));
+			// + % - => +
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())), remainder.copy());
+		}
+	}
 
 	const ModuloRounding rounding = ModuloRoundingTruncated;
 
