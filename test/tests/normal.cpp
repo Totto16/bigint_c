@@ -1877,6 +1877,56 @@ TEST(BigInt, IntegerShiftRight) {
 	}
 }
 
+static int64_t i64_mod_trunc(int64_t a, int64_t b) {
+	return a % b;
+}
+
+// see: https://en.wikipedia.org/wiki/Modulo#Implementing_other_modulo_definitions_using_truncation
+namespace {
+/* Euclidean and Floored divmod, in the style of C's ldiv() */
+typedef struct {
+	/* This structure is part of the C stdlib.h, but is reproduced here for clarity */
+	long int quot;
+	long int rem;
+} ldiv_t;
+
+/* Euclidean division */
+inline ldiv_t ldivE(long numer, long denom) {
+	/* The C99 and C++11 languages define both of these as truncating. */
+	long q = numer / denom;
+	long r = numer % denom;
+	if(r < 0) {
+		if(denom > 0) {
+			q = q - 1;
+			r = r + denom;
+		} else {
+			q = q + 1;
+			r = r - denom;
+		}
+	}
+	return ldiv_t{ .quot = q, .rem = r };
+}
+
+/* Floored division */
+inline ldiv_t ldivF(long numer, long denom) {
+	long q = numer / denom;
+	long r = numer % denom;
+	if((r > 0 && denom < 0) || (r < 0 && denom > 0)) {
+		q = q - 1;
+		r = r + denom;
+	}
+	return ldiv_t{ .quot = q, .rem = r };
+}
+} // namespace
+
+static int64_t i64_mod_floor(int64_t a, int64_t b) {
+	return ldivF(a, b).rem;
+}
+
+static int64_t i64_mod_euclid(int64_t a, int64_t b) {
+	return ldivE(a, b).rem;
+}
+
 TEST(BigInt, IntegerModTruncated) {
 	using TestType = std::tuple<BigInt, BigInt, BigInt>;
 
@@ -1885,7 +1935,7 @@ TEST(BigInt, IntegerModTruncated) {
 	{ // small tests
 		// + % + => +
 		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
-		                   BigInt{ (uint64_t)85LL });
+		                   BigInt{ (uint64_t)85ULL });
 		// - % + => -
 		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
 		                   BigInt{ (int64_t)-85LL });
@@ -1894,7 +1944,7 @@ TEST(BigInt, IntegerModTruncated) {
 		                   BigInt{ (int64_t)-85LL });
 		// + % - => +
 		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
-		                   BigInt{ (uint64_t)85LL });
+		                   BigInt{ (uint64_t)85ULL });
 	}
 
 	{
@@ -1942,6 +1992,200 @@ TEST(BigInt, IntegerModTruncated) {
 
 		EXPECT_EQ(result_test, result_expected)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModTruncatedCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => +
+		tests.emplace_back(200LL, 115LL, 85LL);
+		// - % + => -
+		tests.emplace_back(-200LL, 115LL, -85LL);
+		// - % - => -
+		tests.emplace_back(-200LL, -115LL, -85LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, 85LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingTruncated;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const uint64_t result_u64 = i64_mod_trunc(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+TEST(BigInt, IntegerModFloored) {
+	using TestType = std::tuple<BigInt, BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	{ // small tests
+		// + % + => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)85ULL });
+		// - % + => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)30ULL });
+		// - % - => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (int64_t)-85LL });
+		// + % - => -
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (int64_t)-30LL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => +
+			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
+			// - % + => +
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(), remainder.copy());
+			// - % - => -
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   std::move(-(remainder.copy())));
+			// + % - => -
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())),
+			                   std::move(-(remainder.copy())));
+		}
+	}
+
+	const ModuloRounding rounding = ModuloRoundingFloored;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const BigInt actual_result = value1.mod(value2, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModFlooredCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => +
+		tests.emplace_back(200LL, 115LL, 85LL);
+		// - % + => -
+		tests.emplace_back(-200LL, 115LL, 30LL);
+		// - % - => -
+		tests.emplace_back(-200LL, -115LL, -85LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, -30LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingFloored;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const uint64_t result_u64 = i64_mod_floor(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+TEST(BigInt, IntegerModEuclideanCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => +
+		tests.emplace_back(200LL, 115LL, 85LL);
+		// - % + => +
+		tests.emplace_back(-200LL, 115LL, 30LL);
+		// - % - => +
+		tests.emplace_back(-200LL, -115LL, 30LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, 85LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingEuclidean;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const uint64_t result_u64 = i64_mod_euclid(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
 }
 
@@ -2027,23 +2271,22 @@ TEST(BigInt, IntegerModGeneric) {
                                                "37364647384747474747474747566383938475727424515135")
                            .value());
 
-    tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL });
-    tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
-                       BigInt{ std::numeric_limits<uint64_t>::max() });
-    tests.emplace_back(
-        BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+    tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL
+}); tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{
+std::numeric_limits<uint64_t>::max() }); tests.emplace_back( BigInt{
+std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
                 std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
                 std::numeric_limits<uint64_t>::max() },
         BigInt{ (uint64_t)2ULL });
 
-    tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max() });
-    tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
-                       BigInt{ std::numeric_limits<uint64_t>::max() });
-    tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+    tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max()
+}); tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{
+std::numeric_limits<uint64_t>::max() }); tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{
+std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
                                                          std::numeric_limits<uint64_t>::max(),
                                                          std::numeric_limits<uint64_t>::max(),
-                                                         std::numeric_limits<uint64_t>::max(),
-                                                         std::numeric_limits<uint64_t>::max() });
+                                                         std::numeric_limits<uint64_t>::max()
+});
 
     tests.emplace_back(
         BigInt::get_from_string(
@@ -2096,7 +2339,8 @@ TEST(BigInt, IntegerModGeneric) {
 
             const BigInt actual_result = value1.mod(value2, rounding);
 
-            const BigIntTest result_expected = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+            const BigIntTest result_expected = BigIntTest(value1).mod(BigIntTest(value2),
+rounding);
 
             EXPECT_EQ(actual_result, result_expected)
                 << "Rounding mode: " << mod_rounding_to_str(rounding)
