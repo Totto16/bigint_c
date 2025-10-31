@@ -447,7 +447,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 			break;
 		}
 		case ModuloRoundingCeiled: {
-			// floored div r
+			// ceiled div r
 			mpz_cdiv_r(result_number, *number1, *number2);
 			break;
 		}
@@ -762,6 +762,110 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	std::ignore = this->operator--();
 
 	return BigIntTest{ std::move(copy) };
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator<<(uint64_t value2) const {
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_mul_2d(*number1, value2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator>>(uint64_t value2) const {
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_div_2d(*number1, value2, &result_number, nullptr);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator%(const BigIntTest& value2) const {
+
+	return this->mod(value2, ModuloRoundingTruncated);
+}
+
+[[nodiscard]] BigIntTest BigIntTest::mod(const BigIntTest& value2, ModuloRounding rounding) const {
+
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	switch(rounding) {
+		case ModuloRoundingTruncated: {
+			// truncated mod
+			// TODO: incorrect
+			error = mp_mod(*number1, *number2, &result_number);
+			if(error != MP_OKAY) {
+				mp_clear(&result_number);
+				throw std::runtime_error{ mp_error_to_string(error) };
+			}
+			break;
+		}
+		case ModuloRoundingFloored: {
+			// floored mod
+			// TODO: incorrect
+			error = mp_mod(*number1, *number2, &result_number);
+			if(error != MP_OKAY) {
+				mp_clear(&result_number);
+				throw std::runtime_error{ mp_error_to_string(error) };
+			}
+			break;
+		}
+		case ModuloRoundingCeiled: {
+			// ceiled mod
+			// TODO: incorrect
+			error = mp_mod(*number1, *number2, &result_number);
+			if(error != MP_OKAY) {
+				mp_clear(&result_number);
+				throw std::runtime_error{ mp_error_to_string(error) };
+			}
+			break;
+		}
+		case ModuloRoundingEuclidean: {
+			// always positive result
+			error = mp_mod(*number1, *number2, &result_number);
+			if(error != MP_OKAY) {
+				mp_clear(&result_number);
+				throw std::runtime_error{ mp_error_to_string(error) };
+			}
+			break;
+		}
+		default: {
+			throw new std::runtime_error("Not expected rounding mode");
+		}
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
 }
 
 #endif
