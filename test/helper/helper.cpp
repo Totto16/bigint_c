@@ -446,6 +446,11 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 			mpz_fdiv_r(result_number, *number1, *number2);
 			break;
 		}
+		case ModuloRoundingCeiled: {
+			// floored div r
+			mpz_cdiv_r(result_number, *number1, *number2);
+			break;
+		}
 		case ModuloRoundingEuclidean: {
 			// always positive result
 			mpz_mod(result_number, *number1, *number2);

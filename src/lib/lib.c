@@ -2452,6 +2452,16 @@ NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC d
 			}
 			break;
 		}
+		case ModuloRoundingCeiled: {
+			// the defintions says, it is always the opposite sign as the divisor
+			final_is_positive = !divisor.positive;
+
+			// if the signs are the same, the result needs to be "inverted"
+			if(dividend.positive== divisor.positive) {
+				result_needs_to_be_inverted = true;
+			}
+			break;
+		}
 		case ModuloRoundingEuclidean: {
 			// the defintions says, it is always positive
 			final_is_positive = true;

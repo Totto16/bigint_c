@@ -172,6 +172,7 @@ typedef enum {
 typedef enum {
 	ModuloRoundingTruncated,
 	ModuloRoundingFloored,
+	ModuloRoundingCeiled,
 	ModuloRoundingEuclidean,
 } ModuloRounding;
 
