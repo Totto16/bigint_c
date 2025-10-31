@@ -2082,7 +2082,8 @@ TEST(BigInt, IntegerModFloored) {
 			// + % + => +
 			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
 			// - % + => +
-			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(), remainder_inverted.copy());
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   remainder_inverted.copy());
 			// - % - => -
 			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
 			                   std::move(-(remainder.copy())));
@@ -2149,6 +2150,79 @@ TEST(BigInt, IntegerModFlooredCImpl) {
 		const uint64_t result_u64 = i64_mod_floor(value1, value2);
 
 		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+TEST(BigInt, IntegerModEuclidean) {
+	using TestType = std::tuple<BigInt, BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	{ // small tests
+		// + % + => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)85ULL });
+		// - % + => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)30ULL });
+		// - % - => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)30ULL });
+		// + % - => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)85ULL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt remainder_inverted = divisor - remainder;
+
+		EXPECT_TRUE(remainder_inverted.is_positive());
+		EXPECT_LT(remainder_inverted, divisor);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => +
+			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
+			// - % + => +
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   remainder_inverted.copy());
+			// - % - => +
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   remainder_inverted.copy());
+			// + % - => +
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())), remainder.copy());
+		}
+	}
+
+	const ModuloRounding rounding = ModuloRoundingEuclidean;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const BigInt actual_result = value1.mod(value2, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 	}
 }
 
