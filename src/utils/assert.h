@@ -20,11 +20,7 @@ BIGINT_C_ONLY_LOCAL void custom_assert(const char* file, int line, bool cond, co
 // cool trick from here:
 // https://stackoverflow.com/questions/777261/avoiding-unused-variables-warnings-when-using-assert-in-a-release-build
 #ifdef NDEBUG
-#define ASSERT(x, msg) /* NOLINT(readability-identifier-naming) */ \
-	do {               /*NOLINT(cppcoreguidelines-avoid-do-while)*/ \
-		UNUSED((x)); \
-		UNUSED((msg)); \
-	} while(false)
+#define ASSERT(x, msg)
 
 #define UNREACHABLE_WITH_MSG(msg) \
 	do { /*NOLINT(cppcoreguidelines-avoid-do-while)*/ \
