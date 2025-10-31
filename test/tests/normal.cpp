@@ -2071,19 +2071,24 @@ TEST(BigInt, IntegerModFloored) {
 		EXPECT_LT(remainder, divisor);
 		EXPECT_LT(divisor, first_part);
 
+		BigInt remainder_inverted = divisor - remainder;
+
+		EXPECT_TRUE(remainder_inverted.is_positive());
+		EXPECT_LT(remainder_inverted, divisor);
+
 		BigInt actual_value = (first_part * divisor) + remainder;
 
 		{ // big tests
 			// + % + => +
 			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
 			// - % + => +
-			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(), remainder.copy());
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(), remainder_inverted.copy());
 			// - % - => -
 			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
 			                   std::move(-(remainder.copy())));
 			// + % - => -
 			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())),
-			                   std::move(-(remainder.copy())));
+			                   std::move(-(remainder_inverted.copy())));
 		}
 	}
 
