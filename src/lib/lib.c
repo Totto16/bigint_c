@@ -1222,7 +1222,7 @@ NODISCARD static BigIntC bigint_add_bigint_both_positive_normal(BigIntC big_int1
 		       "The carry at the end has to be zero, otherwise we would have an overflow");
 	}
 
-	bigint_helper_remove_leading_zeroes(&result);
+	bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
 
 	return result;
 }
@@ -1263,7 +1263,7 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_normal(BigIntC big_int1
 		       "The borrow at the end has to be zero, otherwise we would have an overflow");
 	}
 
-	bigint_helper_remove_leading_zeroes(&result);
+	bigint_helper_remove_leading_zeroes_but_not_normalize(&result);
 
 	return result;
 }
