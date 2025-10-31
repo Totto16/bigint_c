@@ -1917,6 +1917,21 @@ inline ldiv_t ldivF(long numer, long denom) {
 	}
 	return ldiv_t{ .quot = q, .rem = r };
 }
+
+// similar as the two above, but done myself
+
+/* Ceiled division */
+inline ldiv_t ldivC(long numer, long denom) {
+	long q = numer / denom;
+	long r = numer % denom;
+	if((r > 0 && denom > 0) || (r < 0 && denom < 0)) {
+		q = q + 1;
+		r = r - denom;
+	}
+
+	return ldiv_t{ .quot = q, .rem = r };
+}
+
 } // namespace
 
 static int64_t i64_mod_floor(int64_t a, int64_t b) {
@@ -1925,6 +1940,10 @@ static int64_t i64_mod_floor(int64_t a, int64_t b) {
 
 static int64_t i64_mod_euclid(int64_t a, int64_t b) {
 	return ldivE(a, b).rem;
+}
+
+static int64_t i64_mod_ceil(int64_t a, int64_t b) {
+	return ldivC(a, b).rem;
 }
 
 TEST(BigInt, IntegerModTruncated) {
@@ -2224,6 +2243,48 @@ TEST(BigInt, IntegerModCeiled) {
 
 		EXPECT_EQ(result_test, result_expected)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModCeiledCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => -
+		tests.emplace_back(200LL, 115LL, -30LL);
+		// - % + => -
+		tests.emplace_back(-200LL, 115LL, -85LL);
+		// - % - => +
+		tests.emplace_back(-200LL, -115LL, 30LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, 85LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingCeiled;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const uint64_t result_u64 = i64_mod_ceil(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
 }
 
