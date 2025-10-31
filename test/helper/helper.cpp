@@ -15,15 +15,21 @@
 
 #include <stdexcept>
 
-BigIntTest::BigIntTest(bool positive, const std::vector<uint64_t>& values) noexcept
-    : m_positive{ positive }, m_values{} {
+BigIntTest BigIntTest::from_list_of_numbers(bool positive, const std::vector<uint64_t>& values) {
 
-	m_values.resize(values.size());
+	std::vector<uint64_t> final_values{};
+
+	final_values.resize(values.size());
 
 	for(size_t i = 0; i < values.size(); ++i) {
-		m_values.at(values.size() - i - 1) = values.at(i);
+		final_values.at(values.size() - i - 1) = values.at(i);
 	}
+
+	return { positive, std::move(final_values) };
 }
+
+BigIntTest::BigIntTest(bool positive, std::vector<uint64_t>&& values) noexcept
+    : m_positive{ positive }, m_values{ std::move(values) } {}
 
 BigIntTest::BigIntTest(const BigInt& big_int_c) noexcept
     : m_positive{ big_int_c.underlying().positive }, m_values{} {
@@ -106,7 +112,7 @@ BigIntTest& BigIntTest::operator=(BigIntTest&& big_int) noexcept {
 		values_copy.push_back(value);
 	}
 
-	return BigIntTest(m_positive, values_copy);
+	return { m_positive, std::move(values_copy) };
 }
 
 [[nodiscard]] bool BigIntTest::is_special_separator(char value) {

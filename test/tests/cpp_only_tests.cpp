@@ -304,7 +304,7 @@ TEST(BigInt, ParseSuccess0Normalize) {
 
 	BigInt big_int = std::move(maybe_big_int.value());
 
-	BigIntTest result = BigIntTest(true, { 0ULL });
+	BigIntTest result = BigIntTest::from_list_of_numbers(true, { 0ULL });
 
 	EXPECT_EQ(big_int, result);
 
@@ -320,7 +320,7 @@ TEST(BigInt, TemplateConstructor0) {
 
 	BigInt big_int{ (uint64_t)16ULL, (uint64_t)18ULL };
 
-	BigIntTest result = BigIntTest(true, { (uint64_t)16ULL, (uint64_t)18ULL });
+	BigIntTest result = BigIntTest::from_list_of_numbers(true, { (uint64_t)16ULL, (uint64_t)18ULL });
 
 	EXPECT_EQ(big_int, result);
 
@@ -337,7 +337,7 @@ TEST(BigInt, TemplateConstructor1) {
 
 	BigInt big_int{ true, (uint64_t)16ULL, (uint64_t)18ULL };
 
-	BigIntTest result = BigIntTest(true, { (uint64_t)16ULL, (uint64_t)18ULL });
+	BigIntTest result = BigIntTest::from_list_of_numbers(true, { (uint64_t)16ULL, (uint64_t)18ULL });
 
 	EXPECT_EQ(big_int, result);
 
@@ -354,7 +354,7 @@ TEST(BigInt, TemplateConstructor2) {
 
 	BigInt big_int{ false, (uint64_t)16ULL, (uint64_t)18ULL };
 
-	BigIntTest result = BigIntTest(false, { (uint64_t)16ULL, (uint64_t)18ULL });
+	BigIntTest result = BigIntTest::from_list_of_numbers(false, { (uint64_t)16ULL, (uint64_t)18ULL });
 
 	EXPECT_EQ(big_int, result);
 
@@ -371,7 +371,7 @@ TEST(BigInt, TemplateConstructor3) {
 
 	BigInt big_int{ false, { (uint64_t)16ULL, (uint64_t)18ULL } };
 
-	BigIntTest result = BigIntTest(false, { (uint64_t)16ULL, (uint64_t)18ULL });
+	BigIntTest result = BigIntTest::from_list_of_numbers(false, { (uint64_t)16ULL, (uint64_t)18ULL });
 
 	EXPECT_EQ(big_int, result);
 
