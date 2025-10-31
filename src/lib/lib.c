@@ -2433,6 +2433,7 @@ NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC d
                                                      ModuloRounding mod_rounding) {
 
 	bool final_is_positive = true;
+	bool result_needs_to_be_inverted = false;
 
 	// see e.g. https://en.wikipedia.org/wiki/Modulo#Variants_of_the_definition
 	switch(mod_rounding) {
@@ -2444,11 +2445,20 @@ NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC d
 		case ModuloRoundingFloored: {
 			// the defintions says, it is always the sign as the divisor
 			final_is_positive = divisor.positive;
+
+			// if the signs are different, the result needs to be "inverted"
+			if(dividend.positive != divisor.positive) {
+				result_needs_to_be_inverted = true;
+			}
 			break;
 		}
 		case ModuloRoundingEuclidean: {
 			// the defintions says, it is always positive
 			final_is_positive = true;
+			// if the dividend is negative, the result needs to be "inverted"
+			if(!dividend.positive) {
+				result_needs_to_be_inverted = true;
+			}
 			break;
 		}
 		default: {
@@ -2468,6 +2478,25 @@ NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC d
 		if(bigint_helper_is_zero(result)) {
 			result.positive = true;
 		} else {
+
+			if(result_needs_to_be_inverted) {
+				// the result gets "inverted", where inverted means the inversion in the mod class
+				// respective to the + operation (e.g. 200 % 115 => 85 => inverted -> 30 = (115 -
+				// 80) mod 115)
+
+				// result has range (0, divisor), (both exclusive)
+				// so result_inverted has_range [1,divisor-2], both (inclusive) or (0, divisor-1)
+				// both exclusive), which is a valid range in the mod
+
+				// make divisor positive, otherwise this makes no sense
+				divisor.positive = true;
+
+				BigInt result_inverted = bigint_sub_bigint(divisor, result);
+
+				free_bigint_without_reset(result);
+				result = result_inverted;
+			}
+
 			result.positive = final_is_positive;
 		}
 
