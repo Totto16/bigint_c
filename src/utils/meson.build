@@ -1,4 +1,4 @@
-src_files += files('assert.c', 'assert.h', 'utils.h')
+src_files += files('assert.c', 'assert.h', 'features.c', 'features.h', 'utils.h')
 
 install_headers(
     files('utils.h'),
