@@ -106,6 +106,9 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 	// optimization_level >= OptimizationLevel_ARM64_NEON
 	return optimization_level;
 
+#else
+// TODO: only aarch64 depends on linux, the rest can be used under mingw too!
+#error "NOT supported on linux atm"
 #endif
 
 #else
