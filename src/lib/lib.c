@@ -3493,20 +3493,30 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
                                                        BitWiseOperation op, size_t max_size,
                                                        OptimizationLevel opt_level) {
 
-	// TODO. check for some min size, for which the algorithmns make sense!
-
 	switch(opt_level) {
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 			// 86_64
 		case OptimizationLevel_AMD64_SSE2: {
+		use_sse2:
 			return process_bitwise_operation_hardware_accelerated_amd64_sse2(big_int1, big_int2, op,
 			                                                                 max_size);
 		}
 		case OptimizationLevel_AMD64_AVX2: {
+		use_avx2:
+
+			if(max_size <= MIN_SIZE_FOR_AVX2) {
+				goto use_sse2;
+			}
+
 			return process_bitwise_operation_hardware_accelerated_amd64_avx2(big_int1, big_int2, op,
 			                                                                 max_size);
 		}
 		case OptimizationLevel_AMD64_AVX512: {
+
+			if(max_size <= MIN_SIZE_FOR_AVX512) {
+				goto use_avx2;
+			}
+
 			return process_bitwise_operation_hardware_accelerated_amd64_avx512(big_int1, big_int2,
 			                                                                   op, max_size);
 		}
