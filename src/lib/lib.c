@@ -1752,15 +1752,35 @@ NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t d
 
 #if defined(__GNUC__)
 
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+
 NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor) {
 	DivModU64 res = {};
-	// TODO: use divmod if the architecture has it, e.g. x86_64 shoudl have it, but it has to work
-	// for 64 unsigned bit integers too!
+
+	// On x86-64: DIV r/m64 divides RDX:RAX by the operand
+	//   Quotient  -> RAX
+	//   Remainder -> RDX
+	__asm__("xor %%rdx, %%rdx\n\t"              // Clear RDX for 128-bit dividend (RDX:RAX)
+	        "divq %[dvs]\n\t"                   // Divide RDX:RAX by divisor (unsigned)
+	        : "=a"(res.div), "=d"(res.mod)      // Outputs: RAX -> res.div, RDX -> res.mod
+	        : "a"(dividend), [dvs] "r"(divisor) // Inputs: RAX=dividend, operand=divisor
+	        : "cc"                              // Clobbers: condition codes
+	);
+
+	return res;
+}
+
+#else
+NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor) {
+	DivModU64 res = {};
 	res.div = dividend / divisor;
 	res.mod = dividend % divisor;
 
 	return res;
 }
+
+#endif
+
 #else
 NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor) {
 
