@@ -59,3 +59,13 @@
 #endif
 
 // clang-format on
+
+#if defined(_MSC_VER)
+
+#define CPU_TARGET(tgt) __declspec(cpu_specific(tgt))
+
+#else
+
+#define CPU_TARGET(tgt) __attribute__((target(#tgt)))
+
+#endif
