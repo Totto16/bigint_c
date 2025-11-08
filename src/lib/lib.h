@@ -81,10 +81,10 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_signed_number(int64_t number
  * @param size
  * @returns BigIntC - the result
  */
-NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64_t* numbers,
-                                                                    size_t size, bool positive);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC
+bigint_from_list_of_numbers(PARAMS_IN const uint64_t* numbers, size_t size, bool positive);
 
-BIGINT_C_LIB_EXPORTED void free_bigint(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void free_bigint(PARAMS_IN BigIntC* big_int);
 
 BIGINT_C_LIB_EXPORTED void free_bigint_without_reset(BigIntC big_int);
 
@@ -110,7 +110,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_sub_bigint(BigIntC big_int1, BigI
  * @param big_int1 in_out
  * @returns void
  */
-BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1);
+BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(PARAMS_INOUT BigIntC* big_int1);
 
 /**
  * @brief This decrements the bigint by one, it is faster, as it is optimized for only subtracting
@@ -119,7 +119,7 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1);
  * @param big_int1 in_out
  * @returns void
  */
-BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1);
+BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(PARAMS_INOUT BigIntC* big_int1);
 
 /**
  * @brief This compares two bigints for equality, this is faster than comparing them, as this may
@@ -141,7 +141,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC 
  */
 NODISCARD BIGINT_C_LIB_EXPORTED int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);
 
-BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void bigint_negate(PARAMS_INOUT BigIntC* big_int);
 
 NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2);
 
@@ -152,7 +152,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigI
  * @param big_int {in_out}
  * @param amount
  */
-BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, uint64_t amount);
+BIGINT_C_LIB_EXPORTED void bigint_shift_right(PARAMS_INOUT BigIntC* big_int, uint64_t amount);
 
 /**
  * @brief Shifts the bits of the underlying value by <amount> to the left same as  x * (2**x), sign
@@ -161,7 +161,7 @@ BIGINT_C_LIB_EXPORTED void bigint_shift_right(BigIntC* big_int, uint64_t amount)
  * @param big_int {in_out}
  * @param amount
  */
-BIGINT_C_LIB_EXPORTED void bigint_shift_left(BigIntC* big_int, uint64_t amount);
+BIGINT_C_LIB_EXPORTED void bigint_shift_left(PARAMS_INOUT BigIntC* big_int, uint64_t amount);
 
 typedef enum {
 	DivisionRoundingFloor,
@@ -189,10 +189,12 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint_advanced(BigIntC divid
                                                                    ModuloRounding rounding);
 
 BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint(BigIntC dividend, BigIntC divisor,
-                                                 BigIntC* out_div, BigIntC* out_mod);
+                                                 PARAMS_OUT BigIntC* out_div,
+                                                 PARAMS_OUT BigIntC* out_mod);
 
 BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint_advanced(BigIntC dividend, BigIntC divisor,
-                                                          BigIntC* out_div, BigIntC* out_mod,
+                                                          PARAMS_OUT BigIntC* out_div,
+                                                          PARAMS_OUT BigIntC* out_mod,
                                                           DivisionRounding div_rounding,
                                                           ModuloRounding mod_rounding);
 
@@ -230,4 +232,4 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_bitwise_and(BigIntC big_int1, Big
  *
  * @param big_int {in_out}
  */
-BIGINT_C_LIB_EXPORTED void bigint_bitwise_complement(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void bigint_bitwise_complement(PARAMS_INOUT BigIntC* big_int);

@@ -64,8 +64,16 @@
 
 #define CPU_TARGET(tgt) __declspec(cpu_specific(tgt))
 
+#define PARAMS_OUT _Out_
+#define PARAMS_IN _In_
+#define PARAMS_INOUT _Inout_
+
 #else
 
 #define CPU_TARGET(tgt) __attribute__((target(#tgt)))
+
+#define PARAMS_OUT
+#define PARAMS_IN
+#define PARAMS_INOUT
 
 #endif

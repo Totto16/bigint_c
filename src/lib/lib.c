@@ -2740,10 +2740,6 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
-// TODO: use outparam more often, and also inout, in msvc there are even specific attributes, in
-// clang too??
-#define OUTPARAM
-
 typedef enum {
 	AlignedTheSameNone = 0x00,
 	AlignedTheSameFirst = 0x01,
@@ -2759,8 +2755,8 @@ NODISCARD static size_t helper_get_alignment_bytes_of(const void* const ptr,
 
 static void helper_get_config_for_aligned_arrays(BigIntC big_int1, BigIntC big_int2,
                                                  size_t max_size, size_t aligned_to_bytes,
-                                                 OUTPARAM AlignedTheSame* aligned_info,
-                                                 OUTPARAM size_t* offset_bytes) {
+                                                 PARAMS_OUT AlignedTheSame* aligned_info,
+                                                 PARAMS_OUT size_t* offset_bytes) {
 
 	// note: this function returns, which alignment it used, and which of the two it used as a
 	// reference, so that the other one is correctly aligned later on, this also takes into account
