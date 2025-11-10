@@ -31,6 +31,12 @@ jobs:
             use-clang: false
             arm: true
 
+          - name: Linux (Clang, ARM64)
+            os: ubuntu
+            os-version: 24.04-arm
+            use-clang: true
+            arm: true
+
           - name: Linux (GCC, x86_64)
             os: ubuntu
             os-version: 24.04
