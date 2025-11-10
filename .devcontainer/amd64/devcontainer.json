@@ -24,7 +24,7 @@
             ],
             "settings": {
                 "terminal.integrated.shell.linux": "/bin/bash",
-                "clangd.path": "/usr/bin/clangd-21",
+                "clangd.path": "/usr/bin/clangd",
                 "clangd.arguments": [
                     "--all-scopes-completion",
                     "--background-index",
