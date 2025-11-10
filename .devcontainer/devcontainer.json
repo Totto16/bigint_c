@@ -4,14 +4,41 @@
         "dockerfile": "Dockerfile",
         "args": {
             "UBUNTU_VARIANT": "24.04",
-            "BUILD_PLATFORM":"linux/arm64"
+            "BUILD_PLATFORM": "linux/arm64"
         }
     },
     "runArgs": [
         "--platform=linux/arm64"
     ],
+    "extensions": [
+        "xaver.clang-format",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "mesonbuild.mesonbuild"
+    ],
     "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash"
+        "terminal.integrated.shell.linux": "/bin/bash",
+        "clangd.path": "/usr/bin/clangd-21",
+        "clangd.arguments": [
+            "--all-scopes-completion",
+            "--background-index",
+            "--background-index-priority=background",
+            "--clang-tidy",
+            "--completion-style=bundled",
+            "--function-arg-placeholders",
+            "--enable-config",
+            "-j",
+            "3",
+            "--malloc-trim",
+            "--pretty",
+            "--header-insertion=never",
+            "--compile-commands-dir=build_arm64"
+        ],
+        "[c]": {
+            "editor.defaultFormatter": "xaver.clang-format"
+        },
+        "[cpp]": {
+            "editor.defaultFormatter": "xaver.clang-format"
+        },
     },
     "remoteUser": "vscode",
     "features": {},
