@@ -1,12 +1,14 @@
 {
-    "extends": "../base.json",
     "name": "Ubuntu 24.04 Dev Amd64",
     "build": {
+        "dockerfile": "../Dockerfile",
         "args": {
+            "UBUNTU_VARIANT": "24.04",
             "BUILD_PLATFORM": "linux/amd64"
         }
     },
     "runArgs": [
         "--platform=linux/amd64"
-    ]
+    ],
+    "workspaceFolder": "/work"
 }
