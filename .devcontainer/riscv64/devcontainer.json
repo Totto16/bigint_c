@@ -1,5 +1,5 @@
 {
-    "extends": "./base.json",
+    "extends": "../base.json",
     "name": "Ubuntu 24.04 Dev Risc V 64",
     "build": {
         "args": {
