@@ -4003,8 +4003,8 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 NODISCARD static BigIntC process_bitwise_operation(BigIntC big_int1, BigIntC big_int2,
                                                    BitWiseOperation op) {
 
-#if (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)) || (defined(__aarch64__))
 	size_t max_size = helper_max(big_int1.number_count, big_int2.number_count);
+#if (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)) || (defined(__aarch64__))
 
 	if(max_size <= MIN_SIZE_FOR_HARDWARE_ACCEL) {
 		return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
