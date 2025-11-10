@@ -8,6 +8,8 @@ LABEL devcontainer.metadata='[{ \
     "features": {} \
     }]'
 
+COPY ./post_run.sh ./install_clang.sh /tmp/
+
 # Prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,7 +17,7 @@ ENV CC_LD="mold"
 ENV LD="mold"
 ENV CXX_LD="mold"
 
-# Install common utilities, gcc 14 and clang 21, also prepare meson
+# Install common utilities, gcc 14 and clang, also prepare meson
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     sudo \
@@ -33,28 +35,17 @@ RUN apt-get update \
     ninja-build \
     pkg-config \
     mold \
-    lsb-release wget software-properties-common gnupg \
     && pip install meson --break-system-packages \
-    && wget apt.llvm.org/llvm.sh -O "/tmp/llvm.sh" \
-    && chmod +x /tmp/llvm.sh \
-    && /tmp/llvm.sh 21\
-    && rm /tmp/llvm.sh \
-    && apt-get install -y --no-install-recommends \
-    clang-tidy-21 clang-format-21 clangd-21 clang-21 \
-    clang-tools-21 lld-21 lldb-21 \
-    && rm -rf /var/lib/apt/lists/*
+    && chmod +x /tmp/install_clang.sh \
+    && /tmp/install_clang.sh \
+    && rm /tmp/install_clang.sh \
+    && rm -rf /var/lib/apt/lists/* 
 
-
-COPY ./symlink_clang_utils.sh ./post_run.sh /tmp/
-
-#symlink all clang 21 things to better paths e.g. clang-21 to /usr/bin/clang
-RUN chmod +x /tmp/symlink_clang_utils.sh \
-    && chmod +x /tmp/post_run.sh \
+# setup post run script and directories
+RUN chmod +x /tmp/post_run.sh \
     && mkdir -pv /runtime/ \
     && chown ubuntu:ubuntu /runtime/ \
-    && chmod 755 /runtime/ \
-    && /tmp/symlink_clang_utils.sh 21 \
-    && rm /tmp/symlink_clang_utils.sh
+    && chmod 755 /runtime/ 
 
 USER ubuntu
 WORKDIR /work

@@ -56,9 +56,48 @@ function register_clang_version {
         --install /usr/bin/clangd clangd "/usr/bin/clangd-${version}" "${priority}"
 }
 
-if [ "$#" -eq 1 ]; then
-    register_clang_version "$1" "$1"
+function install_clang_via_apt() {
+    CLANG_VERSION="$1"
+
+    apt-get install -y --no-install-recommends \
+        "clang-$CLANG_VERSION" \
+        "clangd-$CLANG_VERSION" \
+        "clang-tidy-$CLANG_VERSION" \
+        "clang-format-$CLANG_VERSION" \
+        "clang-tools-$CLANG_VERSION" \
+        "lld-$CLANG_VERSION" \
+        "lldb-$CLANG_VERSION"
+
+    register_clang_version "$CLANG_VERSION" "$CLANG_VERSION"
+
+}
+
+function install_clang_via_llvm() {
+    CLANG_VERSION="$1"
+
+    apt-get install -y --no-install-recommends \
+        lsb-release \
+        wget \
+        software-properties-common \
+        gnupg
+
+    wget apt.llvm.org/llvm.sh -O "/tmp/llvm.sh"
+    chmod +x /tmp/llvm.sh
+
+    /tmp/llvm.sh "$CLANG_VERSION"
+    rm /tmp/llvm.sh
+
+    install_clang_via_apt "$CLANG_VERSION"
+
+}
+
+ARCH="$(uname -m)"
+
+if [ "$ARCH" = "riscv64" ]; then
+    install_clang_via_llvm 21
+elif [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "aarch64" ]; then
+    install_clang_via_apt 20
 else
-    echo "expected 1 argument, got $#"
-    exit 1
+    echo "invalid arch: '$ARCH'"
+    exit 2
 fi
