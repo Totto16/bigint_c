@@ -66,7 +66,8 @@ function install_clang_via_apt() {
         "clang-format-$CLANG_VERSION" \
         "clang-tools-$CLANG_VERSION" \
         "lld-$CLANG_VERSION" \
-        "lldb-$CLANG_VERSION"
+        "lldb-$CLANG_VERSION" \
+        "llvm-$CLANG_VERSION"
 
     register_clang_version "$CLANG_VERSION" "$CLANG_VERSION"
 
