@@ -30,6 +30,15 @@ RUN apt-get update \
     && rm /tmp/llvm.sh \
     && rm -rf /var/lib/apt/lists/*
 
+
+#symlink all clang 21 things to better paths e.g. clang-21 to /usr/bin/clang
+COPY ./symlink_clang_utils.sh /tmp/
+
+RUN chmod +x /tmp/symlink_clang_utils.sh \
+    && /tmp/symlink_clang_utils.sh 21 \
+    && rm /tmp/symlink_clang_utils.sh
+
+
 # Create a non-root user (vscode)
 RUN useradd -m vscode && echo "vscode ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vscode
 
