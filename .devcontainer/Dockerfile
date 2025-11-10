@@ -88,17 +88,19 @@ RUN chmod +x /tmp/symlink_clang_utils.sh \
     && rm /tmp/symlink_clang_utils.sh
 
 RUN if [ -e "/work/build_sym_link" ]; then \
-    rm /work/build_sym_link; \ 
+    rm /work/build_sym_link; \
     fi \
     && \
-    if [ "$BUILD_PLATFORM" = "linux/riscv64" ]; then \
+    ARCH="$(uname -m)" \
+    && \
+    if [ "$ARCH" = "riscv64" ]; then \
     ln -s /work/build_riscv /work/build_sym_link; \
-    elif [ "$BUILD_PLATFORM" = "linux/arm64/v8" ] || [ "$BUILD_PLATFORM" = "linux/arm64" ]; then \
+    elif [ "$ARCH" = "aarch64" ]; then \
     ln -s /work/build_arm64 /work/build_sym_link; \
-    elif [ "$BUILD_PLATFORM" = "linux/amd64" ]; then \
+    elif [ "$ARCH" = "x86_64" ]; then \
     ln -s /work/build /work/build_sym_link; \
     else \
-    echo "invalid BUILD_PLATFORM: $BUILD_PLATFORM"; \ 
+    echo "invalid arch: '$ARCH'"; \
     exit 2; \
     fi
 
