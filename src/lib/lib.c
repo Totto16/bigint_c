@@ -2704,6 +2704,8 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 	return result;
 }
 
+// hardware accelerated code
+
 #define MIN_HW_ACCEL_SIZE_MULT 2UL
 
 #define SIZE_OF_UINT64_IN_BITS 64UL
@@ -2760,11 +2762,17 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 #include <emmintrin.h> // SSE2 intrinsics
 #include <immintrin.h> // many intrincs, also avx2 and avx512
+
+#define USE_HARDWARE_ACCEL 1
 #elif defined(__aarch64__)
 
 #include <arm_neon.h> // NEON intrinsics
 #include <arm_sve.h>  // SVE intrinsics
+
+#define USE_HARDWARE_ACCEL 1
 #endif
+
+#if defined(USE_HARDWARE_ACCEL)
 
 typedef enum {
 	AlignedTheSameNone = 0x00,
@@ -2937,6 +2945,8 @@ NODISCARD static void* helper_alloc_aligned_with_offset(void** result, size_t si
 	return aligned_ptr;
 }
 
+#endif // defined(USE_HARDWARE_ACCEL)
+
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
 // See: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
@@ -2997,8 +3007,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_sse2_impl(
 		result_array[i] = array1[i] | array2[i];
 	}
 }
-CPU_TARGET(sse2)
 
+CPU_TARGET(sse2)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_sse2_impl(
     size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
     uint64_t* result_array, size_t aligned_bytes) {
@@ -3025,10 +3035,10 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_sse2_impl(
 	}
 }
 
-CPU_TARGET(sse2)
-NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_amd64_sse2(BigIntC big_int1, BigIntC big_int2,
-                                                          BitWiseOperation op, size_t max_size) {
+NODISCARD static BigIntC CPU_TARGET(sse2)
+    process_bitwise_operation_hardware_accelerated_amd64_sse2(BigIntC big_int1, BigIntC big_int2,
+                                                              BitWiseOperation op,
+                                                              size_t max_size) {
 
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
@@ -3210,10 +3220,10 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx2_impl(
 	}
 }
 
-CPU_TARGET(avx2)
-NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_amd64_avx2(BigIntC big_int1, BigIntC big_int2,
-                                                          BitWiseOperation op, size_t max_size) {
+NODISCARD static BigIntC CPU_TARGET(avx2)
+    process_bitwise_operation_hardware_accelerated_amd64_avx2(BigIntC big_int1, BigIntC big_int2,
+                                                              BitWiseOperation op,
+                                                              size_t max_size) {
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
 	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, ALIGN_BYTES_OF_AVX2,
@@ -3394,10 +3404,10 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx512_impl(
 	}
 }
 
-CPU_TARGET(avx512f)
-NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_amd64_avx512(BigIntC big_int1, BigIntC big_int2,
-                                                            BitWiseOperation op, size_t max_size) {
+NODISCARD static BigIntC CPU_TARGET(avx512f)
+    process_bitwise_operation_hardware_accelerated_amd64_avx512(BigIntC big_int1, BigIntC big_int2,
+                                                                BitWiseOperation op,
+                                                                size_t max_size) {
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
 	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, ALIGN_BYTES_OF_AVX512,
@@ -3942,6 +3952,8 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_in
 
 #endif
 
+#if defined(USE_HARDWARE_ACCEL)
+
 NODISCARD static BigIntC
 process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC big_int2,
                                                        BitWiseOperation op, size_t max_size,
@@ -4000,11 +4012,13 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 	}
 }
 
+#endif // defined(USE_HARDWARE_ACCEL)
+
 NODISCARD static BigIntC process_bitwise_operation(BigIntC big_int1, BigIntC big_int2,
                                                    BitWiseOperation op) {
 
 	size_t max_size = helper_max(big_int1.number_count, big_int2.number_count);
-#if (defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)) || (defined(__aarch64__))
+#if defined(USE_HARDWARE_ACCEL)
 
 	if(max_size <= MIN_SIZE_FOR_HARDWARE_ACCEL) {
 		return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
