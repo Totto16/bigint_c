@@ -3,8 +3,6 @@
 #include "./features.h"
 #undef BIGINT_C_LIB_INTERNAL_USAGE
 
-
-
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
 #elif defined(__aarch64__)
@@ -16,7 +14,6 @@
 #include <sys/auxv.h>
 #endif
 #endif
-
 
 NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(void) {
 
@@ -38,6 +35,7 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 #endif
 
 #elif defined(__aarch64__)
+
 #if defined(__ARM_FEATURE_SVE) && __ARM_FEATURE_SVE == 1
 	    OptimizationLevel_ARM64_SVE
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__)
@@ -45,6 +43,15 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 #else
 	    OptimizationLevelNone
 #endif
+
+#elif defined(__riscv) && __riscv_xlen == 64
+
+#if defined(__riscv_vector)
+	    OptimizationLevel_RISCV64_RVV
+#else
+	    OptimizationLevelNone
+#endif
+
 #else
 	    OptimizationLevelNone
 #endif
@@ -53,9 +60,9 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 
 	// now detect the runtime best optimization
 
-#if defined(__GNUC__)
-
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+
+#if defined(__GNUC__)
 
 	__builtin_cpu_init();
 
@@ -86,7 +93,13 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 	// optimization_level >= OptimizationLevel_AMD64_SSE2
 	return optimization_level;
 
+#else
+#error "only gcc / clang runtime detection for x86_64 supported"
+#endif
+
 #elif defined(__aarch64__)
+
+#if defined(__linux__)
 
 	unsigned long hwcap = getauxval(AT_HWCAP);
 
@@ -110,12 +123,63 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 	return optimization_level;
 
 #else
-// TODO: only aarch64 depends on linux, the rest can be used under mingw too!
-#error "NOT supported on linux atm"
+#error "only linux runtime detection for arm64 supported"
+#endif
+
+#elif defined(__riscv) && __riscv_xlen == 64
+
+#if defined(__linux__)
+
+	// see: https://docs.kernel.org/arch/riscv/hwprobe.html
+
+#if __has_include(<sys/hwprobe.h>)
+#include <sys/hwprobe.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#else
+#include <asm/hwprobe.h>
+#include <sys/syscall.h>
+#define _GNU_SOURCE 1
+#include <unistd.h>
+#undef _GNU_SOURCE
+#endif
+
+	struct riscv_hwprobe probe = {
+		.key = RISCV_HWPROBE_KEY_IMA_EXT_0, // ISA extensions
+	};
+
+#if __has_include(<sys/hwprobe.h>)
+	long ret = sys_riscv_hwprobe(&probe, 1, 0, NULL, 0);
+#else
+	long ret = syscall(__NR_riscv_hwprobe, &probe, 1, 0, NULL, 0);
+#endif
+
+	if(ret < 0) {
+		// an error occurred, use compile time detected result
+		return optimization_level;
+	}
+
+	unsigned long exts = probe.value;
+
+	if(optimization_level <= OptimizationLevelNone) {
+
+		if((exts & RISCV_HWPROBE_IMA_V) != 0) {
+			return OptimizationLevel_RISCV64_RVV;
+		}
+	} else {
+		// optimization_level >= OptimizationLevel_RISCV64_RVV
+		return optimization_level;
+	}
+
+	// optimization_level >= OptimizationLevel_RISCV64_RVV
+	return optimization_level;
+
+#else
+#error "only linux runtime detection for riscv64 supported"
 #endif
 
 #else
-#error "NOT yet IMPLEMENTED"
+// no runtime detection supported, but just using compile time detection
 #endif
 
 	return optimization_level;
