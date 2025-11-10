@@ -3798,18 +3798,42 @@ static void helper_bigint_bitwise_and_hardware_accelerated_arm64_sve_sizeless_im
 }
 
 CPU_TARGET_SVE
-static void sve_get_current_config(uint64_t* sve_vector_length_in_u64, svbool_t* predicate) {
+static void sve_get_current_config_impl(uint64_t* sve_vector_length_in_u64, svbool_t* predicate) {
 
-	*sve_vector_length_in_u64 = svcntd();
+	const uint64_t sve_vector_length = svcntd();
 
-	// TODO: is this correct
-	*predicate = svwhilelt_b64_u64(0, sve_vector_length_in_u64);
+	if(sve_vector_length_in_u64 != NULL) {
+		*sve_vector_length_in_u64 = sve_vector_length;
+	}
+
+	if(predicate != NULL) {
+		// TODO: check if this is correct
+		*predicate = svwhilelt_b64_u64(0, sve_vector_length);
+	}
+}
+
+CPU_TARGET_SVE
+NODISCARD static uint64_t sve_get_current_vector_length(void) {
+
+	uint64_t sve_vector_length = 0;
+	sve_get_current_config_impl(&sve_vector_length, NULL);
+	return sve_vector_length;
+}
+
+CPU_TARGET_SVE
+static svbool_t sve_get_current_config_predicate(void) {
+
+	svbool_t predicate;
+	sve_get_current_config_impl(NULL, &predicate);
+	return predicate;
 }
 
 CPU_TARGET_SVE NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
-    BigIntC big_int1, BigIntC big_int2, BitWiseOperation op, size_t max_size,
-    size_t sve_vector_length_in_u64, svbool_t predicate) {
+process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_int1,
+                                                                  BigIntC big_int2,
+                                                                  BitWiseOperation op,
+                                                                  size_t max_size,
+                                                                  size_t sve_vector_length_in_u64) {
 
 	size_t align_bytes_of_sve =
 	    sve_vector_length_in_u64 * (SIZE_OF_UINT64_IN_BITS / BITS_BYTES_MULTIPLIER);
@@ -3868,17 +3892,19 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
 	    offset_bytes);
 	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
 
+	svbool_t predicate = sve_get_current_config_predicate();
+
 	switch(op) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_arm64_sve_sizeless_impl(
-			    max_size, array1, array2, result.numbers, offset_bytes, offset_bytes,
-			    sve_vector_length_in_u64, predicate);
+			    max_size, array1, array2, result.numbers, offset_bytes, sve_vector_length_in_u64,
+			    predicate);
 			break;
 		}
 		case BitWiseOperationOR: {
 			helper_bigint_bitwise_or_hardware_accelerated_arm64_sve_sizeless_impl(
-			    max_size, array1, array2, result.numbers, offset_bytes, offset_bytes,
-			    sve_vector_length_in_u64, predicate);
+			    max_size, array1, array2, result.numbers, offset_bytes, sve_vector_length_in_u64,
+			    predicate);
 			break;
 		}
 		case BitWiseOperationAND: {
@@ -3957,17 +3983,14 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 		}
 		case OptimizationLevel_ARM64_SVE: {
 
-			size_t sve_vector_length_in_u64;
-			svbool_t predicate;
-
-			sve_get_current_config(&sve_vector_length_in_u64, &predicate);
+			size_t sve_vector_length_in_u64 = sve_get_current_vector_length();
 
 			if(max_size <= (sve_vector_length_in_u64 * MIN_HW_ACCEL_SIZE_MULT)) {
 				goto use_neon;
 			}
 
 			return process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
-			    big_int1, big_int2, op, max_size, sve_vector_length_in_u64, predicate);
+			    big_int1, big_int2, op, max_size, sve_vector_length_in_u64);
 		}
 #endif
 		case OptimizationLevelNone:
@@ -4016,6 +4039,7 @@ BIGINT_C_LIB_EXPORTED void bigint_bitwise_complement(BigIntC* big_int) {
 	//
 }
 
-//TODO: use also hardware accelaration for bit shifts, and even adds, if it is faster, than normal things, dependending on the situation
+// TODO: use also hardware accelaration for bit shifts, and even adds, if it is faster, than normal
+// things, dependending on the situation
 
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)
