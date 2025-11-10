@@ -1,0 +1,22 @@
+{
+    "name": "Ubuntu 24.04 ARM64 Dev",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "UBUNTU_VARIANT": "24.04",
+            "BUILD_PLATFORM":"linux/arm64"
+        }
+    },
+    "runArgs": [
+        "--platform=linux/arm64"
+    ],
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+    },
+    "remoteUser": "vscode",
+    "features": {},
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached"
+    ],
+    "workspaceFolder": "/work"
+}
