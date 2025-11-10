@@ -3,6 +3,21 @@
 #include "./features.h"
 #undef BIGINT_C_LIB_INTERNAL_USAGE
 
+
+
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+
+#elif defined(__aarch64__)
+
+#if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#error "Arm64 is not supported on windows"
+#else
+#include <asm/hwcap.h>
+#include <sys/auxv.h>
+#endif
+#endif
+
+
 NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(void) {
 
 	// first get the compile time availability, this is the least optimization the processor
@@ -23,9 +38,7 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 #endif
 
 #elif defined(__aarch64__)
-#if defined(__ARM_FEATURE_SVE2) && __ARM_FEATURE_SVE2 == 1
-	    OptimizationLevel_ARM64_SVE2
-#elif defined(__ARM_FEATURE_SVE) && __ARM_FEATURE_SVE == 1
+#if defined(__ARM_FEATURE_SVE) && __ARM_FEATURE_SVE == 1
 	    OptimizationLevel_ARM64_SVE
 #elif defined(__ARM_NEON) || defined(__ARM_NEON__)
 	    OptimizationLevel_ARM64_NEON
@@ -76,16 +89,6 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 #elif defined(__aarch64__)
 
 	unsigned long hwcap = getauxval(AT_HWCAP);
-	unsigned long hwcap2 = getauxval(AT_HWCAP2);
-
-	if(optimization_level <= OptimizationLevel_ARM64_SVE) {
-		if((hwcap2 & HWCAP2_SVE2) != 0) {
-			return OptimizationLevel_ARM64_SVE2;
-		}
-	} else {
-		// optimization_level >= OptimizationLevel_ARM64_SVE2
-		return optimization_level;
-	}
 
 	if(optimization_level <= OptimizationLevel_ARM64_NEON) {
 		if((hwcap & HWCAP_SVE) != 0) {

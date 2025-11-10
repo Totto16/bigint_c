@@ -16,7 +16,6 @@ typedef enum {
 	// aarch64
 	OptimizationLevel_ARM64_NEON = 8,
 	OptimizationLevel_ARM64_SVE,
-	OptimizationLevel_ARM64_SVE2,
 	// helper value
 	OptimizationLevelUninitialized = 32
 } OptimizationLevel;

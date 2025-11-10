@@ -2713,7 +2713,7 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
-// sse2 defined
+// sse2 defines
 #define ALIGN_BYTES_OF_SSE2 16UL // 128 bits
 #define BITS_AT_ONCE_SSE2 128UL
 
@@ -2739,9 +2739,20 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 
 #define MIN_SIZE_FOR_AVX512 ((UINT64_AMOUNT_AT_ONCE_AVX512) * MIN_HW_ACCEL_SIZE_MULT)
 
+// general defines
 #define MIN_SIZE_FOR_HARDWARE_ACCEL MIN_SIZE_FOR_SSE2
 #elif defined(__aarch64__)
-#error "TODO"
+
+// NEON defines
+#define ALIGN_BYTES_OF_NEON 16UL // 128 bits
+#define BITS_AT_ONCE_NEON 128UL
+
+#define UINT64_AMOUNT_AT_ONCE_NEON (BITS_AT_ONCE_NEON / SIZE_OF_UINT64_IN_BITS)
+
+#define MIN_SIZE_FOR_NEON ((UINT64_AMOUNT_AT_ONCE_NEON) * MIN_HW_ACCEL_SIZE_MULT)
+
+// general defines
+#define MIN_SIZE_FOR_HARDWARE_ACCEL MIN_SIZE_FOR_NEON
 #else
 
 #endif
@@ -2752,13 +2763,8 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 #elif defined(__aarch64__)
 
 #include <arm_neon.h> // NEON intrinsics
-
-#include <asm/hwcap.h>
-#include <sys/auxv.h>
-
+#include <arm_sve.h>  // SVE intrinsics
 #endif
-
-#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
 typedef enum {
 	AlignedTheSameNone = 0x00,
@@ -2930,6 +2936,8 @@ NODISCARD static void* helper_alloc_aligned_with_offset(void** result, size_t si
 	*result = (void*)(((uint8_t*)aligned_ptr) + offset_bytes);
 	return aligned_ptr;
 }
+
+#if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
 // See: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/index.html
 //  for intel intrinsics with sse2, avx2 and avx512F
@@ -3488,22 +3496,422 @@ process_bitwise_operation_hardware_accelerated_amd64_avx512(BigIntC big_int1, Bi
 }
 #elif defined(__aarch64__)
 
+#if defined(__GNUC__) && !defined(__clang__)
+
+// use first possible neon compatible target, only using "+neon" could be unsafe, as the base arch
+// could not support the neon extension, using "neon" doesn't work with gcc, also "+simd" is an
+// alias for neon, and sometimes "+neon" doesn't work
+#define CPU_TARGET_NEON __attribute__((target("arch=armv8-a+simd")))
+#define CPU_TARGET_SVE __attribute__((target("arch=armv8-a+sve")))
+// CPU_TARGET(+nothing+simd)
+#else
+#define CPU_TARGET_NEON CPU_TARGET(neon)
+#define CPU_TARGET_SVE CPU_TARGET(sve)
+#endif
+
+// TODO. don't annotate funcions, which call these functions!
+//  TODO. check, if the arm sve and neon instructions need aligned data or not.
+
+// for neon intrinsics, see https://developer.arm.com/documentation/den0018/a/NEON-Intrinsics
+
+CPU_TARGET_NEON
+static void helper_bigint_bitwise_xor_hardware_accelerated_arm64_neon_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes) {
+
+	size_t i = 0;
+	size_t simd_width = UINT64_AMOUNT_AT_ONCE_NEON;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] ^ array2[i];
+	}
+
+	// main loop
+	for(; i + simd_width <= array_size; i += simd_width) {
+		uint64x2_t array1_neon = vld1q_u64(&(array1[i]));
+		uint64x2_t array2_neon = vld1q_u64(&(array2[i]));
+		uint64x2_t result_neon = veorq_u64(array1_neon, array2_neon);
+		vst1q_u64(&(result_array[i]), result_neon);
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] ^ array2[i];
+	}
+}
+
+CPU_TARGET_NEON
+static void helper_bigint_bitwise_or_hardware_accelerated_arm64_neon_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes) {
+
+	size_t i = 0;
+	size_t simd_width = UINT64_AMOUNT_AT_ONCE_NEON;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] | array2[i];
+	}
+
+	// main loop
+	for(; i + simd_width <= array_size; i += simd_width) {
+		uint64x2_t array1_neon = vld1q_u64(&(array1[i]));
+		uint64x2_t array2_neon = vld1q_u64(&(array2[i]));
+		uint64x2_t result_neon = vorrq_u64(array1_neon, array2_neon);
+		vst1q_u64(&(result_array[i]), result_neon);
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] | array2[i];
+	}
+}
+
+CPU_TARGET_NEON
+static void helper_bigint_bitwise_and_hardware_accelerated_arm64_neon_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes) {
+	size_t i = 0;
+	size_t simd_width = UINT64_AMOUNT_AT_ONCE_NEON;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] & array2[i];
+	}
+
+	// main loop
+	for(; i + simd_width <= array_size; i += simd_width) {
+		uint64x2_t array1_neon = vld1q_u64(&(array1[i]));
+		uint64x2_t array2_neon = vld1q_u64(&(array2[i]));
+		uint64x2_t result_neon = vandq_u64(array1_neon, array2_neon);
+		vst1q_u64(&(result_array[i]), result_neon);
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] & array2[i];
+	}
+}
+
+CPU_TARGET_NEON
 NODISCARD static BigIntC
 process_bitwise_operation_hardware_accelerated_arm64_neon(BigIntC big_int1, BigIntC big_int2,
                                                           BitWiseOperation op, size_t max_size) {
-	//
+
+	AlignedTheSame aligned_info = AlignedTheSameNone;
+	size_t offset_bytes = 0;
+	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, ALIGN_BYTES_OF_NEON,
+	                                     &aligned_info, &offset_bytes);
+
+	uint64_t* array1 = big_int1.numbers;
+	uint64_t* array2 = big_int2.numbers;
+
+	void* array1_real_alloc_ptr = NULL;
+	void* array2_real_alloc_ptr = NULL;
+
+	switch(aligned_info) {
+		case AlignedTheSameNone: {
+			array1_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array1, max_size * sizeof(uint64_t), ALIGN_BYTES_OF_NEON, offset_bytes);
+			array2_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array2, max_size * sizeof(uint64_t), ALIGN_BYTES_OF_NEON, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array1, big_int1, max_size, 0);
+			COPY_BIGINT_TO_BIGGER_ARRAY(array2, big_int2, max_size, 0);
+
+			break;
+		}
+		case AlignedTheSameFirst: {
+			array2_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array2, max_size * sizeof(uint64_t), ALIGN_BYTES_OF_NEON, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array2, big_int2, max_size, 0);
+
+			break;
+		}
+		case AlignedTheSameSecond: {
+			array1_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array1, max_size * sizeof(uint64_t), ALIGN_BYTES_OF_NEON, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array1, big_int1, max_size, 0);
+			break;
+		}
+		case AlignedTheSameBoth: {
+			// do nothing
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
+	}
+
+	BigIntC result = { .positive = big_int1.positive, .numbers = NULL, .number_count = max_size };
+
+	void* real_result_allocation_ptr = helper_alloc_aligned_with_offset(
+	    (void**)(&(result.numbers)), result.number_count * sizeof(uint64_t), ALIGN_BYTES_OF_NEON,
+	    offset_bytes);
+	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
+
+	switch(op) {
+		case BitWiseOperationXOR: {
+			helper_bigint_bitwise_xor_hardware_accelerated_arm64_neon_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes);
+			break;
+		}
+		case BitWiseOperationOR: {
+			helper_bigint_bitwise_or_hardware_accelerated_arm64_neon_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes);
+			break;
+		}
+		case BitWiseOperationAND: {
+			helper_bigint_bitwise_and_hardware_accelerated_arm64_neon_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes);
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
+	}
+
+	if(array1_real_alloc_ptr != NULL) {
+		free(array1_real_alloc_ptr);
+	}
+
+	if(array2_real_alloc_ptr != NULL) {
+		free(array2_real_alloc_ptr);
+	}
+
+	// reallocate the result numbers ptr, if it is not the same as the ptr, that can be freed, this
+	// is needed, to keep the same alignment as the two input values
+	if(real_result_allocation_ptr != result.numbers) {
+
+		BigIntC new_result = bigint_helper_get_full_copy(result);
+
+		free(real_result_allocation_ptr);
+
+		result = new_result;
+	}
+
+	return result;
 }
 
-NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_arm64_sve(BigIntC big_int1, BigIntC big_int2,
-                                                         BitWiseOperation op, size_t max_size) {
-	//
+// note, sve is size independent, that means, it can have vector sizes of 128 up to 2048, neon uses
+// 128 fixed (like sse2 on x86_64) and therefore we can't guarantee, that sve is 256 bits large, and
+// maybe could use larger values, that is rather complicated, also the notion of sizeless types, VLA
+// and lanes (which is the activation of "lanes" aka if there are 4 lanes, we have a vector size of
+// 4*64)
+
+// note: svbool_t is a sizeless bool array, that has a 1 (true) for each activated lane, so it e.g.
+// has "1111" for 4 64 bit lanes active, this is the runtime way of using only available lanes
+
+// for sve intrinsics, see https://developer.arm.com/Architectures/Scalable%20Vector%20Extensions
+
+CPU_TARGET_SVE
+static void helper_bigint_bitwise_xor_hardware_accelerated_arm64_sve_sizeless_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
+    svbool_t predicate) {
+
+	size_t i = 0;
+	size_t simd_width = sve_vector_length_in_u64;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] ^ array2[i];
+	}
+
+	// main loop
+	for(; i + simd_width <= array_size; i += simd_width) {
+		svuint64_t array1_sve = svld1_u64(predicate, &(array1[i]));
+		svuint64_t array2_sve = svld1_u64(predicate, &(array2[i]));
+		svuint64_t result_sve = sveor_u64_x(predicate, array1_sve, array2_sve);
+		svst1_u64(predicate, &(result_array[i]), result_sve);
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] ^ array2[i];
+	}
 }
 
-NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_arm64_sve2(BigIntC big_int1, BigIntC big_int2,
-                                                          BitWiseOperation op, size_t max_size) {
-	//
+CPU_TARGET_SVE
+static void helper_bigint_bitwise_or_hardware_accelerated_arm64_sve_sizeless_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
+    svbool_t predicate) {
+
+	size_t i = 0;
+	size_t simd_width = sve_vector_length_in_u64;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] | array2[i];
+	}
+
+	// main loop
+	for(; i + simd_width <= array_size; i += simd_width) {
+		svuint64_t array1_sve = svld1_u64(predicate, &(array1[i]));
+		svuint64_t array2_sve = svld1_u64(predicate, &(array2[i]));
+		svuint64_t result_sve = svorr_u64_x(predicate, array1_sve, array2_sve);
+		svst1_u64(predicate, &(result_array[i]), result_sve);
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] | array2[i];
+	}
+}
+
+CPU_TARGET_SVE
+static void helper_bigint_bitwise_and_hardware_accelerated_arm64_sve_sizeless_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
+    svbool_t predicate) {
+
+	size_t i = 0;
+	size_t simd_width = sve_vector_length_in_u64;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] & array2[i];
+	}
+
+	// main loop
+	for(; i + simd_width <= array_size; i += simd_width) {
+		svuint64_t array1_sve = svld1_u64(predicate, &(array1[i]));
+		svuint64_t array2_sve = svld1_u64(predicate, &(array2[i]));
+		svuint64_t result_sve = svand_u64_x(predicate, array1_sve, array2_sve);
+		svst1_u64(predicate, &(result_array[i]), result_sve);
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] & array2[i];
+	}
+}
+
+CPU_TARGET_SVE
+static void sve_get_current_config(uint64_t* sve_vector_length_in_u64, svbool_t* predicate) {
+
+	*sve_vector_length_in_u64 = svcntd();
+
+	// TODO: is this correct
+	*predicate = svwhilelt_b64_u64(0, sve_vector_length_in_u64);
+}
+
+CPU_TARGET_SVE NODISCARD static BigIntC
+process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
+    BigIntC big_int1, BigIntC big_int2, BitWiseOperation op, size_t max_size,
+    size_t sve_vector_length_in_u64, svbool_t predicate) {
+
+	size_t align_bytes_of_sve =
+	    sve_vector_length_in_u64 * (SIZE_OF_UINT64_IN_BITS / BITS_BYTES_MULTIPLIER);
+
+	AlignedTheSame aligned_info = AlignedTheSameNone;
+	size_t offset_bytes = 0;
+	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, align_bytes_of_sve,
+	                                     &aligned_info, &offset_bytes);
+
+	uint64_t* array1 = big_int1.numbers;
+	uint64_t* array2 = big_int2.numbers;
+
+	void* array1_real_alloc_ptr = NULL;
+	void* array2_real_alloc_ptr = NULL;
+
+	switch(aligned_info) {
+		case AlignedTheSameNone: {
+			array1_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array1, max_size * sizeof(uint64_t), align_bytes_of_sve, offset_bytes);
+			array2_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array2, max_size * sizeof(uint64_t), align_bytes_of_sve, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array1, big_int1, max_size, 0);
+			COPY_BIGINT_TO_BIGGER_ARRAY(array2, big_int2, max_size, 0);
+
+			break;
+		}
+		case AlignedTheSameFirst: {
+			array2_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array2, max_size * sizeof(uint64_t), align_bytes_of_sve, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array2, big_int2, max_size, 0);
+
+			break;
+		}
+		case AlignedTheSameSecond: {
+			array1_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array1, max_size * sizeof(uint64_t), align_bytes_of_sve, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array1, big_int1, max_size, 0);
+			break;
+		}
+		case AlignedTheSameBoth: {
+			// do nothing
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
+	}
+
+	BigIntC result = { .positive = big_int1.positive, .numbers = NULL, .number_count = max_size };
+
+	void* real_result_allocation_ptr = helper_alloc_aligned_with_offset(
+	    (void**)(&(result.numbers)), result.number_count * sizeof(uint64_t), align_bytes_of_sve,
+	    offset_bytes);
+	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
+
+	switch(op) {
+		case BitWiseOperationXOR: {
+			helper_bigint_bitwise_xor_hardware_accelerated_arm64_sve_sizeless_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes, offset_bytes,
+			    sve_vector_length_in_u64, predicate);
+			break;
+		}
+		case BitWiseOperationOR: {
+			helper_bigint_bitwise_or_hardware_accelerated_arm64_sve_sizeless_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes, offset_bytes,
+			    sve_vector_length_in_u64, predicate);
+			break;
+		}
+		case BitWiseOperationAND: {
+			helper_bigint_bitwise_and_hardware_accelerated_arm64_sve_sizeless_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes, sve_vector_length_in_u64,
+			    predicate);
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
+	}
+
+	if(array1_real_alloc_ptr != NULL) {
+		free(array1_real_alloc_ptr);
+	}
+
+	if(array2_real_alloc_ptr != NULL) {
+		free(array2_real_alloc_ptr);
+	}
+
+	// reallocate the result numbers ptr, if it is not the same as the ptr, that can be freed, this
+	// is needed, to keep the same alignment as the two input values
+	if(real_result_allocation_ptr != result.numbers) {
+
+		BigIntC new_result = bigint_helper_get_full_copy(result);
+
+		free(real_result_allocation_ptr);
+
+		result = new_result;
+	}
+
+	return result;
 }
 
 #endif
@@ -3543,16 +3951,23 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 #elif defined(__aarch64__)
 			// aarch64
 		case OptimizationLevel_ARM64_NEON: {
+		use_neon:
 			return process_bitwise_operation_hardware_accelerated_arm64_neon(big_int1, big_int2, op,
 			                                                                 max_size);
 		}
 		case OptimizationLevel_ARM64_SVE: {
-			return process_bitwise_operation_hardware_accelerated_arm64_sve(big_int1, big_int2, op,
-			                                                                max_size);
-		}
-		case OptimizationLevel_ARM64_SVE2: {
-			return process_bitwise_operation_hardware_accelerated_arm64_sve2(big_int1, big_int2, op,
-			                                                                 max_size);
+
+			size_t sve_vector_length_in_u64;
+			svbool_t predicate;
+
+			sve_get_current_config(&sve_vector_length_in_u64, &predicate);
+
+			if(max_size <= (sve_vector_length_in_u64 * MIN_HW_ACCEL_SIZE_MULT)) {
+				goto use_neon;
+			}
+
+			return process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
+			    big_int1, big_int2, op, max_size, sve_vector_length_in_u64, predicate);
 		}
 #endif
 		case OptimizationLevelNone:
@@ -3600,5 +4015,7 @@ BIGINT_C_LIB_EXPORTED void bigint_bitwise_complement(BigIntC* big_int) {
 	} // GCOVR_EXCL_LINE (see above)
 	//
 }
+
+//TODO: use also hardware accelaration for bit shifts, and even adds, if it is faster, than normal things, dependending on the situation
 
 // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,misc-use-anonymous-namespace,modernize-use-auto,modernize-use-using,cppcoreguidelines-no-malloc)
