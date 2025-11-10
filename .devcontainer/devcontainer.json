@@ -44,7 +44,7 @@
             },
         }
     },
-    "remoteUser": "vscode",
+    "remoteUser": "ubuntu",
     "features": {},
     "mounts": [
         "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached"

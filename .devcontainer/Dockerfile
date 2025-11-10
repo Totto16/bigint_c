@@ -38,9 +38,5 @@ RUN chmod +x /tmp/symlink_clang_utils.sh \
     && /tmp/symlink_clang_utils.sh 21 \
     && rm /tmp/symlink_clang_utils.sh
 
-
-# Create a non-root user (vscode)
-RUN useradd -m vscode && echo "vscode ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/vscode
-
-USER vscode
+USER ubuntu
 WORKDIR /work
