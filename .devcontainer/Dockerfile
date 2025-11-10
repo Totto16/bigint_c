@@ -5,41 +5,7 @@ FROM --platform=${BUILD_PLATFORM} ubuntu:${UBUNTU_VARIANT}
 
 LABEL devcontainer.metadata='[{ \
     "remoteUser": "ubuntu", \
-    "features": {},\
-    "customizations": { \
-    "vscode": { \
-    "extensions": [\
-    "xaver.clang-format",\
-    "llvm-vs-code-extensions.vscode-clangd",\
-    "mesonbuild.mesonbuild"\
-    ],\
-    "settings": { \
-    "terminal.integrated.shell.linux": "/bin/bash", \
-    "clangd.path": "/usr/bin/clangd-21",\
-    "clangd.arguments": [\
-    "--all-scopes-completion",\
-    "--background-index",\
-    "--background-index-priority=background",\
-    "--clang-tidy",\
-    "--completion-style=bundled",\
-    "--function-arg-placeholders",\
-    "--enable-config",\
-    "-j",\
-    "3",\
-    "--malloc-trim",\
-    "--pretty",\
-    "--header-insertion=never",\
-    "--compile-commands-dir=/runtime/build_sym_link"\
-    ],\
-    "[c]": {\
-    "editor.defaultFormatter": "xaver.clang-format"\
-    },\
-    "[cpp]": {\
-    "editor.defaultFormatter": "xaver.clang-format"\
-    }\
-    }\
-    }\
-    }\
+    "features": {} \
     }]'
 
 # Prevent interactive prompts
