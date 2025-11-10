@@ -1,0 +1,12 @@
+{
+    "extends": "./base.json",
+    "name": "Ubuntu 24.04 Dev Arm64",
+    "build": {
+        "args": {
+            "BUILD_PLATFORM": "linux/arm64/v8"
+        }
+    },
+    "runArgs": [
+        "--platform=linux/arm64/v8"
+    ]
+}

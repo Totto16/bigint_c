@@ -1,0 +1,12 @@
+{
+    "extends": "./base.json",
+    "name": "Ubuntu 24.04 Dev Risc V 64",
+    "build": {
+        "args": {
+            "BUILD_PLATFORM": "linux/riscv64"
+        }
+    },
+    "runArgs": [
+        "--platform=linux/riscv64"
+    ]
+}

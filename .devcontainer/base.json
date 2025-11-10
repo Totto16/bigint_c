@@ -1,15 +1,11 @@
 {
-    "name": "Ubuntu 24.04 ARM64 Dev",
+    "name": "Ubuntu 24.04 Dev Base",
     "build": {
         "dockerfile": "Dockerfile",
         "args": {
-            "UBUNTU_VARIANT": "24.04",
-            "BUILD_PLATFORM": "linux/arm64"
+            "UBUNTU_VARIANT": "24.04"
         }
     },
-    "runArgs": [
-        "--platform=linux/arm64"
-    ],
     "customizations": {
         "vscode": {
             "extensions": [
