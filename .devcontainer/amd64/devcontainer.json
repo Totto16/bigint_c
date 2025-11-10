@@ -10,5 +10,9 @@
     "runArgs": [
         "--platform=linux/amd64"
     ],
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "/tmp/post_run.sh",
     "workspaceFolder": "/work"
 }

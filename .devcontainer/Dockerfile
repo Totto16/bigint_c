@@ -6,8 +6,7 @@ FROM --platform=${BUILD_PLATFORM} ubuntu:${UBUNTU_VARIANT}
 LABEL devcontainer.metadata='[{ \
     "remoteUser": "ubuntu", \
     "features": {},\
-    "mounts": [   "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached" ], \
-    "customizations": {  \
+    "customizations": { \
     "vscode": { \
     "extensions": [\
     "xaver.clang-format",\
@@ -30,7 +29,7 @@ LABEL devcontainer.metadata='[{ \
     "--malloc-trim",\
     "--pretty",\
     "--header-insertion=never",\
-    "--compile-commands-dir=build_sym_link"\
+    "--compile-commands-dir=/runtime/build_sym_link"\
     ],\
     "[c]": {\
     "editor.defaultFormatter": "xaver.clang-format"\
@@ -80,30 +79,16 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 
-#symlink all clang 21 things to better paths e.g. clang-21 to /usr/bin/clang
-COPY ./symlink_clang_utils.sh /tmp/
+COPY ./symlink_clang_utils.sh ./post_run.sh /tmp/
 
+#symlink all clang 21 things to better paths e.g. clang-21 to /usr/bin/clang
 RUN chmod +x /tmp/symlink_clang_utils.sh \
+    && chmod +x /tmp/post_run.sh \
+    && mkdir -pv /runtime/ \
+    && chown ubuntu:ubuntu /runtime/ \
+    && chmod 755 /runtime/ \
     && /tmp/symlink_clang_utils.sh 21 \
     && rm /tmp/symlink_clang_utils.sh
-
-RUN if [ -e "/work/build_sym_link" ]; then \
-    rm /work/build_sym_link; \
-    fi \
-    && \
-    ARCH="$(uname -m)" \
-    && \
-    if [ "$ARCH" = "riscv64" ]; then \
-    ln -s /work/build_riscv /work/build_sym_link; \
-    elif [ "$ARCH" = "aarch64" ]; then \
-    ln -s /work/build_arm64 /work/build_sym_link; \
-    elif [ "$ARCH" = "x86_64" ]; then \
-    ln -s /work/build /work/build_sym_link; \
-    else \
-    echo "invalid arch: '$ARCH'"; \
-    exit 2; \
-    fi
-
 
 USER ubuntu
 WORKDIR /work
