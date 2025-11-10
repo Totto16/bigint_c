@@ -29,15 +29,15 @@
                     "--malloc-trim",
                     "--pretty",
                     "--header-insertion=never",
-                    "--compile-commands-dir=build_arm64"
+                    "--compile-commands-dir=build_sym_link"
                 ],
                 "[c]": {
                     "editor.defaultFormatter": "xaver.clang-format"
                 },
                 "[cpp]": {
                     "editor.defaultFormatter": "xaver.clang-format"
-                },
-            },
+                }
+            }
         }
     },
     "remoteUser": "ubuntu",
