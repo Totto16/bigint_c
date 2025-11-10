@@ -94,9 +94,9 @@ function install_clang_via_llvm() {
 ARCH="$(uname -m)"
 
 if [ "$ARCH" = "riscv64" ]; then
-    install_clang_via_llvm 21
-elif [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "aarch64" ]; then
     install_clang_via_apt 20
+elif [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "aarch64" ]; then
+    install_clang_via_llvm 21
 else
     echo "invalid arch: '$ARCH'"
     exit 2
