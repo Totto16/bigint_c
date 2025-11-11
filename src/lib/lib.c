@@ -3977,9 +3977,11 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_in
 #endif
 
 #if defined(__GNUC__)
+
 // need extensions v + zve64x
-#if defined(__clang__)
 #define CPU_TARGET_RVV __attribute__((target("arch=+zve64x")))
+
+#if defined(__clang__)
 
 // clang doesn't define these wrappers, if we don't have compile time __riscv_v_elen >= 64 support,
 // but we just needs those for the runtime
@@ -3991,8 +3993,13 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_in
 #define __riscv_vsetvlmax_e64m8() __builtin_rvv_vsetvlimax(3, 3)
 #endif
 
+#define UNREACHABLE_LMUL() UNREACHABLE_WITH_MSG("LMUL (enum) too big, has to be in range 0-3");
+
 #else
-#define CPU_TARGET_RVV __attribute__((target("arch=+v", "arch=+zve64x")))
+// gcc
+
+#define UNREACHABLE_LMUL() __builtin_unreachable()
+
 #endif
 #else
 #error "Not supported"
@@ -4026,7 +4033,7 @@ NODISCARD static uint64_t rvv_get_and_set_final_vl_for_lmul_impl(uint8_t lmul_po
 		case M4: return __riscv_vsetvlmax_e64m4();
 		case M8: return __riscv_vsetvlmax_e64m8();
 		default: {
-			UNREACHABLE_WITH_MSG("lmul_pow too big");
+			UNREACHABLE_LMUL();
 		}
 	}
 }
@@ -4158,7 +4165,7 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_
 			break;
 		}
 		default: {
-			UNREACHABLE_WITH_MSG("lmul_pow too big");
+			UNREACHABLE_LMUL();
 		}
 	}
 
@@ -4224,7 +4231,7 @@ static void helper_bigint_bitwise_or_hardware_accelerated_riscv64_rvv_sizeless_i
 			break;
 		}
 		default: {
-			UNREACHABLE_WITH_MSG("lmul_pow too big");
+			UNREACHABLE_LMUL();
 		}
 	}
 
@@ -4239,7 +4246,7 @@ static void helper_bigint_bitwise_and_hardware_accelerated_riscv64_rvv_sizeless_
     size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
     uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
     RVVSetting rvv_setting) {
-size_t i = 0;
+	size_t i = 0;
 	size_t simd_width = rvv_vector_length_in_u64;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -4289,7 +4296,7 @@ size_t i = 0;
 			break;
 		}
 		default: {
-			UNREACHABLE_WITH_MSG("lmul_pow too big");
+			UNREACHABLE_LMUL();
 		}
 	}
 
@@ -4299,7 +4306,6 @@ size_t i = 0;
 	}
 }
 
-CPU_TARGET_RVV
 NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_riscv64_rvv_sizeless(
     BigIntC big_int1, BigIntC big_int2, BitWiseOperation op, size_t max_size,
     RVVSetting rvv_setting, size_t rvv_vector_length_in_u64) {
