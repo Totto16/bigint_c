@@ -15,8 +15,6 @@ BIGINT_C_ONLY_LOCAL NO_RETURN void custom_panic(const char* file_path, int line,
 
 BIGINT_C_ONLY_LOCAL void custom_assert(const char* file, int line, bool cond, const char* message);
 
-#define UNREACHABLE() UNREACHABLE_WITH_MSG("")
-
 // cool trick from here:
 // https://stackoverflow.com/questions/777261/avoiding-unused-variables-warnings-when-using-assert-in-a-release-build
 #ifdef NDEBUG
