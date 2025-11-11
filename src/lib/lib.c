@@ -2700,44 +2700,21 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 		MALLOC_UINT64_T_ARRAY_AND_FILL_REST_WITH_X(array2, max_size, big_int2, 0);
 	}
 
-	// if the arrays are the same, we passed the same bigint as a and b, as we use restrict for that
-	// arrays, that could lead to problems, so we just use a fast approach for getting the result of
-	// a <op> a
-	if(array1 == array2) {
-		switch(op) {
-			case BitWiseOperationXOR: {
-				helper_bigint_bitwise_xor_same_generic_impl(max_size, array1, result.numbers);
-				break;
-			}
-			case BitWiseOperationOR: {
-				helper_bigint_bitwise_or_same_generic_impl(max_size, array1, result.numbers);
-				break;
-			}
-			case BitWiseOperationAND: {
-				helper_bigint_bitwise_and_same_generic_impl(max_size, array1, result.numbers);
-				break;
-			}
-			default: {
-				UNREACHABLE_WITH_MSG("invalid bitwise operation");
-			}
+	switch(op) {
+		case BitWiseOperationXOR: {
+			helper_bigint_bitwise_xor_generic_impl(max_size, array1, array2, result.numbers);
+			break;
 		}
-	} else {
-		switch(op) {
-			case BitWiseOperationXOR: {
-				helper_bigint_bitwise_xor_generic_impl(max_size, array1, array2, result.numbers);
-				break;
-			}
-			case BitWiseOperationOR: {
-				helper_bigint_bitwise_or_generic_impl(max_size, array1, array2, result.numbers);
-				break;
-			}
-			case BitWiseOperationAND: {
-				helper_bigint_bitwise_and_generic_impl(max_size, array1, array2, result.numbers);
-				break;
-			}
-			default: {
-				UNREACHABLE_WITH_MSG("invalid bitwise operation");
-			}
+		case BitWiseOperationOR: {
+			helper_bigint_bitwise_or_generic_impl(max_size, array1, array2, result.numbers);
+			break;
+		}
+		case BitWiseOperationAND: {
+			helper_bigint_bitwise_and_generic_impl(max_size, array1, array2, result.numbers);
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
 		}
 	}
 
@@ -2747,6 +2724,42 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 
 	if(big_int2.number_count != max_size) {
 		free(array2);
+	}
+
+	return result;
+}
+
+NODISCARD static BigIntC process_bitwise_operation_same_generic(BigIntC big_int,
+                                                                BitWiseOperation op) {
+
+	BigIntC result = { .positive = big_int.positive,
+		               .numbers = NULL,
+		               .number_count = big_int.number_count };
+
+	bigint_helper_realloc_to_new_size(&result);
+	memset((void*)result.numbers, 0, big_int.number_count * sizeof(uint64_t));
+
+	uint64_t* array1 = big_int.numbers;
+
+	switch(op) {
+		case BitWiseOperationXOR: {
+			helper_bigint_bitwise_xor_same_generic_impl(big_int.number_count, array1,
+			                                            result.numbers);
+			break;
+		}
+		case BitWiseOperationOR: {
+			helper_bigint_bitwise_or_same_generic_impl(big_int.number_count, array1,
+			                                           result.numbers);
+			break;
+		}
+		case BitWiseOperationAND: {
+			helper_bigint_bitwise_and_same_generic_impl(big_int.number_count, array1,
+			                                            result.numbers);
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
 	}
 
 	return result;
@@ -4570,6 +4583,23 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 
 NODISCARD static BigIntC process_bitwise_operation(BigIntC big_int1, BigIntC big_int2,
                                                    BitWiseOperation op) {
+
+	// if the arrays are the same, we passed the same bigint as a and b, as we use restrict for that
+	// arrays, that could lead to problems, so we just use a fast approach for getting the result of
+	// a <op> a
+	if(big_int1.numbers == big_int2.numbers) {
+
+		if(big_int1.number_count != big_int2.number_count ||
+		   big_int1.positive != big_int2.positive) {
+			PANIC(
+			    "a pointer to data is used for different sized or signed bigints, that means, the "
+			    "user did some illegal modifications to one of the bigints!");
+		}
+
+		// this function is not hardware acceleated, as it just uses memset and mecpy, nothing
+		// fancy, so it's not really needed
+		return process_bitwise_operation_same_generic(big_int1, op);
+	}
 
 	size_t max_size = helper_max(big_int1.number_count, big_int2.number_count);
 
