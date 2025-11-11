@@ -2611,31 +2611,56 @@ typedef enum {
 	BitWiseOperationAND,
 } BitWiseOperation;
 
-static void helper_bigint_bitwise_xor_generic_impl(size_t array_size, const uint64_t* const array1,
-                                                   const uint64_t* const array2,
-                                                   uint64_t* result_array) {
+static void helper_bigint_bitwise_xor_generic_impl(size_t array_size,
+                                                   const uint64_t* restrict const array1,
+                                                   const uint64_t* restrict const array2,
+                                                   uint64_t* restrict result_array) {
 
 	for(size_t i = 0; i < array_size; ++i) {
 		result_array[i] = array1[i] ^ array2[i];
 	}
 }
 
-static void helper_bigint_bitwise_or_generic_impl(size_t array_size, const uint64_t* const array1,
-                                                  const uint64_t* const array2,
-                                                  uint64_t* result_array) {
+static void helper_bigint_bitwise_xor_same_generic_impl(size_t array_size,
+                                                        const uint64_t* restrict const array1,
+                                                        uint64_t* restrict result_array) {
+
+	UNUSED(array1);
+	memset(result_array, 0, array_size * sizeof(uint64_t));
+}
+
+static void helper_bigint_bitwise_or_generic_impl(size_t array_size,
+                                                  const uint64_t* restrict const array1,
+                                                  const uint64_t* restrict const array2,
+                                                  uint64_t* restrict result_array) {
 
 	for(size_t i = 0; i < array_size; ++i) {
 		result_array[i] = array1[i] | array2[i];
 	}
 }
 
-static void helper_bigint_bitwise_and_generic_impl(size_t array_size, const uint64_t* const array1,
-                                                   const uint64_t* const array2,
-                                                   uint64_t* result_array) {
+static void helper_bigint_bitwise_or_same_generic_impl(size_t array_size,
+                                                       const uint64_t* restrict const array1,
+                                                       uint64_t* restrict result_array) {
+
+	memcpy(result_array, array1, array_size * sizeof(uint64_t));
+}
+
+static void helper_bigint_bitwise_and_generic_impl(size_t array_size,
+                                                   const uint64_t* restrict const array1,
+                                                   const uint64_t* restrict const array2,
+                                                   uint64_t* restrict result_array) {
 
 	for(size_t i = 0; i < array_size; ++i) {
 		result_array[i] = array1[i] & array2[i];
 	}
+}
+
+static void helper_bigint_bitwise_and_same_generic_impl(size_t array_size,
+                                                        const uint64_t* restrict const array1,
+                                                        uint64_t* restrict result_array) {
+
+	memcpy(result_array, array1, array_size * sizeof(uint64_t));
 }
 
 #define COPY_BIGINT_TO_BIGGER_ARRAY(array, bigint, new_size, fill_with) \
@@ -2675,21 +2700,44 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 		MALLOC_UINT64_T_ARRAY_AND_FILL_REST_WITH_X(array2, max_size, big_int2, 0);
 	}
 
-	switch(op) {
-		case BitWiseOperationXOR: {
-			helper_bigint_bitwise_xor_generic_impl(max_size, array1, array2, result.numbers);
-			break;
+	// if the arrays are the same, we passed the same bigint as a and b, as we use restrict for that
+	// arrays, that could lead to problems, so we just use a fast approach for getting the result of
+	// a <op> a
+	if(array1 == array2) {
+		switch(op) {
+			case BitWiseOperationXOR: {
+				helper_bigint_bitwise_xor_same_generic_impl(max_size, array1, result.numbers);
+				break;
+			}
+			case BitWiseOperationOR: {
+				helper_bigint_bitwise_or_same_generic_impl(max_size, array1, result.numbers);
+				break;
+			}
+			case BitWiseOperationAND: {
+				helper_bigint_bitwise_and_same_generic_impl(max_size, array1, result.numbers);
+				break;
+			}
+			default: {
+				UNREACHABLE_WITH_MSG("invalid bitwise operation");
+			}
 		}
-		case BitWiseOperationOR: {
-			helper_bigint_bitwise_or_generic_impl(max_size, array1, array2, result.numbers);
-			break;
-		}
-		case BitWiseOperationAND: {
-			helper_bigint_bitwise_and_generic_impl(max_size, array1, array2, result.numbers);
-			break;
-		}
-		default: {
-			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+	} else {
+		switch(op) {
+			case BitWiseOperationXOR: {
+				helper_bigint_bitwise_xor_generic_impl(max_size, array1, array2, result.numbers);
+				break;
+			}
+			case BitWiseOperationOR: {
+				helper_bigint_bitwise_or_generic_impl(max_size, array1, array2, result.numbers);
+				break;
+			}
+			case BitWiseOperationAND: {
+				helper_bigint_bitwise_and_generic_impl(max_size, array1, array2, result.numbers);
+				break;
+			}
+			default: {
+				UNREACHABLE_WITH_MSG("invalid bitwise operation");
+			}
 		}
 	}
 
@@ -2972,8 +3020,8 @@ NODISCARD static void* helper_alloc_aligned_with_offset(void** result, size_t si
 
 CPU_TARGET(sse2)
 static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_sse2_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_SSE2;
@@ -3000,8 +3048,8 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_sse2_impl(
 
 CPU_TARGET(sse2)
 static void helper_bigint_bitwise_or_hardware_accelerated_amd64_sse2_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_SSE2;
@@ -3028,8 +3076,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_sse2_impl(
 
 CPU_TARGET(sse2)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_sse2_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_SSE2;
 
@@ -3157,8 +3205,8 @@ NODISCARD static BigIntC CPU_TARGET(sse2)
 
 CPU_TARGET(avx2)
 static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx2_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX2;
@@ -3185,8 +3233,8 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx2_impl(
 
 CPU_TARGET(avx2)
 static void helper_bigint_bitwise_or_hardware_accelerated_amd64_avx2_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX2;
@@ -3213,8 +3261,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_avx2_impl(
 
 CPU_TARGET(avx2)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx2_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX2;
 
@@ -3341,8 +3389,8 @@ NODISCARD static BigIntC CPU_TARGET(avx2)
 
 CPU_TARGET(avx512f)
 static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx512_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX512;
@@ -3369,8 +3417,8 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx512_impl(
 
 CPU_TARGET(avx512f)
 static void helper_bigint_bitwise_or_hardware_accelerated_amd64_avx512_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX512;
@@ -3397,8 +3445,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_avx512_impl(
 
 CPU_TARGET(avx512f)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx512_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX512;
 
@@ -3544,8 +3592,8 @@ NODISCARD static BigIntC CPU_TARGET(avx512f)
 
 CPU_TARGET_NEON
 static void helper_bigint_bitwise_xor_hardware_accelerated_arm64_neon_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_NEON;
@@ -3572,8 +3620,8 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_arm64_neon_impl(
 
 CPU_TARGET_NEON
 static void helper_bigint_bitwise_or_hardware_accelerated_arm64_neon_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_NEON;
@@ -3600,8 +3648,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_arm64_neon_impl(
 
 CPU_TARGET_NEON
 static void helper_bigint_bitwise_and_hardware_accelerated_arm64_neon_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes) {
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes) {
 	size_t i = 0;
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_NEON;
 
@@ -3740,8 +3788,8 @@ process_bitwise_operation_hardware_accelerated_arm64_neon(BigIntC big_int1, BigI
 
 CPU_TARGET_SVE
 static void helper_bigint_bitwise_xor_hardware_accelerated_arm64_sve_sizeless_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
     svbool_t predicate) {
 
 	size_t i = 0;
@@ -3769,8 +3817,8 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_arm64_sve_sizeless_im
 
 CPU_TARGET_SVE
 static void helper_bigint_bitwise_or_hardware_accelerated_arm64_sve_sizeless_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
     svbool_t predicate) {
 
 	size_t i = 0;
@@ -3798,8 +3846,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_arm64_sve_sizeless_imp
 
 CPU_TARGET_SVE
 static void helper_bigint_bitwise_and_hardware_accelerated_arm64_sve_sizeless_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes, size_t sve_vector_length_in_u64,
     svbool_t predicate) {
 
 	size_t i = 0;
@@ -4124,8 +4172,8 @@ NODISCARD static RVVSetting rvv_get_and_set_maximum_viable_setting(size_t actual
 
 CPU_TARGET_RVV
 static void helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
     RVVSetting rvv_setting) {
 
 	size_t i = 0;
@@ -4190,8 +4238,8 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_
 
 CPU_TARGET_RVV
 static void helper_bigint_bitwise_or_hardware_accelerated_riscv64_rvv_sizeless_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
     RVVSetting rvv_setting) {
 
 	size_t i = 0;
@@ -4256,8 +4304,8 @@ static void helper_bigint_bitwise_or_hardware_accelerated_riscv64_rvv_sizeless_i
 
 CPU_TARGET_RVV
 static void helper_bigint_bitwise_and_hardware_accelerated_riscv64_rvv_sizeless_impl(
-    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
-    uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
+    size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
+    uint64_t* restrict result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
     RVVSetting rvv_setting) {
 	size_t i = 0;
 	size_t simd_width = rvv_vector_length_in_u64;
@@ -4524,8 +4572,8 @@ NODISCARD static BigIntC process_bitwise_operation(BigIntC big_int1, BigIntC big
                                                    BitWiseOperation op) {
 
 	size_t max_size = helper_max(big_int1.number_count, big_int2.number_count);
-#if defined(USE_HARDWARE_ACCEL)
 
+#if defined(USE_HARDWARE_ACCEL)
 	if(max_size <= MIN_SIZE_FOR_HARDWARE_ACCEL) {
 		return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
 	}
