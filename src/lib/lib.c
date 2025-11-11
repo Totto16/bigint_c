@@ -4048,9 +4048,14 @@ CPU_TARGET_RVV NODISCARD static bool rvv_support_elen_64_impl(void) {
 
 #define LMUL_FROM_POW(lmul_pow) (((uint8_t)2UL) << (lmul_pow))
 
-CPU_TARGET_RVV NODISCARD static uint64_t rvv_get_max_u64_per_iteration(RVVSetting setting) {
+CPU_TARGET_RVV NODISCARD static uint64_t rvv_get_max_u64_per_iteration_impl(size_t vl,
+                                                                            uint8_t lmul_pow) {
 	// return VLEN * LMUL, lmul is encoded in lmul_pow
-	return setting.vl * LMUL_FROM_POW(setting.lmul_pow);
+	return vl * LMUL_FROM_POW(lmul_pow);
+}
+
+CPU_TARGET_RVV NODISCARD static uint64_t rvv_get_max_u64_per_iteration(RVVSetting setting) {
+	return rvv_get_max_u64_per_iteration_impl(setting.vl, setting.lmul_pow);
 }
 
 CPU_TARGET_RVV
@@ -4074,22 +4079,30 @@ NODISCARD static RVVSetting rvv_get_and_set_maximum_viable_setting(size_t actual
 
 	uint8_t lmul_pow_array[LMUL_VARAINTS_SIZE] = { M1, M2, M4, M8 };
 
+	uint64_t max_thoughput = 0;
+	size_t max_t_i = 0;
+
 	for(size_t i = 0; i < LMUL_VARAINTS_SIZE; ++i) {
 
 		const uint8_t lmul_pow = lmul_pow_array[i];
 
 		const uint64_t vl = rvv_get_and_set_final_vl_for_lmul_impl(lmul_pow);
 
-		const uint8_t lmul = LMUL_FROM_POW(lmul_pow);
+		const uint64_t amount_to_process = rvv_get_max_u64_per_iteration_impl(vl, lmul_pow);
 
-		const uint64_t amount_to_process = vl * lmul;
+		if(amount_to_process > max_thoughput) {
+			max_t_i = i;
+			max_thoughput = amount_to_process;
+		}
 
 		if(actual_size <= (amount_to_process * MIN_HW_ACCEL_SIZE_MULT)) {
 			// we overshot, reset and return the earlier setting if possible. otherwise return
 			// INVALID_RVV_SETTING
 			if(i > 0) {
-				// reset the config to the earlier one, and return that
-				const uint8_t lmul_pow = lmul_pow_array[i - 1];
+				// reset the config to the best one so far (or one before, if that is the current
+				// one), and return that
+				size_t lmul_idx = max_t_i == i ? i - 1 : max_t_i;
+				const uint8_t lmul_pow = lmul_pow_array[lmul_idx];
 
 				const uint64_t vl = rvv_get_and_set_final_vl_for_lmul_impl(lmul_pow);
 
@@ -4101,11 +4114,11 @@ NODISCARD static RVVSetting rvv_get_and_set_maximum_viable_setting(size_t actual
 		}
 	}
 
-	const uint8_t lmul_pow = lmul_pow_array[LMUL_VARAINTS_SIZE - 1];
+	// return the best result
+	const uint8_t lmul_pow = lmul_pow_array[max_t_i];
 
 	const uint64_t vl = rvv_get_and_set_final_vl_for_lmul_impl(lmul_pow);
 
-	// return the last result, as it was ok
 	return ((RVVSetting){ .vl = vl, .lmul_pow = lmul_pow });
 }
 
