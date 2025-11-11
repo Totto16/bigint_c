@@ -4123,23 +4123,38 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_
 		case M1: {
 			// main loop
 			for(; i + simd_width <= array_size; i += simd_width) {
-				vuint64m1_t array1_rvv_m1 = vle64_v_u64m1(&(array1[i]), vl);
-				vuint64m1_t array2_rvv_m1 = vle64_v_u64m1(&(array2[i]), vl);
-				vuint64m1_t result_rvv_m1 = vadd_vv_u64m1(array1_rvv_m1, array2_rvv_m1, vl);
-				vse64_v_u64m1(&(result_array[i]), result_rvv_m1, vl);
+				vuint64m1_t array1_rvv_m1 = __riscv_vle64_v_u64m1(&(array1[i]), vl);
+				vuint64m1_t array2_rvv_m1 = __riscv_vle64_v_u64m1(&(array2[i]), vl);
+				vuint64m1_t result_rvv_m1 = __riscv_vxor_vv_u64m1(array1_rvv_m1, array2_rvv_m1, vl);
+				__riscv_vse64_v_u64m1(&(result_array[i]), result_rvv_m1, vl);
 			}
 			break;
 		}
 		case M2: {
-
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m2_t array1_rvv_m2 = __riscv_vle64_v_u64m2(&(array1[i]), vl);
+				vuint64m2_t array2_rvv_m2 = __riscv_vle64_v_u64m2(&(array2[i]), vl);
+				vuint64m2_t result_rvv_m2 = __riscv_vxor_vv_u64m2(array1_rvv_m2, array2_rvv_m2, vl);
+				__riscv_vse64_v_u64m2(&(result_array[i]), result_rvv_m2, vl);
+			}
 			break;
 		}
 		case M4: {
-
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m4_t array1_rvv_m4 = __riscv_vle64_v_u64m4(&(array1[i]), vl);
+				vuint64m4_t array2_rvv_m4 = __riscv_vle64_v_u64m4(&(array2[i]), vl);
+				vuint64m4_t result_rvv_m4 = __riscv_vxor_vv_u64m4(array1_rvv_m4, array2_rvv_m4, vl);
+				__riscv_vse64_v_u64m4(&(result_array[i]), result_rvv_m4, vl);
+			}
 			break;
 		}
 		case M8: {
-
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m8_t array1_rvv_m8 = __riscv_vle64_v_u64m8(&(array1[i]), vl);
+				vuint64m8_t array2_rvv_m8 = __riscv_vle64_v_u64m8(&(array2[i]), vl);
+				vuint64m8_t result_rvv_m8 = __riscv_vxor_vv_u64m8(array1_rvv_m8, array2_rvv_m8, vl);
+				__riscv_vse64_v_u64m8(&(result_array[i]), result_rvv_m8, vl);
+			}
 			break;
 		}
 		default: {
@@ -4159,14 +4174,64 @@ static void helper_bigint_bitwise_or_hardware_accelerated_riscv64_rvv_sizeless_i
     uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
     RVVSetting rvv_setting) {
 
-	// or
-	UNUSED(array_size);
-	UNUSED(array1);
-	UNUSED(array2);
-	UNUSED(result_array);
-	UNUSED(aligned_bytes);
-	UNUSED(rvv_vector_length_in_u64);
-	UNUSED(rvv_setting);
+	size_t i = 0;
+	size_t simd_width = rvv_vector_length_in_u64;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] | array2[i];
+	}
+
+	size_t vl = rvv_setting.vl;
+
+	switch(rvv_setting.lmul_pow) {
+		case M1: {
+			// main loop
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m1_t array1_rvv_m1 = __riscv_vle64_v_u64m1(&(array1[i]), vl);
+				vuint64m1_t array2_rvv_m1 = __riscv_vle64_v_u64m1(&(array2[i]), vl);
+				vuint64m1_t result_rvv_m1 = __riscv_vor_vv_u64m1(array1_rvv_m1, array2_rvv_m1, vl);
+				__riscv_vse64_v_u64m1(&(result_array[i]), result_rvv_m1, vl);
+			}
+			break;
+		}
+		case M2: {
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m2_t array1_rvv_m2 = __riscv_vle64_v_u64m2(&(array1[i]), vl);
+				vuint64m2_t array2_rvv_m2 = __riscv_vle64_v_u64m2(&(array2[i]), vl);
+				vuint64m2_t result_rvv_m2 = __riscv_vor_vv_u64m2(array1_rvv_m2, array2_rvv_m2, vl);
+				__riscv_vse64_v_u64m2(&(result_array[i]), result_rvv_m2, vl);
+			}
+			break;
+		}
+		case M4: {
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m4_t array1_rvv_m4 = __riscv_vle64_v_u64m4(&(array1[i]), vl);
+				vuint64m4_t array2_rvv_m4 = __riscv_vle64_v_u64m4(&(array2[i]), vl);
+				vuint64m4_t result_rvv_m4 = __riscv_vor_vv_u64m4(array1_rvv_m4, array2_rvv_m4, vl);
+				__riscv_vse64_v_u64m4(&(result_array[i]), result_rvv_m4, vl);
+			}
+			break;
+		}
+		case M8: {
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m8_t array1_rvv_m8 = __riscv_vle64_v_u64m8(&(array1[i]), vl);
+				vuint64m8_t array2_rvv_m8 = __riscv_vle64_v_u64m8(&(array2[i]), vl);
+				vuint64m8_t result_rvv_m8 = __riscv_vor_vv_u64m8(array1_rvv_m8, array2_rvv_m8, vl);
+				__riscv_vse64_v_u64m8(&(result_array[i]), result_rvv_m8, vl);
+			}
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("lmul_pow too big");
+		}
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] | array2[i];
+	}
 }
 
 CPU_TARGET_RVV
@@ -4174,15 +4239,64 @@ static void helper_bigint_bitwise_and_hardware_accelerated_riscv64_rvv_sizeless_
     size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
     uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
     RVVSetting rvv_setting) {
+size_t i = 0;
+	size_t simd_width = rvv_vector_length_in_u64;
 
-	// and
-	UNUSED(array_size);
-	UNUSED(array1);
-	UNUSED(array2);
-	UNUSED(result_array);
-	UNUSED(aligned_bytes);
-	UNUSED(rvv_vector_length_in_u64);
-	UNUSED(rvv_setting);
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] & array2[i];
+	}
+
+	size_t vl = rvv_setting.vl;
+
+	switch(rvv_setting.lmul_pow) {
+		case M1: {
+			// main loop
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m1_t array1_rvv_m1 = __riscv_vle64_v_u64m1(&(array1[i]), vl);
+				vuint64m1_t array2_rvv_m1 = __riscv_vle64_v_u64m1(&(array2[i]), vl);
+				vuint64m1_t result_rvv_m1 = __riscv_vand_vv_u64m1(array1_rvv_m1, array2_rvv_m1, vl);
+				__riscv_vse64_v_u64m1(&(result_array[i]), result_rvv_m1, vl);
+			}
+			break;
+		}
+		case M2: {
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m2_t array1_rvv_m2 = __riscv_vle64_v_u64m2(&(array1[i]), vl);
+				vuint64m2_t array2_rvv_m2 = __riscv_vle64_v_u64m2(&(array2[i]), vl);
+				vuint64m2_t result_rvv_m2 = __riscv_vand_vv_u64m2(array1_rvv_m2, array2_rvv_m2, vl);
+				__riscv_vse64_v_u64m2(&(result_array[i]), result_rvv_m2, vl);
+			}
+			break;
+		}
+		case M4: {
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m4_t array1_rvv_m4 = __riscv_vle64_v_u64m4(&(array1[i]), vl);
+				vuint64m4_t array2_rvv_m4 = __riscv_vle64_v_u64m4(&(array2[i]), vl);
+				vuint64m4_t result_rvv_m4 = __riscv_vand_vv_u64m4(array1_rvv_m4, array2_rvv_m4, vl);
+				__riscv_vse64_v_u64m4(&(result_array[i]), result_rvv_m4, vl);
+			}
+			break;
+		}
+		case M8: {
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m8_t array1_rvv_m8 = __riscv_vle64_v_u64m8(&(array1[i]), vl);
+				vuint64m8_t array2_rvv_m8 = __riscv_vle64_v_u64m8(&(array2[i]), vl);
+				vuint64m8_t result_rvv_m8 = __riscv_vand_vv_u64m8(array1_rvv_m8, array2_rvv_m8, vl);
+				__riscv_vse64_v_u64m8(&(result_array[i]), result_rvv_m8, vl);
+			}
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("lmul_pow too big");
+		}
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] & array2[i];
+	}
 }
 
 CPU_TARGET_RVV

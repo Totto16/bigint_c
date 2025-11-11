@@ -13,6 +13,24 @@
 #include <asm/hwcap.h>
 #include <sys/auxv.h>
 #endif
+#elif defined(__riscv) && __riscv_xlen == 64
+
+#if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#error "RiscV64 is not supported on windows"
+#endif
+
+#if __has_include(<sys/hwprobe.h>)
+#include <sys/hwprobe.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#else
+#include <asm/hwprobe.h>
+#include <sys/syscall.h>
+#define _GNU_SOURCE 1
+#include <unistd.h>
+#undef _GNU_SOURCE
+#endif
+
 #endif
 
 NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(void) {
@@ -132,17 +150,9 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 
 	// see: https://docs.kernel.org/arch/riscv/hwprobe.html
 
-#if __has_include(<sys/hwprobe.h>)
-#include <sys/hwprobe.h>
-#include <sys/syscall.h>
-#include <unistd.h>
-#else
-#include <asm/hwprobe.h>
-#include <sys/syscall.h>
-#define _GNU_SOURCE 1
-#include <unistd.h>
-#undef _GNU_SOURCE
-#endif
+#ifdef RISCV_HWPROBE_EXT_ZVE64X
+	// if we don't have RISCV_HWPROBE_EXT_ZVE64X, alias the linux kernel or the libc includes are
+	// too old, we can#t support the runtime detection!
 
 	struct riscv_hwprobe probe = {
 		.key = RISCV_HWPROBE_KEY_IMA_EXT_0, // ISA extensions
@@ -161,15 +171,21 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 
 	unsigned long exts = probe.value;
 
+#endif
+
+#ifdef RISCV_HWPROBE_EXT_ZVE64X
 	if(optimization_level <= OptimizationLevelNone) {
 
-		if((exts & RISCV_HWPROBE_IMA_V) != 0) {
+		// need runtime RVV (IMA_V) and E64 (zve64x) support,
+		if((exts & RISCV_HWPROBE_IMA_V) != 0 && (exts & RISCV_HWPROBE_EXT_ZVE64X) != 0) {
 			return OptimizationLevel_RISCV64_RVV;
 		}
+
 	} else {
 		// optimization_level >= OptimizationLevel_RISCV64_RVV
 		return optimization_level;
 	}
+#endif
 
 	// optimization_level >= OptimizationLevel_RISCV64_RVV
 	return optimization_level;
