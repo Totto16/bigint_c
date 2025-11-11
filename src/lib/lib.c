@@ -3976,6 +3976,28 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_in
 // occur, if it does, hardware acceleation should be disabled!"
 #endif
 
+#if defined(__GNUC__)
+// need extensions v + zve64x
+#if defined(__clang__)
+#define CPU_TARGET_RVV __attribute__((target("arch=+zve64x")))
+
+// clang doesn't define these wrappers, if we don't have compile time __riscv_v_elen >= 64 support,
+// but we just needs those for the runtime
+#if __riscv_v_elen < 64
+
+#define __riscv_vsetvlmax_e64m1() __builtin_rvv_vsetvlimax(3, 0)
+#define __riscv_vsetvlmax_e64m2() __builtin_rvv_vsetvlimax(3, 1)
+#define __riscv_vsetvlmax_e64m4() __builtin_rvv_vsetvlimax(3, 2)
+#define __riscv_vsetvlmax_e64m8() __builtin_rvv_vsetvlimax(3, 3)
+#endif
+
+#else
+#define CPU_TARGET_RVV __attribute__((target("arch=+v", "arch=+zve64x")))
+#endif
+#else
+#error "Not supported"
+#endif
+
 typedef struct {
 	size_t vl;        // length of uint64s in a vector
 	uint8_t lmul_pow; // 0,1,2 or 3, maps to 2^<lmul> so means 1,2,4 or 8
@@ -3993,37 +4015,38 @@ typedef struct {
 #define M4 2 // LMUL=4
 #define M8 3 // LMUL=8
 
-CPU_TARGET("rvv")
+CPU_TARGET_RVV
 NODISCARD static uint64_t rvv_get_and_set_final_vl_for_lmul_impl(uint8_t lmul_pow) {
 
 	// dynamic wrapper for  __riscv_vsetvlmax_e64m<lmul>
+
 	switch(lmul_pow) {
-		case M1: return __builtin_rvv_vsetvlimax(E64, M1);
-		case M2: return __builtin_rvv_vsetvlimax(E64, M2);
-		case M4: return __builtin_rvv_vsetvlimax(E64, M4);
-		case M8: return __builtin_rvv_vsetvlimax(E64, M8);
+		case M1: return __riscv_vsetvlmax_e64m1();
+		case M2: return __riscv_vsetvlmax_e64m2();
+		case M4: return __riscv_vsetvlmax_e64m4();
+		case M8: return __riscv_vsetvlmax_e64m8();
 		default: {
 			UNREACHABLE_WITH_MSG("lmul_pow too big");
 		}
 	}
 }
 
-CPU_TARGET("rvv") NODISCARD static bool rvv_support_elen_64_impl(void) {
+CPU_TARGET_RVV NODISCARD static bool rvv_support_elen_64_impl(void) {
 
 	// note the spec for 1.0 says:
 	// If the vtype setting is not supported by the implementation, then the vill bit is set in
 	// vtype, the remaining bits in vtype are set to zero, and the vl register is also set to zero.
-	return __builtin_rvv_vsetvlimax(E64, M1) != 0;
+	return __riscv_vsetvlmax_e64m1() != 0;
 }
 
 #define LMUL_FROM_POW(lmul_pow) (((uint8_t)2UL) << (lmul_pow))
 
-CPU_TARGET("rvv") NODISCARD static uint64_t rvv_get_max_u64_per_iteration(RVVSetting setting) {
+CPU_TARGET_RVV NODISCARD static uint64_t rvv_get_max_u64_per_iteration(RVVSetting setting) {
 	// return VLEN * LMUL, lmul is encoded in lmul_pow
 	return setting.vl * LMUL_FROM_POW(setting.lmul_pow);
 }
 
-CPU_TARGET("rvv")
+CPU_TARGET_RVV
 NODISCARD static bool rvv_is_invalid_rvv_setting(RVVSetting setting) {
 	return setting.lmul_pow > 3;
 }
@@ -4033,7 +4056,7 @@ NODISCARD static bool rvv_is_invalid_rvv_setting(RVVSetting setting) {
 // NOte: this function does two things, it sets up the maximum available vl for the best LMUL value,
 // and it checks, that it doesn't overshoot, as e.g. actual_size = 8 doesn't need 16 values
 // processed at once
-CPU_TARGET("rvv")
+CPU_TARGET_RVV
 NODISCARD static RVVSetting rvv_get_and_set_maximum_viable_setting(size_t actual_size) {
 
 	if(!rvv_support_elen_64_impl()) {
@@ -4077,6 +4100,197 @@ NODISCARD static RVVSetting rvv_get_and_set_maximum_viable_setting(size_t actual
 
 	// return the last result, as it was ok
 	return ((RVVSetting){ .vl = vl, .lmul_pow = lmul_pow });
+}
+
+CPU_TARGET_RVV
+static void helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
+    RVVSetting rvv_setting) {
+
+	size_t i = 0;
+	size_t simd_width = rvv_vector_length_in_u64;
+
+	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
+	// reallocation, as we use the alignment of one bigint, and "align" the second one to that
+	for(; i < aligned_bytes; ++i) {
+		result_array[i] = array1[i] ^ array2[i];
+	}
+
+	size_t vl = rvv_setting.vl;
+
+	switch(rvv_setting.lmul_pow) {
+		case M1: {
+			// main loop
+			for(; i + simd_width <= array_size; i += simd_width) {
+				vuint64m1_t array1_rvv_m1 = vle64_v_u64m1(&(array1[i]), vl);
+				vuint64m1_t array2_rvv_m1 = vle64_v_u64m1(&(array2[i]), vl);
+				vuint64m1_t result_rvv_m1 = vadd_vv_u64m1(array1_rvv_m1, array2_rvv_m1, vl);
+				vse64_v_u64m1(&(result_array[i]), result_rvv_m1, vl);
+			}
+			break;
+		}
+		case M2: {
+
+			break;
+		}
+		case M4: {
+
+			break;
+		}
+		case M8: {
+
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("lmul_pow too big");
+		}
+	}
+
+	// unaligned tail
+	for(; i < array_size; ++i) {
+		result_array[i] = array1[i] ^ array2[i];
+	}
+}
+
+CPU_TARGET_RVV
+static void helper_bigint_bitwise_or_hardware_accelerated_riscv64_rvv_sizeless_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
+    RVVSetting rvv_setting) {
+
+	// or
+	UNUSED(array_size);
+	UNUSED(array1);
+	UNUSED(array2);
+	UNUSED(result_array);
+	UNUSED(aligned_bytes);
+	UNUSED(rvv_vector_length_in_u64);
+	UNUSED(rvv_setting);
+}
+
+CPU_TARGET_RVV
+static void helper_bigint_bitwise_and_hardware_accelerated_riscv64_rvv_sizeless_impl(
+    size_t array_size, const uint64_t* const array1, const uint64_t* const array2,
+    uint64_t* result_array, size_t aligned_bytes, size_t rvv_vector_length_in_u64,
+    RVVSetting rvv_setting) {
+
+	// and
+	UNUSED(array_size);
+	UNUSED(array1);
+	UNUSED(array2);
+	UNUSED(result_array);
+	UNUSED(aligned_bytes);
+	UNUSED(rvv_vector_length_in_u64);
+	UNUSED(rvv_setting);
+}
+
+CPU_TARGET_RVV
+NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_riscv64_rvv_sizeless(
+    BigIntC big_int1, BigIntC big_int2, BitWiseOperation op, size_t max_size,
+    RVVSetting rvv_setting, size_t rvv_vector_length_in_u64) {
+
+	size_t align_bytes_of_rvv =
+	    rvv_vector_length_in_u64 * (SIZE_OF_UINT64_IN_BITS / BITS_BYTES_MULTIPLIER);
+
+	AlignedTheSame aligned_info = AlignedTheSameNone;
+	size_t offset_bytes = 0;
+	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, align_bytes_of_rvv,
+	                                     &aligned_info, &offset_bytes);
+
+	uint64_t* array1 = big_int1.numbers;
+	uint64_t* array2 = big_int2.numbers;
+
+	void* array1_real_alloc_ptr = NULL;
+	void* array2_real_alloc_ptr = NULL;
+
+	switch(aligned_info) {
+		case AlignedTheSameNone: {
+			array1_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array1, max_size * sizeof(uint64_t), align_bytes_of_rvv, offset_bytes);
+			array2_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array2, max_size * sizeof(uint64_t), align_bytes_of_rvv, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array1, big_int1, max_size, 0);
+			COPY_BIGINT_TO_BIGGER_ARRAY(array2, big_int2, max_size, 0);
+
+			break;
+		}
+		case AlignedTheSameFirst: {
+			array2_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array2, max_size * sizeof(uint64_t), align_bytes_of_rvv, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array2, big_int2, max_size, 0);
+
+			break;
+		}
+		case AlignedTheSameSecond: {
+			array1_real_alloc_ptr = helper_alloc_aligned_with_offset(
+			    (void**)&array1, max_size * sizeof(uint64_t), align_bytes_of_rvv, offset_bytes);
+
+			COPY_BIGINT_TO_BIGGER_ARRAY(array1, big_int1, max_size, 0);
+			break;
+		}
+		case AlignedTheSameBoth: {
+			// do nothing
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
+	}
+
+	BigIntC result = { .positive = big_int1.positive, .numbers = NULL, .number_count = max_size };
+
+	void* real_result_allocation_ptr = helper_alloc_aligned_with_offset(
+	    (void**)(&(result.numbers)), result.number_count * sizeof(uint64_t), align_bytes_of_rvv,
+	    offset_bytes);
+	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
+
+	switch(op) {
+		case BitWiseOperationXOR: {
+			helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes, rvv_vector_length_in_u64,
+			    rvv_setting);
+			break;
+		}
+		case BitWiseOperationOR: {
+			helper_bigint_bitwise_or_hardware_accelerated_riscv64_rvv_sizeless_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes, rvv_vector_length_in_u64,
+			    rvv_setting);
+			break;
+		}
+		case BitWiseOperationAND: {
+			helper_bigint_bitwise_and_hardware_accelerated_riscv64_rvv_sizeless_impl(
+			    max_size, array1, array2, result.numbers, offset_bytes, rvv_vector_length_in_u64,
+			    rvv_setting);
+			break;
+		}
+		default: {
+			UNREACHABLE_WITH_MSG("invalid bitwise operation");
+		}
+	}
+
+	if(array1_real_alloc_ptr != NULL) {
+		free(array1_real_alloc_ptr);
+	}
+
+	if(array2_real_alloc_ptr != NULL) {
+		free(array2_real_alloc_ptr);
+	}
+
+	// reallocate the result numbers ptr, if it is not the same as the ptr, that can be freed, this
+	// is needed, to keep the same alignment as the two input values
+	if(real_result_allocation_ptr != result.numbers) {
+
+		BigIntC new_result = bigint_helper_get_full_copy(result);
+
+		free(real_result_allocation_ptr);
+
+		result = new_result;
+	}
+
+	return result;
 }
 
 #endif
