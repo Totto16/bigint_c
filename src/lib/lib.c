@@ -2755,21 +2755,39 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 
 // general defines
 #define MIN_SIZE_FOR_HARDWARE_ACCEL MIN_SIZE_FOR_NEON
-#else
 
+#elif defined(__riscv) && __riscv_xlen == 64
+// RVV defines
+#define BITS_AT_ONCE_RVV_MINIMAL 128UL // 128 - 1024 bits
+
+#define UINT64_AMOUNT_AT_ONCE_RVV_MINIMAL (BITS_AT_ONCE_RVV_MINIMAL / SIZE_OF_UINT64_IN_BITS)
+
+#define MIN_SIZE_FOR_RVV_SCALABLE ((UINT64_AMOUNT_AT_ONCE_RVV_MINIMAL) * MIN_HW_ACCEL_SIZE_MULT)
+
+// general defines
+#define MIN_SIZE_FOR_HARDWARE_ACCEL MIN_SIZE_FOR_RVV_SCALABLE
 #endif
 
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
+
 #include <emmintrin.h> // SSE2 intrinsics
 #include <immintrin.h> // many intrincs, also avx2 and avx512
 
 #define USE_HARDWARE_ACCEL 1
+
 #elif defined(__aarch64__)
 
 #include <arm_neon.h> // NEON intrinsics
 #include <arm_sve.h>  // SVE intrinsics
 
 #define USE_HARDWARE_ACCEL 1
+
+#elif defined(__riscv) && __riscv_xlen == 64
+
+#include <riscv_vector.h> // RVV intrinsics
+
+#define USE_HARDWARE_ACCEL 1
+
 #endif
 
 #if defined(USE_HARDWARE_ACCEL)
@@ -3950,6 +3968,117 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_in
 	return result;
 }
 
+#elif defined(__riscv) && __riscv_xlen == 64
+
+#if __riscv_v_elen < 64
+// NOTE: elen 64 support is checked at runtime!
+// #error  "ELEN is smaller than 64 bits, so uint64_t arrays can't be processed, this should never
+// occur, if it does, hardware acceleation should be disabled!"
+#endif
+
+typedef struct {
+	size_t vl;        // length of uint64s in a vector
+	uint8_t lmul_pow; // 0,1,2 or 3, maps to 2^<lmul> so means 1,2,4 or 8
+} RVVSetting;
+
+// according to spec, see https://github.com/riscvarchive/riscv-v-spec/releases/tag/v1.0
+
+// TODO: check if this is the same on gcc!
+
+// clang has a enum for SEW and says e64 is 3
+#define E64 3 //  SEW=64b
+
+#define M1 0 // LMUL=1
+#define M2 1 // LMUL=2
+#define M4 2 // LMUL=4
+#define M8 3 // LMUL=8
+
+CPU_TARGET("rvv")
+NODISCARD static uint64_t rvv_get_and_set_final_vl_for_lmul_impl(uint8_t lmul_pow) {
+
+	// dynamic wrapper for  __riscv_vsetvlmax_e64m<lmul>
+	switch(lmul_pow) {
+		case M1: return __builtin_rvv_vsetvlimax(E64, M1);
+		case M2: return __builtin_rvv_vsetvlimax(E64, M2);
+		case M4: return __builtin_rvv_vsetvlimax(E64, M4);
+		case M8: return __builtin_rvv_vsetvlimax(E64, M8);
+		default: {
+			UNREACHABLE_WITH_MSG("lmul_pow too big");
+		}
+	}
+}
+
+CPU_TARGET("rvv") NODISCARD static bool rvv_support_elen_64_impl(void) {
+
+	// note the spec for 1.0 says:
+	// If the vtype setting is not supported by the implementation, then the vill bit is set in
+	// vtype, the remaining bits in vtype are set to zero, and the vl register is also set to zero.
+	return __builtin_rvv_vsetvlimax(E64, M1) != 0;
+}
+
+#define LMUL_FROM_POW(lmul_pow) (((uint8_t)2UL) << (lmul_pow))
+
+CPU_TARGET("rvv") NODISCARD static uint64_t rvv_get_max_u64_per_iteration(RVVSetting setting) {
+	// return VLEN * LMUL, lmul is encoded in lmul_pow
+	return setting.vl * LMUL_FROM_POW(setting.lmul_pow);
+}
+
+CPU_TARGET("rvv")
+NODISCARD static bool rvv_is_invalid_rvv_setting(RVVSetting setting) {
+	return setting.lmul_pow > 3;
+}
+
+#define INVALID_RVV_SETTING ((RVVSetting){ .vl = 0, .lmul_pow = 10 })
+
+// NOte: this function does two things, it sets up the maximum available vl for the best LMUL value,
+// and it checks, that it doesn't overshoot, as e.g. actual_size = 8 doesn't need 16 values
+// processed at once
+CPU_TARGET("rvv")
+NODISCARD static RVVSetting rvv_get_and_set_maximum_viable_setting(size_t actual_size) {
+
+	if(!rvv_support_elen_64_impl()) {
+		return INVALID_RVV_SETTING;
+	}
+
+#define LMUL_VARAINTS_SIZE 4
+
+	uint8_t lmul_pow_array[LMUL_VARAINTS_SIZE] = { M1, M2, M4, M8 };
+
+	for(size_t i = 0; i < LMUL_VARAINTS_SIZE; ++i) {
+
+		const uint8_t lmul_pow = lmul_pow_array[i];
+
+		const uint64_t vl = rvv_get_and_set_final_vl_for_lmul_impl(lmul_pow);
+
+		const uint8_t lmul = LMUL_FROM_POW(lmul_pow);
+
+		const uint64_t amount_to_process = vl * lmul;
+
+		if(actual_size <= (amount_to_process * MIN_HW_ACCEL_SIZE_MULT)) {
+			// we overshot, reset and return the earlier setting if possible. otherwise return
+			// INVALID_RVV_SETTING
+			if(i > 0) {
+				// reset the config to the earlier one, and return that
+				const uint8_t lmul_pow = lmul_pow_array[i - 1];
+
+				const uint64_t vl = rvv_get_and_set_final_vl_for_lmul_impl(lmul_pow);
+
+				return ((RVVSetting){ .vl = vl, .lmul_pow = lmul_pow });
+
+			} else {
+				return INVALID_RVV_SETTING;
+			}
+		}
+	}
+
+	const uint8_t lmul_pow = lmul_pow_array[LMUL_VARAINTS_SIZE - 1];
+
+	const uint64_t vl = rvv_get_and_set_final_vl_for_lmul_impl(lmul_pow);
+
+	// return the last result, as it was ok
+	return ((RVVSetting){ .vl = vl, .lmul_pow = lmul_pow });
+}
+
 #endif
 
 #if defined(USE_HARDWARE_ACCEL)
@@ -3964,6 +4093,11 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 			// 86_64
 		case OptimizationLevel_AMD64_SSE2: {
 		use_sse2:
+
+			if(max_size <= MIN_SIZE_FOR_SSE2) {
+				goto use_generic;
+			}
+
 			return process_bitwise_operation_hardware_accelerated_amd64_sse2(big_int1, big_int2, op,
 			                                                                 max_size);
 		}
@@ -3990,6 +4124,11 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 			// aarch64
 		case OptimizationLevel_ARM64_NEON: {
 		use_neon:
+
+			if(max_size <= MIN_SIZE_FOR_NEON) {
+				goto use_generic;
+			}
+
 			return process_bitwise_operation_hardware_accelerated_arm64_neon(big_int1, big_int2, op,
 			                                                                 max_size);
 		}
@@ -4004,9 +4143,29 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 			return process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
 			    big_int1, big_int2, op, max_size, sve_vector_length_in_u64);
 		}
+#elif defined(__riscv) && __riscv_xlen == 64
+			// riscv64
+		case OptimizationLevel_RISCV64_RVV: {
+
+			RVVSetting rvv_setting = rvv_get_and_set_maximum_viable_setting(max_size);
+
+			if(rvv_is_invalid_rvv_setting(rvv_setting)) {
+				goto use_generic;
+			}
+
+			uint64_t rvv_vector_length_in_u64 = rvv_get_max_u64_per_iteration(rvv_setting);
+
+			if(max_size <= (rvv_vector_length_in_u64 * MIN_HW_ACCEL_SIZE_MULT)) {
+				goto use_generic;
+			}
+
+			return process_bitwise_operation_hardware_accelerated_riscv64_rvv_sizeless(
+			    big_int1, big_int2, op, max_size, rvv_setting, rvv_vector_length_in_u64);
+		}
 #endif
 		case OptimizationLevelNone:
 		default: {
+		use_generic:
 			return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
 		}
 	}
