@@ -657,7 +657,7 @@ using nth_argument_t =
 
 using radix_func_type = decltype(&mp_radix_size);
 
-using radix_type = std::remove_pointer<typename nth_argument_t<radix_func_type, 2>>::type;
+using radix_type = std::remove_pointer<nth_argument_t<radix_func_type, 2>>::type;
 
 } // namespace templates
 
