@@ -10,14 +10,14 @@
 typedef enum {
 	OptimizationLevelNone = 0,
 	// 86_64
-	OptimizationLevel_AMD64_SSE2 = 2,
-	OptimizationLevel_AMD64_AVX2,
-	OptimizationLevel_AMD64_AVX512,
+	OptimizationLevelAMD64SSE2 = 2,
+	OptimizationLevelAMD64AVX2 = 3,
+	OptimizationLevelAMD64AVX512 = 4,
 	// aarch64
-	OptimizationLevel_ARM64_NEON = 8,
-	OptimizationLevel_ARM64_SVE,
+	OptimizationLevelARM64NEON = 8,
+	OptimizationLevelARM64SVE = 9,
 	// riscv64
-	OptimizationLevel_RISCV64_RVV = 12,
+	OptimizationLevelRISCV64RVV = 12,
 	// helper value
 	OptimizationLevelUninitialized = 32
 } OptimizationLevel;

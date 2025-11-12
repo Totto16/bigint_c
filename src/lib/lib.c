@@ -1755,7 +1755,7 @@ NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t d
 	__asm__("xor %%rdx, %%rdx\n\t"              // Clear RDX for 128-bit dividend (RDX:RAX)
 	        "divq %[dvs]\n\t"                   // Divide RDX:RAX by divisor (unsigned)
 	        : "=a"(res.div), "=d"(res.mod)      // Outputs: RAX -> res.div, RDX -> res.mod
-	        : "a"(dividend), [dvs] "r"(divisor) // Inputs: RAX=dividend, operand=divisor
+	        : "a"(dividend), [dvs] "r"(divisor) // Inputs: RAX=dividend, operationerand=divisor
 	        : "cc"                              // Clobbers: condition codes
 	);
 
@@ -1878,7 +1878,7 @@ static void bigint_mul_bigint_karatsuba_shift_bigint_numbers_internally_by(BigIn
 	bigint_helper_realloc_to_new_size(big_int);
 
 	// move the old numbers to the right (inverse as in normal numbers), starting from the right, so
-	// this can be done in one swoop, all leftover numbers are set to 0
+	// this can be done in one swooperation, all leftover numbers are set to 0
 	for(size_t i = big_int->number_count; i != 0; --i) {
 
 		if(i > amount) {
@@ -2673,7 +2673,8 @@ static void helper_bigint_bitwise_and_same_generic_impl(size_t array_size,
 	} while(false)
 
 NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, BigIntC big_int2,
-                                                           BitWiseOperation op, size_t max_size) {
+                                                           BitWiseOperation operation,
+                                                           size_t max_size) {
 
 	BigIntC result = { .positive = big_int1.positive, .numbers = NULL, .number_count = max_size };
 
@@ -2692,7 +2693,7 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 		MALLOC_UINT64_T_ARRAY_AND_FILL_REST_WITH_X(array2, max_size, big_int2, 0);
 	}
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_generic_impl(max_size, array1, array2, result.numbers);
 			break;
@@ -2722,7 +2723,7 @@ NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, Big
 }
 
 NODISCARD static BigIntC process_bitwise_operation_same_generic(BigIntC big_int,
-                                                                BitWiseOperation op) {
+                                                                BitWiseOperation operation) {
 
 	BigIntC result = { .positive = big_int.positive,
 		               .numbers = NULL,
@@ -2733,7 +2734,7 @@ NODISCARD static BigIntC process_bitwise_operation_same_generic(BigIntC big_int,
 
 	uint64_t* array1 = big_int.numbers;
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_same_generic_impl(big_int.number_count, array1,
 			                                            result.numbers);
@@ -3114,7 +3115,7 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_sse2_impl(
 
 NODISCARD static BigIntC CPU_TARGET(sse2)
     process_bitwise_operation_hardware_accelerated_amd64_sse2(BigIntC big_int1, BigIntC big_int2,
-                                                              BitWiseOperation op,
+                                                              BitWiseOperation operation,
                                                               size_t max_size) {
 
 	AlignedTheSame aligned_info = AlignedTheSameNone;
@@ -3171,7 +3172,7 @@ NODISCARD static BigIntC CPU_TARGET(sse2)
 	    offset_bytes);
 	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_amd64_sse2_impl(
 			    max_size, array1, array2, result.numbers, offset_bytes);
@@ -3299,7 +3300,7 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx2_impl(
 
 NODISCARD static BigIntC CPU_TARGET(avx2)
     process_bitwise_operation_hardware_accelerated_amd64_avx2(BigIntC big_int1, BigIntC big_int2,
-                                                              BitWiseOperation op,
+                                                              BitWiseOperation operation,
                                                               size_t max_size) {
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
@@ -3355,7 +3356,7 @@ NODISCARD static BigIntC CPU_TARGET(avx2)
 	    offset_bytes);
 	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx2_impl(
 			    max_size, array1, array2, result.numbers, offset_bytes);
@@ -3483,7 +3484,7 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx512_impl(
 
 NODISCARD static BigIntC CPU_TARGET(avx512f)
     process_bitwise_operation_hardware_accelerated_amd64_avx512(BigIntC big_int1, BigIntC big_int2,
-                                                                BitWiseOperation op,
+                                                                BitWiseOperation operation,
                                                                 size_t max_size) {
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
@@ -3539,7 +3540,7 @@ NODISCARD static BigIntC CPU_TARGET(avx512f)
 	    offset_bytes);
 	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx512_impl(
 			    max_size, array1, array2, result.numbers, offset_bytes);
@@ -3685,9 +3686,8 @@ static void helper_bigint_bitwise_and_hardware_accelerated_arm64_neon_impl(
 }
 
 CPU_TARGET_NEON
-NODISCARD static BigIntC
-process_bitwise_operation_hardware_accelerated_arm64_neon(BigIntC big_int1, BigIntC big_int2,
-                                                          BitWiseOperation op, size_t max_size) {
+NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_arm64_neon(
+    BigIntC big_int1, BigIntC big_int2, BitWiseOperation operation, size_t max_size) {
 
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
@@ -3743,7 +3743,7 @@ process_bitwise_operation_hardware_accelerated_arm64_neon(BigIntC big_int1, BigI
 	    offset_bytes);
 	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_arm64_neon_impl(
 			    max_size, array1, array2, result.numbers, offset_bytes);
@@ -3918,7 +3918,7 @@ static svbool_t sve_get_current_config_predicate(void) {
 CPU_TARGET_SVE NODISCARD static BigIntC
 process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_int1,
                                                                   BigIntC big_int2,
-                                                                  BitWiseOperation op,
+                                                                  BitWiseOperation operation,
                                                                   size_t max_size,
                                                                   size_t sve_vector_length_in_u64) {
 
@@ -3981,7 +3981,7 @@ process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(BigIntC big_in
 
 	svbool_t predicate = sve_get_current_config_predicate();
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_arm64_sve_sizeless_impl(
 			    max_size, array1, array2, result.numbers, offset_bytes, sve_vector_length_in_u64,
@@ -4379,7 +4379,7 @@ static void helper_bigint_bitwise_and_hardware_accelerated_riscv64_rvv_sizeless_
 }
 
 NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_riscv64_rvv_sizeless(
-    BigIntC big_int1, BigIntC big_int2, BitWiseOperation op, size_t max_size,
+    BigIntC big_int1, BigIntC big_int2, BitWiseOperation operation, size_t max_size,
     RVVSetting rvv_setting, size_t rvv_vector_length_in_u64) {
 
 	size_t align_bytes_of_rvv =
@@ -4439,7 +4439,7 @@ NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_riscv64_
 	    offset_bytes);
 	memset((void*)result.numbers, 0, max_size * sizeof(uint64_t));
 
-	switch(op) {
+	switch(operation) {
 		case BitWiseOperationXOR: {
 			helper_bigint_bitwise_xor_hardware_accelerated_riscv64_rvv_sizeless_impl(
 			    max_size, array1, array2, result.numbers, offset_bytes, rvv_vector_length_in_u64,
@@ -4491,54 +4491,54 @@ NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_riscv64_
 
 NODISCARD static BigIntC
 process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC big_int2,
-                                                       BitWiseOperation op, size_t max_size,
+                                                       BitWiseOperation operation, size_t max_size,
                                                        OptimizationLevel opt_level) {
 
 	switch(opt_level) {
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 			// 86_64
-		case OptimizationLevel_AMD64_SSE2: {
+		case OptimizationLevelAMD64SSE2: {
 		use_sse2:
 
 			if(max_size <= MIN_SIZE_FOR_SSE2) {
 				goto use_generic;
 			}
 
-			return process_bitwise_operation_hardware_accelerated_amd64_sse2(big_int1, big_int2, op,
-			                                                                 max_size);
+			return process_bitwise_operation_hardware_accelerated_amd64_sse2(big_int1, big_int2,
+			                                                                 operation, max_size);
 		}
-		case OptimizationLevel_AMD64_AVX2: {
+		case OptimizationLevelAMD64AVX2: {
 		use_avx2:
 
 			if(max_size <= MIN_SIZE_FOR_AVX2) {
 				goto use_sse2;
 			}
 
-			return process_bitwise_operation_hardware_accelerated_amd64_avx2(big_int1, big_int2, op,
-			                                                                 max_size);
+			return process_bitwise_operation_hardware_accelerated_amd64_avx2(big_int1, big_int2,
+			                                                                 operation, max_size);
 		}
-		case OptimizationLevel_AMD64_AVX512: {
+		case OptimizationLevelAMD64AVX512: {
 
 			if(max_size <= MIN_SIZE_FOR_AVX512) {
 				goto use_avx2;
 			}
 
 			return process_bitwise_operation_hardware_accelerated_amd64_avx512(big_int1, big_int2,
-			                                                                   op, max_size);
+			                                                                   operation, max_size);
 		}
 #elif defined(__aarch64__)
 			// aarch64
-		case OptimizationLevel_ARM64_NEON: {
+		case OptimizationLevelARM64NEON: {
 		use_neon:
 
 			if(max_size <= MIN_SIZE_FOR_NEON) {
 				goto use_generic;
 			}
 
-			return process_bitwise_operation_hardware_accelerated_arm64_neon(big_int1, big_int2, op,
-			                                                                 max_size);
+			return process_bitwise_operation_hardware_accelerated_arm64_neon(big_int1, big_int2,
+			                                                                 operation, max_size);
 		}
-		case OptimizationLevel_ARM64_SVE: {
+		case OptimizationLevelARM64SVE: {
 
 			size_t sve_vector_length_in_u64 = sve_get_current_vector_length();
 
@@ -4547,11 +4547,11 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 			}
 
 			return process_bitwise_operation_hardware_accelerated_arm64_sve_sizeless(
-			    big_int1, big_int2, op, max_size, sve_vector_length_in_u64);
+			    big_int1, big_int2, operation, max_size, sve_vector_length_in_u64);
 		}
 #elif defined(__riscv) && __riscv_xlen == 64
 			// riscv64
-		case OptimizationLevel_RISCV64_RVV: {
+		case OptimizationLevelRISCV64RVV: {
 
 			RVVSetting rvv_setting = rvv_get_and_set_maximum_viable_setting(max_size);
 
@@ -4566,13 +4566,13 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 			}
 
 			return process_bitwise_operation_hardware_accelerated_riscv64_rvv_sizeless(
-			    big_int1, big_int2, op, max_size, rvv_setting, rvv_vector_length_in_u64);
+			    big_int1, big_int2, operation, max_size, rvv_setting, rvv_vector_length_in_u64);
 		}
 #endif
 		case OptimizationLevelNone:
 		default: {
 		use_generic:
-			return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
+			return process_bitwise_operation_generic(big_int1, big_int2, operation, max_size);
 		}
 	}
 }
@@ -4580,7 +4580,7 @@ process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC
 #endif // defined(USE_HARDWARE_ACCEL)
 
 NODISCARD static BigIntC process_bitwise_operation(BigIntC big_int1, BigIntC big_int2,
-                                                   BitWiseOperation op) {
+                                                   BitWiseOperation operation) {
 
 	// if the arrays are the same, we passed the same bigint as a and b, as we use restrict for that
 	// arrays, that could lead to problems, so we just use a fast approach for getting the result of
@@ -4596,22 +4596,22 @@ NODISCARD static BigIntC process_bitwise_operation(BigIntC big_int1, BigIntC big
 
 		// this function is not hardware acceleated, as it just uses memset and mecpy, nothing
 		// fancy, so it's not really needed
-		return process_bitwise_operation_same_generic(big_int1, op);
+		return process_bitwise_operation_same_generic(big_int1, operation);
 	}
 
 	size_t max_size = helper_max(big_int1.number_count, big_int2.number_count);
 
 #if defined(USE_HARDWARE_ACCEL)
 	if(max_size <= MIN_SIZE_FOR_HARDWARE_ACCEL) {
-		return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
+		return process_bitwise_operation_generic(big_int1, big_int2, operation, max_size);
 	}
 
 	OptimizationLevel best_optimization_level = get_best_optimization_level();
 
-	return process_bitwise_operation_generic_hardware_accelerated(big_int1, big_int2, op, max_size,
-	                                                              best_optimization_level);
+	return process_bitwise_operation_generic_hardware_accelerated(
+	    big_int1, big_int2, operation, max_size, best_optimization_level);
 #else
-	return process_bitwise_operation_generic(big_int1, big_int2, op, max_size);
+	return process_bitwise_operation_generic(big_int1, big_int2, operation, max_size);
 #endif
 }
 
