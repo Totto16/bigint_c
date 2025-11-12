@@ -63,7 +63,7 @@ NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntError maybe_bigint_get_error(MaybeBig
  *          note, that "." and "," are no decimal separators like found in doubles (depending on
  *          where in the world it is "," or ".")
  * @param str - the input string
- * @return MaybeBigInt - the result
+ * @returns MaybeBigInt - the result
  */
 NODISCARD BIGINT_C_LIB_EXPORTED MaybeBigIntC maybe_bigint_from_string(ConstStr str);
 
@@ -79,12 +79,12 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_signed_number(int64_t number
  *
  * @param numbers
  * @param size
- * @return BigIntC - the result
+ * @returns BigIntC - the result
  */
-NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_from_list_of_numbers(const uint64_t* numbers,
-                                                                    size_t size);
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC
+bigint_from_list_of_numbers(PARAMS_IN const uint64_t* numbers, size_t size, bool positive);
 
-BIGINT_C_LIB_EXPORTED void free_bigint(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void free_bigint(PARAMS_IN BigIntC* big_int);
 
 BIGINT_C_LIB_EXPORTED void free_bigint_without_reset(BigIntC big_int);
 
@@ -104,12 +104,30 @@ NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_add_bigint(BigIntC big_int1, BigI
 NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_sub_bigint(BigIntC big_int1, BigIntC big_int2);
 
 /**
+ * @brief This increment the bigint by one, it is faster, as it is optimized for only adding one, so
+ * no complicated multibyte addition is performed
+ *
+ * @param big_int1 in_out
+ * @returns void
+ */
+BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(PARAMS_INOUT BigIntC* big_int1);
+
+/**
+ * @brief This decrements the bigint by one, it is faster, as it is optimized for only subtracting
+ * one, so no complicated multibyte subtraction is performed
+ *
+ * @param big_int1 in_out
+ * @returns void
+ */
+BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(PARAMS_INOUT BigIntC* big_int1);
+
+/**
  * @brief This compares two bigints for equality, this is faster than comparing them, as this may
  * return earlier in some cases and perform less checks
  *
  * @param big_int1
  * @param big_int2
- * @return bool
+ * @returns bool
  */
 NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2);
 
@@ -119,10 +137,99 @@ NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC 
  *
  * @param big_int1
  * @param big_int2
- * @return 0, -1 or 1
+ * @returns 0, -1 or 1
  */
 NODISCARD BIGINT_C_LIB_EXPORTED int8_t bigint_compare_bigint(BigIntC big_int1, BigIntC big_int2);
 
-BIGINT_C_LIB_EXPORTED void bigint_negate(BigIntC* big_int);
+BIGINT_C_LIB_EXPORTED void bigint_negate(PARAMS_INOUT BigIntC* big_int);
 
 NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mul_bigint(BigIntC big_int1, BigIntC big_int2);
+
+/**
+ * @brief Shifts the bits of the underlying value by <amount> to the right same as  x / (2**x), sign
+ * is ignored
+ *
+ * @param big_int {in_out}
+ * @param amount
+ */
+BIGINT_C_LIB_EXPORTED void bigint_shift_right(PARAMS_INOUT BigIntC* big_int, uint64_t amount);
+
+/**
+ * @brief Shifts the bits of the underlying value by <amount> to the left same as  x * (2**x), sign
+ * is ignored
+ *
+ * @param big_int {in_out}
+ * @param amount
+ */
+BIGINT_C_LIB_EXPORTED void bigint_shift_left(PARAMS_INOUT BigIntC* big_int, uint64_t amount);
+
+typedef enum {
+	DivisionRoundingFloor,
+	DivisionRoundingCeil,
+	DivisionRoundingTowardsZero,
+} DivisionRounding;
+
+typedef enum {
+	ModuloRoundingTruncated,
+	ModuloRoundingFloored,
+	ModuloRoundingCeiled,
+	ModuloRoundingEuclidean,
+} ModuloRounding;
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_div_bigint(BigIntC dividend, BigIntC divisor);
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_div_bigint_advanced(BigIntC dividend,
+                                                                   BigIntC divisor,
+                                                                   DivisionRounding rounding);
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint(BigIntC dividend, BigIntC divisor);
+
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_mod_bigint_advanced(BigIntC dividend,
+                                                                   BigIntC divisor,
+                                                                   ModuloRounding rounding);
+
+BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint(BigIntC dividend, BigIntC divisor,
+                                                 PARAMS_OUT BigIntC* out_div,
+                                                 PARAMS_OUT BigIntC* out_mod);
+
+BIGINT_C_LIB_EXPORTED void bigint_div_mod_bigint_advanced(BigIntC dividend, BigIntC divisor,
+                                                          PARAMS_OUT BigIntC* out_div,
+                                                          PARAMS_OUT BigIntC* out_mod,
+                                                          DivisionRounding div_rounding,
+                                                          ModuloRounding mod_rounding);
+
+/**
+ * @brief Performs a bitwise XOR of the underlying limbs, sign
+ * is ignored
+ *
+ * @param big_int1
+ * @param big_int2
+ * @returns BigInt - the result
+ */
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_bitwise_xor(BigIntC big_int1, BigIntC big_int2);
+
+/**
+ * @brief Performs a bitwise OR of the underlying limbs, it has the same sign as the first number
+ *
+ * @param big_int1
+ * @param big_int2
+ * @returns BigInt - the result
+ */
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_bitwise_or(BigIntC big_int1, BigIntC big_int2);
+
+/**
+ * @brief Performs a bitwise AND of the underlying limbs, it has the same sign as the first number
+ *
+ * @param big_int1
+ * @param big_int2
+ * @returns BigInt - the result
+ */
+NODISCARD BIGINT_C_LIB_EXPORTED BigIntC bigint_bitwise_and(BigIntC big_int1, BigIntC big_int2);
+
+/**
+ * @brief Performs a bitwise complement (~) of the underlying limbs, it has the same sign as the
+ * first number
+ *
+ * @param big_int {in_out}
+ */
+BIGINT_C_LIB_EXPORTED void bigint_bitwise_complement(PARAMS_INOUT BigIntC* big_int);

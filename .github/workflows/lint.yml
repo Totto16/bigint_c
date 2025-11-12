@@ -53,7 +53,7 @@ jobs:
           step-summary: true
           file-annotations: true
           ignore: subprojects|build|test|*.cpp|*.hpp
-          extra-args: -std=c23
+          extra-args: -std=c23 -DBIGINT_C_LIB_INTERNAL_USAGE
 
       - uses: cpp-linter/cpp-linter-action@v2
         name: Lint C++ Files

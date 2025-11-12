@@ -296,4 +296,92 @@ TEST(BigInt, IntegertoStringOsStream) {
 	}
 }
 
+TEST(BigInt, ParseSuccess0Normalize) {
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string(
+	    "+0000000000000000000000000000000000000000000000000000000000000000000000000000000");
+
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
+
+	BigInt big_int = std::move(maybe_big_int.value());
+
+	BigIntTest result = BigIntTest::from_list_of_numbers(true, { 0ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	const auto& underlying = big_int.underlying();
+
+	EXPECT_TRUE(underlying.positive);
+
+	EXPECT_EQ(underlying.number_count, 1ULL);
+	EXPECT_EQ(underlying.numbers[0], 0ULL);
+}
+
+TEST(BigInt, TemplateConstructor0) {
+
+	BigInt big_int{ (uint64_t)16ULL, (uint64_t)18ULL };
+
+	BigIntTest result = BigIntTest::from_list_of_numbers(true, { (uint64_t)16ULL, (uint64_t)18ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	const auto& underlying = big_int.underlying();
+
+	EXPECT_TRUE(underlying.positive);
+
+	EXPECT_EQ(underlying.number_count, 2ULL);
+	EXPECT_EQ(underlying.numbers[0], 18ULL);
+	EXPECT_EQ(underlying.numbers[1], 16ULL);
+}
+
+TEST(BigInt, TemplateConstructor1) {
+
+	BigInt big_int{ true, (uint64_t)16ULL, (uint64_t)18ULL };
+
+	BigIntTest result = BigIntTest::from_list_of_numbers(true, { (uint64_t)16ULL, (uint64_t)18ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	const auto& underlying = big_int.underlying();
+
+	EXPECT_TRUE(underlying.positive);
+
+	EXPECT_EQ(underlying.number_count, 2ULL);
+	EXPECT_EQ(underlying.numbers[0], 18ULL);
+	EXPECT_EQ(underlying.numbers[1], 16ULL);
+}
+
+TEST(BigInt, TemplateConstructor2) {
+
+	BigInt big_int{ false, (uint64_t)16ULL, (uint64_t)18ULL };
+
+	BigIntTest result = BigIntTest::from_list_of_numbers(false, { (uint64_t)16ULL, (uint64_t)18ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	const auto& underlying = big_int.underlying();
+
+	EXPECT_FALSE(underlying.positive);
+
+	EXPECT_EQ(underlying.number_count, 2ULL);
+	EXPECT_EQ(underlying.numbers[0], 18ULL);
+	EXPECT_EQ(underlying.numbers[1], 16ULL);
+}
+
+TEST(BigInt, TemplateConstructor3) {
+
+	BigInt big_int{ false, { (uint64_t)16ULL, (uint64_t)18ULL } };
+
+	BigIntTest result = BigIntTest::from_list_of_numbers(false, { (uint64_t)16ULL, (uint64_t)18ULL });
+
+	EXPECT_EQ(big_int, result);
+
+	const auto& underlying = big_int.underlying();
+
+	EXPECT_FALSE(underlying.positive);
+
+	EXPECT_EQ(underlying.number_count, 2ULL);
+	EXPECT_EQ(underlying.numbers[0], 18ULL);
+	EXPECT_EQ(underlying.numbers[1], 16ULL);
+}
+
 // TODO: test other cpp only features

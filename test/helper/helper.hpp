@@ -11,7 +11,9 @@ struct BigIntTest {
 	std::vector<uint64_t> m_values;
 
   public:
-	BigIntTest(bool positive, std::vector<uint64_t> values) noexcept;
+	BigIntTest(bool positive, std::vector<uint64_t>&& values) noexcept;
+
+	static BigIntTest from_list_of_numbers(bool positive, const std::vector<uint64_t>& values);
 
 	explicit BigIntTest(const BigInt& big_int_c) noexcept;
 	explicit BigIntTest(const std::string& str);
@@ -37,6 +39,30 @@ struct BigIntTest {
 	[[nodiscard]] BigIntTest operator-(const BigIntTest& value2) const;
 
 	[[nodiscard]] BigIntTest operator*(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest& operator++();
+
+	[[nodiscard]] BigIntTest& operator--();
+
+	[[nodiscard]] BigIntTest operator++(int);
+
+	[[nodiscard]] BigIntTest operator--(int);
+
+	[[nodiscard]] BigIntTest copy() const;
+
+	[[nodiscard]] BigIntTest operator<<(uint64_t value2) const;
+
+	[[nodiscard]] BigIntTest operator>>(uint64_t value2) const;
+
+	[[nodiscard]] BigIntTest operator%(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest mod(const BigIntTest& value2, ModuloRounding rounding) const;
+
+	[[nodiscard]] BigIntTest operator&(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest operator|(const BigIntTest& value2) const;
+
+	[[nodiscard]] BigIntTest operator^(const BigIntTest& value2) const;
 };
 
 struct BigIntDebug {
@@ -47,6 +73,10 @@ struct BigIntDebug {
 
 // helper thought just for the tests
 [[nodiscard]] bool operator==(const BigInt& value1, const BigIntTest& value2);
+
+[[nodiscard]] bool operator==(const BigIntTest& value1, const BigInt& value2);
+
+[[nodiscard]] bool operator==(const BigIntTest& value1, const BigIntTest& value2);
 
 namespace bigint {
 

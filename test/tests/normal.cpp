@@ -191,6 +191,19 @@ TEST(BigInt, ParseSuccessLargeNumbers) {
 	}
 }
 
+TEST(BigInt, ParseSuccess0Normalize) {
+	std::expected<BigInt, bigint::ParseError> maybe_big_int = BigInt::get_from_string(
+	    "+0000000000000000000000000000000000000000000000000000000000000000000000000000000");
+
+	ASSERT_THAT(maybe_big_int, ExpectedHasValue());
+
+	BigInt big_int = std::move(maybe_big_int.value());
+
+	BigIntTest result = BigIntTest(true, { 0ULL });
+
+	EXPECT_EQ(big_int, result);
+}
+
 TEST(BigInt, IntegerToBigIntU) {
 	std::vector<uint64_t> tests{ 4351325ULL, 0ULL, 1313131ULL,
 		                         std::numeric_limits<uint64_t>::max() };
@@ -1491,6 +1504,1382 @@ TEST(BigInt, IntegerMultiplication) {
 		const BigInt actual_result = value1 * value2;
 
 		const BigIntTest result_expected = BigIntTest(value1) * BigIntTest(value2);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerPostIncrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (int64_t)-1LL };
+		std::ignore = test_value1++;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
+	std::vector<BigInt> tests{};
+
+	tests.emplace_back((int64_t)-1LL);
+	tests.emplace_back((int64_t)-2LL);
+	tests.emplace_back((uint64_t)1ULL);
+	tests.emplace_back((uint64_t)0ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(BigInt::get_from_string("-351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("-351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(std::numeric_limits<uint64_t>::max());
+	tests.emplace_back(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)2ULL, std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max());
+
+	for(const BigInt& orig_value : tests) {
+
+		BigInt value1 = orig_value.copy();
+
+		const BigInt actual_result = value1++;
+
+		const BigIntTest orig_test = BigIntTest(orig_value);
+
+		BigIntTest test1 = orig_test.copy();
+
+		const BigIntTest result_expected = test1++;
+
+		EXPECT_EQ(orig_value, orig_test);
+
+		EXPECT_EQ(actual_result, result_expected);
+
+		EXPECT_EQ(actual_result, orig_value);
+
+		EXPECT_NE(actual_result, value1);
+
+		EXPECT_EQ(result_expected, orig_test);
+
+		EXPECT_NE(result_expected, test1);
+	}
+}
+
+TEST(BigInt, IntegerPreIncrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (int64_t)-1LL };
+		std::ignore = ++test_value1;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
+	std::vector<BigInt> tests{};
+
+	tests.emplace_back((int64_t)-1LL);
+	tests.emplace_back((int64_t)-2LL);
+	tests.emplace_back((uint64_t)1ULL);
+	tests.emplace_back((uint64_t)0ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(BigInt::get_from_string("-351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("-351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(std::numeric_limits<uint64_t>::max());
+	tests.emplace_back(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)2ULL, std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max());
+
+	for(const BigInt& orig_value : tests) {
+
+		BigInt value1 = orig_value.copy();
+
+		const BigInt& actual_result = ++value1;
+
+		const BigIntTest orig_test = BigIntTest(orig_value);
+
+		BigIntTest test1 = orig_test.copy();
+
+		const BigIntTest& result_expected = ++test1;
+
+		EXPECT_EQ(orig_value, orig_test);
+
+		EXPECT_EQ(actual_result, result_expected);
+
+		EXPECT_NE(actual_result, orig_value);
+
+		EXPECT_EQ(actual_result, value1);
+
+		EXPECT_NE(result_expected, orig_test);
+
+		EXPECT_EQ(result_expected, test1);
+	}
+}
+
+TEST(BigInt, IntegerPostDecrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (uint64_t)1LL };
+		std::ignore = test_value1--;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
+	std::vector<BigInt> tests{};
+
+	tests.emplace_back((int64_t)-1LL);
+	tests.emplace_back((int64_t)-2LL);
+	tests.emplace_back((uint64_t)1ULL);
+	tests.emplace_back((uint64_t)0ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(BigInt::get_from_string("-351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("-351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(std::numeric_limits<uint64_t>::max());
+	tests.emplace_back(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)1, 0, 0, 0, 0, 0, 0, 0);
+
+	tests.emplace_back((uint64_t)1, 0, 0, 2323, 0, 0, 0, 0);
+
+	for(const BigInt& orig_value : tests) {
+
+		BigInt value1 = orig_value.copy();
+
+		const BigInt actual_result = value1--;
+
+		const BigIntTest orig_test = BigIntTest(orig_value);
+
+		BigIntTest test1 = orig_test.copy();
+
+		const BigIntTest result_expected = test1--;
+
+		EXPECT_EQ(orig_value, orig_test);
+
+		EXPECT_EQ(actual_result, result_expected);
+
+		EXPECT_EQ(actual_result, orig_value);
+
+		EXPECT_NE(actual_result, value1);
+
+		EXPECT_EQ(result_expected, orig_test);
+
+		EXPECT_NE(result_expected, test1);
+	}
+}
+
+TEST(BigInt, IntegerPreDecrement) {
+
+	{ // test 0 always being positive
+
+		BigInt test_value1 = BigInt{ (uint64_t)1LL };
+		std::ignore = --test_value1;
+
+		EXPECT_EQ(test_value1, BigInt{ (uint64_t)0 });
+	}
+
+	std::vector<BigInt> tests{};
+
+	tests.emplace_back((int64_t)-1LL);
+	tests.emplace_back((int64_t)-2LL);
+	tests.emplace_back((uint64_t)1ULL);
+	tests.emplace_back((uint64_t)0ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(BigInt::get_from_string("-351326324642346363634634634636363").value());
+	tests.emplace_back(
+	    BigInt::get_from_string("-351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(std::numeric_limits<uint64_t>::max());
+	tests.emplace_back(std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)2ULL, std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	                   std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max());
+
+	tests.emplace_back((uint64_t)1, 0, 0, 0, 0, 0, 0, 0);
+
+	tests.emplace_back((uint64_t)1, 0, 0, 2323, 0, 0, 0, 0);
+
+	for(const BigInt& orig_value : tests) {
+
+		BigInt value1 = orig_value.copy();
+
+		const BigInt& actual_result = --value1;
+
+		const BigIntTest orig_test = BigIntTest(orig_value);
+
+		BigIntTest test1 = orig_test.copy();
+
+		const BigIntTest& result_expected = --test1;
+
+		EXPECT_EQ(orig_value, orig_test);
+
+		EXPECT_EQ(actual_result, result_expected);
+
+		EXPECT_NE(actual_result, orig_value);
+
+		EXPECT_EQ(actual_result, value1);
+
+		EXPECT_NE(result_expected, orig_test);
+
+		EXPECT_EQ(result_expected, test1);
+	}
+}
+
+TEST(BigInt, IntegerShiftLeft) {
+	using TestType = std::tuple<BigInt, uint64_t>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, 1ULL);
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, 2ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(), 2ULL);
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    32235ULL);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(), 65);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    127);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    32235ULL);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    32235ULL);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, 32235ULL);
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), 32235ULL);
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 2ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 0ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 32235ULL);
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    2ULL);
+
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    32235ULL);
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 << value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) << value2;
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerShiftRight) {
+	using TestType = std::tuple<BigInt, uint64_t>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, 1ULL);
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, 2ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(), 2ULL);
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    32235ULL);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(), 65);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    127);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    32235ULL);
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    32235ULL);
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, 32235ULL);
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), 32235ULL);
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 2ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 0ULL);
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, 32235ULL);
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    2ULL);
+
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    32235ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   125ULL);
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(), 0LL);
+	tests.emplace_back(BigInt::get_from_string("+0").value(), 125ULL);
+	tests.emplace_back(
+	    BigInt::get_from_string("252579235623235235235235235235235235235235235235256235723652756234"
+	                            "732447474747473747234235631965137956139561395635623523756239562395"
+	                            "62394238742375237351326324642346363634634634636363")
+	        .value(),
+	    125ULL);
+	tests.emplace_back(BigInt::get_from_string("123241414214214222424").value(), 69ULL);
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 >> value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) >> value2;
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+static int64_t i64_mod_trunc(int64_t a, int64_t b) {
+	return a % b;
+}
+
+// see: https://en.wikipedia.org/wiki/Modulo#Implementing_other_modulo_definitions_using_truncation
+namespace {
+/* Euclidean and Floored divmod, in the style of C's ldiv() */
+typedef struct {
+	/* This structure is part of the C stdlib.h, but is reproduced here for clarity */
+	int64_t quot;
+	int64_t rem;
+} ldiv_t;
+
+/* Euclidean division */
+inline ldiv_t ldivE(int64_t numer, int64_t denom) {
+	/* The C99 and C++11 languages define both of these as truncating. */
+	int64_t q = numer / denom;
+	int64_t r = numer % denom;
+	if(r < 0) {
+		if(denom > 0) {
+			q = q - 1;
+			r = r + denom;
+		} else {
+			q = q + 1;
+			r = r - denom;
+		}
+	}
+	return ldiv_t{ .quot = q, .rem = r };
+}
+
+/* Floored division */
+inline ldiv_t ldivF(int64_t numer, int64_t denom) {
+	int64_t q = numer / denom;
+	int64_t r = numer % denom;
+	if((r > 0 && denom < 0) || (r < 0 && denom > 0)) {
+		q = q - 1;
+		r = r + denom;
+	}
+	return ldiv_t{ .quot = q, .rem = r };
+}
+
+// similar as the two above, but done myself
+
+/* Ceiled division */
+inline ldiv_t ldivC(int64_t numer, int64_t denom) {
+	int64_t q = numer / denom;
+	int64_t r = numer % denom;
+	if((r > 0 && denom > 0) || (r < 0 && denom < 0)) {
+		q = q + 1;
+		r = r - denom;
+	}
+
+	return ldiv_t{ .quot = q, .rem = r };
+}
+
+} // namespace
+
+static int64_t i64_mod_floor(int64_t a, int64_t b) {
+	return ldivF(a, b).rem;
+}
+
+static int64_t i64_mod_euclid(int64_t a, int64_t b) {
+	return ldivE(a, b).rem;
+}
+
+static int64_t i64_mod_ceil(int64_t a, int64_t b) {
+	return ldivC(a, b).rem;
+}
+
+TEST(BigInt, IntegerModTruncated) {
+	using TestType = std::tuple<BigInt, BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	{ // small tests
+		// + % + => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)85ULL });
+		// - % + => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (int64_t)-85LL });
+		// - % - => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (int64_t)-85LL });
+		// + % - => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)85ULL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => +
+			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
+			// - % + => -
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   std::move(-(remainder.copy())));
+			// - % - => -
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   std::move(-(remainder.copy())));
+			// + % - => +
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())), remainder.copy());
+		}
+	}
+
+	const ModuloRounding rounding = ModuloRoundingTruncated;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const BigInt actual_result = value1.mod(value2, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModTruncatedCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => +
+		tests.emplace_back(200LL, 115LL, 85LL);
+		// - % + => -
+		tests.emplace_back(-200LL, 115LL, -85LL);
+		// - % - => -
+		tests.emplace_back(-200LL, -115LL, -85LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, 85LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingTruncated;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const int64_t result_u64 = i64_mod_trunc(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+TEST(BigInt, IntegerModFloored) {
+	using TestType = std::tuple<BigInt, BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	{ // small tests
+		// + % + => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)85ULL });
+		// - % + => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)30ULL });
+		// - % - => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (int64_t)-85LL });
+		// + % - => -
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (int64_t)-30LL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt remainder_inverted = divisor - remainder;
+
+		EXPECT_TRUE(remainder_inverted.is_positive());
+		EXPECT_LT(remainder_inverted, divisor);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => +
+			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
+			// - % + => +
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   remainder_inverted.copy());
+			// - % - => -
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   std::move(-(remainder.copy())));
+			// + % - => -
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())),
+			                   std::move(-(remainder_inverted.copy())));
+		}
+	}
+
+	const ModuloRounding rounding = ModuloRoundingFloored;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const BigInt actual_result = value1.mod(value2, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModFlooredCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => +
+		tests.emplace_back(200LL, 115LL, 85LL);
+		// - % + => -
+		tests.emplace_back(-200LL, 115LL, 30LL);
+		// - % - => -
+		tests.emplace_back(-200LL, -115LL, -85LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, -30LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingFloored;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const int64_t result_u64 = i64_mod_floor(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+TEST(BigInt, IntegerModCeiled) {
+	using TestType = std::tuple<BigInt, BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	{ // small tests
+		// + % + => -
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (int64_t)-30LL });
+		// - % + => -
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (int64_t)-85LL });
+		// - % - => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)30ULL });
+		// + % - => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)85ULL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt remainder_inverted = divisor - remainder;
+
+		EXPECT_TRUE(remainder_inverted.is_positive());
+		EXPECT_LT(remainder_inverted, divisor);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => -
+			tests.emplace_back(actual_value.copy(), divisor.copy(),
+			                   std::move(-(remainder_inverted.copy())));
+			// - % + => -
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   std::move(-(remainder.copy())));
+			// - % - => +
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   remainder_inverted.copy());
+			// + % - => +
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())), remainder.copy());
+		}
+	}
+
+	const ModuloRounding rounding = ModuloRoundingCeiled;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const BigInt actual_result = value1.mod(value2, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModCeiledCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => -
+		tests.emplace_back(200LL, 115LL, -30LL);
+		// - % + => -
+		tests.emplace_back(-200LL, 115LL, -85LL);
+		// - % - => +
+		tests.emplace_back(-200LL, -115LL, 30LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, 85LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingCeiled;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const int64_t result_u64 = i64_mod_ceil(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+TEST(BigInt, IntegerModEuclidean) {
+	using TestType = std::tuple<BigInt, BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	{ // small tests
+		// + % + => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)85ULL });
+		// - % + => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (uint64_t)115ULL },
+		                   BigInt{ (uint64_t)30ULL });
+		// - % - => +
+		tests.emplace_back(BigInt{ (int64_t)-200LL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)30ULL });
+		// + % - => +
+		tests.emplace_back(BigInt{ (uint64_t)200ULL }, BigInt{ (int64_t)-115LL },
+		                   BigInt{ (uint64_t)85ULL });
+	}
+
+	{
+		BigInt first_part = "34145781491353196313134131241515731231314217452"_n;
+
+		BigInt divisor = "21413498615801641394132131313"_n;
+
+		BigInt remainder = "23141513513531414124124214"_n;
+
+		EXPECT_TRUE(first_part.is_positive());
+		EXPECT_TRUE(divisor.is_positive());
+		EXPECT_TRUE(remainder.is_positive());
+
+		EXPECT_LT(remainder, divisor);
+		EXPECT_LT(divisor, first_part);
+
+		BigInt remainder_inverted = divisor - remainder;
+
+		EXPECT_TRUE(remainder_inverted.is_positive());
+		EXPECT_LT(remainder_inverted, divisor);
+
+		BigInt actual_value = (first_part * divisor) + remainder;
+
+		{ // big tests
+			// + % + => +
+			tests.emplace_back(actual_value.copy(), divisor.copy(), remainder.copy());
+			// - % + => +
+			tests.emplace_back(std::move(-(actual_value.copy())), divisor.copy(),
+			                   remainder_inverted.copy());
+			// - % - => +
+			tests.emplace_back(std::move(-(actual_value.copy())), std::move(-(divisor.copy())),
+			                   remainder_inverted.copy());
+			// + % - => +
+			tests.emplace_back(actual_value.copy(), std::move(-(divisor.copy())), remainder.copy());
+		}
+	}
+
+	const ModuloRounding rounding = ModuloRoundingEuclidean;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const BigInt actual_result = value1.mod(value2, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerModEuclideanCImpl) {
+	using TestType = std::tuple<int64_t, int64_t, int64_t>;
+
+	std::vector<TestType> tests{};
+
+	{
+		// + % + => +
+		tests.emplace_back(200LL, 115LL, 85LL);
+		// - % + => +
+		tests.emplace_back(-200LL, 115LL, 30LL);
+		// - % - => +
+		tests.emplace_back(-200LL, -115LL, 30LL);
+		// + % - => +
+		tests.emplace_back(200LL, -115LL, 85LL);
+	}
+
+	const ModuloRounding rounding = ModuloRoundingEuclidean;
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2, result_expected] = test;
+
+		const auto value1_b = BigInt{ value1 };
+		const auto value2_b = BigInt{ value2 };
+		const auto result_expected_b = BigInt{ result_expected };
+
+		const BigInt actual_result = value1_b.mod(value2_b, rounding);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1_b } << ", " << BigIntDebug{ value2_b };
+
+		const BigIntTest result_test = BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+		EXPECT_EQ(result_test, result_expected_b)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+
+		const int64_t result_u64 = i64_mod_euclid(value1, value2);
+
+		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
+	}
+}
+
+static std::string mod_rounding_to_str(ModuloRounding rounding) {
+	switch(rounding) {
+		case ModuloRoundingTruncated: {
+			return "Truncated";
+		}
+		case ModuloRoundingFloored: {
+			return "Floored";
+		}
+		case ModuloRoundingCeiled: {
+			return "Ceiled";
+		}
+		case ModuloRoundingEuclidean: {
+			return "Euclidean";
+		}
+		default: {
+			return "<unknown>";
+		}
+	}
+}
+
+TEST(BigInt, IntegerModGeneric) {
+	using TestType = std::tuple<BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL });
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL });
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-2131215135135132515135").value());
+	tests.emplace_back(BigInt::get_from_string("-1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("-1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-2131215135135").value());
+	tests.emplace_back(BigInt::get_from_string("0").value(),
+	                   BigInt::get_from_string("+2131215135135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+21312151351351323495781541456378747474735463736465"
+	                                           "37364647384747474747474747566383938475727424515135")
+	                       .value(),
+	                   BigInt::get_from_string("+352785318753").value());
+
+	tests.emplace_back(BigInt::get_from_string("+352785318753").value(),
+	                   BigInt::get_from_string("+21312151351351323495781541456378747474735463736465"
+	                                           "37364647384747474747474747566383938475727424515135")
+	                       .value());
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+
+	tests.emplace_back(
+	    BigInt::get_from_string(
+	        "35132632464234632432532749452368534748774747474747574563458934574389573498573458934758"
+	        "93475983457938457349857345845475475757777777777777777777777777777777777777777777777777"
+	        "77777775457457475477252574365782456785786827346752577328452378563279852978352379532578"
+	        "93255789088010871451780521572161276188761076576805218675867125867051287652186702768706"
+	        "54076257801256427855521708561270502716512761526781567085102678516780152678152678512671"
+	        "35267352167521367257615236715236715286780152367821678125678513267805236781526780152675"
+	        "8123671523363633532562340963427646346346363632")
+	        .value(),
+	    BigInt::get_from_string(
+	        "35132632464234632432532749452368534748774747474747574563458934574389573498573458934758"
+	        "93475983457938457349857345845475475757777777777777777777777777777777777777777777777777"
+	        "77777775457457475477252574365782456785786827346752577328452378563279852978352379532578"
+	        "93255789088010871451780521572161276188761076576805218675867125867051287652186702768706"
+	        "54076257801256427855521708561270502716512761526781567085102678516780152678152678512671"
+	        "35267352167521367257615236715236715286780152367821678125678513267805236781526780152675"
+	        "8123671523363633532562340963427646346346363631")
+	        .value());
+
+	tests.emplace_back(BigInt::get_from_string("+3527313141353535152542385318753").value(),
+	                   BigInt::get_from_string("+2323").value());
+
+	tests.emplace_back(BigInt::get_from_string("-3527313141353535152542385318753").value(),
+	                   BigInt::get_from_string("+2323").value());
+
+	tests.emplace_back(BigInt::get_from_string("+3527313141353535152542385318753").value(),
+	                   BigInt::get_from_string("-2323").value());
+
+	tests.emplace_back(BigInt::get_from_string("-3527313141353535152542385318753").value(),
+	                   BigInt::get_from_string("-2323").value());
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 % value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) % BigIntTest(value2);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "(Default rounding) Input values: " << BigIntDebug{ value1 } << ", "
+		    << BigIntDebug{ value2 };
+
+		auto roundings = { ModuloRoundingTruncated, ModuloRoundingFloored, ModuloRoundingCeiled,
+			               ModuloRoundingEuclidean };
+
+		for(ModuloRounding rounding : roundings) {
+
+			const BigInt actual_result_advanced = value1.mod(value2, rounding);
+
+			const BigIntTest result_expected_advanced =
+			    BigIntTest(value1).mod(BigIntTest(value2), rounding);
+
+			EXPECT_EQ(actual_result_advanced, result_expected_advanced)
+			    << "Rounding mode: " << mod_rounding_to_str(rounding)
+			    << ", Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+		}
+	}
+}
+
+TEST(BigInt, IntegerBitwiseOr) {
+	using TestType = std::tuple<BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL });
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL });
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-2131215135135132515135").value());
+	tests.emplace_back(BigInt::get_from_string("-1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("-1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-2131215135135").value());
+	tests.emplace_back(BigInt::get_from_string("0").value(),
+	                   BigInt::get_from_string("+2131215135135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
+	                   BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
+	                   BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     1ULL,
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 | value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) | BigIntTest(value2);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerBitwiseXor) {
+	using TestType = std::tuple<BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL });
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL });
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-2131215135135132515135").value());
+	tests.emplace_back(BigInt::get_from_string("-1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("-1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-2131215135135").value());
+	tests.emplace_back(BigInt::get_from_string("0").value(),
+	                   BigInt::get_from_string("+2131215135135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
+	                   BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
+	                   BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     1ULL,
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 ^ value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) ^ BigIntTest(value2);
+
+		EXPECT_EQ(actual_result, result_expected)
+		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
+	}
+}
+
+TEST(BigInt, IntegerBitwiseAnd) {
+	using TestType = std::tuple<BigInt, BigInt>;
+
+	std::vector<TestType> tests{};
+
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (uint64_t)1ULL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-2LL });
+	tests.emplace_back(BigInt{ (uint64_t)1ULL }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt::get_from_string("351326324642346363634634634636363").value(),
+	                   BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+
+	tests.emplace_back(
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363632").value(),
+	    BigInt::get_from_string("351326324642346363633532562340963427646346346363631").value());
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (int64_t)-1LL }, BigInt{ (int64_t)-3LL });
+	tests.emplace_back(BigInt{ (int64_t)-3LL }, BigInt{ (int64_t)-1LL });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt::get_from_string("0").value(), BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+0").value(), BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("-2131215135135132515135").value());
+	tests.emplace_back(BigInt::get_from_string("-1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135132515135").value(),
+	                   BigInt::get_from_string("+1").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135132515135").value(),
+	                   BigInt::get_from_string("-1").value());
+
+	tests.emplace_back(BigInt::get_from_string("+0").value(),
+	                   BigInt::get_from_string("-2131215135135").value());
+	tests.emplace_back(BigInt::get_from_string("0").value(),
+	                   BigInt::get_from_string("+2131215135135").value());
+
+	tests.emplace_back(BigInt::get_from_string("-2131215135135").value(),
+	                   BigInt::get_from_string("+0").value());
+	tests.emplace_back(BigInt::get_from_string("+2131215135135").value(),
+	                   BigInt::get_from_string("0").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt::get_from_string("+1").value(),
+	                   BigInt::get_from_string("+2131215135135132515135").value());
+
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() }, BigInt{ (uint64_t)2ULL });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(
+	    BigInt{ std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max(),
+	            std::numeric_limits<uint64_t>::max() },
+	    BigInt{ (uint64_t)2ULL });
+
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ std::numeric_limits<uint64_t>::max() },
+	                   BigInt{ std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+	tests.emplace_back(BigInt{ (uint64_t)2ULL }, BigInt{ std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     1ULL,
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max(),
+	                                                     std::numeric_limits<uint64_t>::max() });
+
+	for(const TestType& test : tests) {
+
+		const auto& [value1, value2] = test;
+
+		const BigInt actual_result = value1 & value2;
+
+		const BigIntTest result_expected = BigIntTest(value1) & BigIntTest(value2);
 
 		EXPECT_EQ(actual_result, result_expected)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };

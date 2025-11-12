@@ -1,6 +1,10 @@
 #pragma once
 
-#if __STDC_VERSION__ >= 202000 || __cplusplus
+#if defined(_MSC_VER)
+#include <sal.h>
+#endif
+
+#if __STDC_VERSION__ >= 202311L || defined(__cplusplus)
 #define NODISCARD [[nodiscard]]
 #else
 // see e.g. https://www.gnu.org/software/gnulib/manual/html_node/Attributes.html
@@ -14,6 +18,15 @@
 #else
 #define NODISCARD __attribute__((__warn_unused_result__))
 #endif
+#endif
+
+#if __STDC_VERSION__ >= 202311L || defined(__cplusplus)
+#define STATIC_ASSERT(check, message) static_assert(check, message)
+#elif __STDC_VERSION__ < 201112L
+// empty, as not supported
+#define STATIC_ASSERT(check, message)
+#else
+#define STATIC_ASSERT(check, message) _Static_assert(check, message)
 #endif
 
 #define UNUSED(v) ((void)(v))
@@ -50,3 +63,21 @@
 #endif
 
 // clang-format on
+
+#if defined(_MSC_VER)
+
+#define CPU_TARGET(tgt)
+
+#define PARAMS_OUT _Out_
+#define PARAMS_IN _In_
+#define PARAMS_INOUT _Inout_
+
+#else
+
+#define CPU_TARGET(tgt) __attribute__((target(#tgt)))
+
+#define PARAMS_OUT
+#define PARAMS_IN
+#define PARAMS_INOUT
+
+#endif

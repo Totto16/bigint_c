@@ -1,0 +1,52 @@
+{
+    "name": "Ubuntu 24.04 Dev RiscV64",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "args": {
+            "UBUNTU_VARIANT": "24.04",
+            "BUILD_PLATFORM": "linux/riscv64"
+        }
+    },
+    "runArgs": [
+        "--platform=linux/riscv64"
+    ],
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/work,type=bind,consistency=cached"
+    ],
+    "postCreateCommand": "/tmp/post_run.sh",
+    "workspaceFolder": "/work",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "xaver.clang-format",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "mesonbuild.mesonbuild"
+            ],
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash",
+                "clangd.path": "/usr/bin/clangd",
+                "clangd.arguments": [
+                    "--all-scopes-completion",
+                    "--background-index",
+                    "--background-index-priority=background",
+                    "--clang-tidy",
+                    "--completion-style=bundled",
+                    "--function-arg-placeholders",
+                    "--enable-config",
+                    "-j",
+                    "3",
+                    "--malloc-trim",
+                    "--pretty",
+                    "--header-insertion=never",
+                    "--compile-commands-dir=/runtime/build_sym_link"
+                ],
+                "[c]": {
+                    "editor.defaultFormatter": "xaver.clang-format"
+                },
+                "[cpp]": {
+                    "editor.defaultFormatter": "xaver.clang-format"
+                }
+            }
+        }
+    }
+}
