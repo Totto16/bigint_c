@@ -1886,15 +1886,15 @@ namespace {
 /* Euclidean and Floored divmod, in the style of C's ldiv() */
 typedef struct {
 	/* This structure is part of the C stdlib.h, but is reproduced here for clarity */
-	long int quot;
-	long int rem;
+	int64_t quot;
+	int64_t rem;
 } ldiv_t;
 
 /* Euclidean division */
-inline ldiv_t ldivE(long numer, long denom) {
+inline ldiv_t ldivE(int64_t numer, int64_t denom) {
 	/* The C99 and C++11 languages define both of these as truncating. */
-	long q = numer / denom;
-	long r = numer % denom;
+	int64_t q = numer / denom;
+	int64_t r = numer % denom;
 	if(r < 0) {
 		if(denom > 0) {
 			q = q - 1;
@@ -1908,9 +1908,9 @@ inline ldiv_t ldivE(long numer, long denom) {
 }
 
 /* Floored division */
-inline ldiv_t ldivF(long numer, long denom) {
-	long q = numer / denom;
-	long r = numer % denom;
+inline ldiv_t ldivF(int64_t numer, int64_t denom) {
+	int64_t q = numer / denom;
+	int64_t r = numer % denom;
 	if((r > 0 && denom < 0) || (r < 0 && denom > 0)) {
 		q = q - 1;
 		r = r + denom;
@@ -1921,9 +1921,9 @@ inline ldiv_t ldivF(long numer, long denom) {
 // similar as the two above, but done myself
 
 /* Ceiled division */
-inline ldiv_t ldivC(long numer, long denom) {
-	long q = numer / denom;
-	long r = numer % denom;
+inline ldiv_t ldivC(int64_t numer, int64_t denom) {
+	int64_t q = numer / denom;
+	int64_t r = numer % denom;
 	if((r > 0 && denom > 0) || (r < 0 && denom < 0)) {
 		q = q + 1;
 		r = r - denom;
