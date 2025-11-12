@@ -814,6 +814,150 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	return this->mod(value2, ModuloRoundingTruncated);
 }
 
+[[nodiscard]] static mp_err mp_trunc_mod(const mp_int* a, const mp_int* b, mp_int* r) {
+	mp_int q;
+	mp_int t;
+	mp_err err = MP_OKAY;
+
+	err = mp_init_multi(&q, &t, nullptr);
+	if(err != MP_OKAY) {
+		return err;
+	}
+
+	// q = trunc(a / b), mp_div truncates toward zero!
+	err = mp_div(a, b, &q, &t);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	// r = a - q * b
+	err = mp_mul(&q, b, &t);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	err = mp_sub(a, &t, r);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+clear_and_ret:
+	mp_clear_multi(&q, &t, nullptr);
+	return err;
+}
+
+[[nodiscard]] static mp_err mp_floor_mod(const mp_int* a, const mp_int* b, mp_int* r) {
+	mp_int q;
+	mp_int t;
+	mp_err err = MP_OKAY;
+
+	err = mp_init_multi(&q, &t, nullptr);
+	if(err != MP_OKAY) {
+		return err;
+	}
+
+	// q = trunc(a / b)
+	err = mp_div(a, b, &q, &t);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	// r = a - q * b
+	err = mp_mul(&q, b, &t);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	err = mp_sub(a, &t, r);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	// If remainder has different sign than divisor, adjust
+	if((r->sign != MP_ZPOS) && (b->sign == MP_ZPOS) && (mp_iszero(r) == MP_NO)) {
+		// r += b; q -= 1;
+		err = mp_add(r, b, r);
+		if(err != MP_OKAY) {
+			goto clear_and_ret;
+		}
+
+		err = mp_sub_d(&q, 1, &q);
+		if(err != MP_OKAY) {
+			goto clear_and_ret;
+		}
+	} else if((r->sign == MP_ZPOS) && (b->sign != MP_ZPOS) && (mp_iszero(r) == MP_NO)) {
+		err = mp_add(r, b, r);
+		if(err != MP_OKAY) {
+			goto clear_and_ret;
+		}
+
+		err = mp_add_d(&q, 1, &q);
+		if(err != MP_OKAY) {
+			goto clear_and_ret;
+		}
+	}
+
+clear_and_ret:
+	mp_clear_multi(&q, &t, nullptr);
+	return err;
+}
+
+[[nodiscard]] static mp_err mp_ceil_mod(const mp_int* a, const mp_int* b, mp_int* r) {
+	mp_int q;
+	mp_int t;
+	mp_err err = MP_OKAY;
+
+	err = mp_init_multi(&q, &t, nullptr);
+	if(err != MP_OKAY) {
+		return err;
+	}
+
+	// q = truncated(a / b)
+	err = mp_div(a, b, &q, &t);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	// Compute initial remainder: r = a - q*b
+	err = mp_mul(&q, b, &t);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	err = mp_sub(a, &t, r);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	// Adjust for ceil division
+	// If (a / b) is not exact and remainder sign == divisor sign, we need to round q upward.
+	if(!mp_iszero(r)) {
+		if(a->sign == b->sign) {
+			// q = q + 1
+
+			err = mp_add_d(&q, 1, &q);
+			if(err != MP_OKAY) {
+				goto clear_and_ret;
+			}
+
+			// r = a - q*b (recalculate)
+			err = mp_mul(&q, b, &t);
+			if(err != MP_OKAY) {
+				goto clear_and_ret;
+			}
+
+			err = mp_sub(a, &t, r);
+			if(err != MP_OKAY) {
+				goto clear_and_ret;
+			}
+		}
+	}
+
+clear_and_ret:
+	mp_clear_multi(&q, &t, nullptr);
+	return err;
+}
+
 [[nodiscard]] BigIntTest BigIntTest::mod(const BigIntTest& value2, ModuloRounding rounding) const {
 
 	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
@@ -827,8 +971,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	switch(rounding) {
 		case ModuloRoundingTruncated: {
 			// truncated mod
-			// TODO: incorrect
-			error = mp_mod(*number1, *number2, &result_number);
+			error = mp_trunc_mod(*number1, *number2, &result_number);
 			if(error != MP_OKAY) {
 				mp_clear(&result_number);
 				throw std::runtime_error{ mp_error_to_string(error) };
@@ -837,8 +980,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 		}
 		case ModuloRoundingFloored: {
 			// floored mod
-			// TODO: incorrect
-			error = mp_mod(*number1, *number2, &result_number);
+			error = mp_floor_mod(*number1, *number2, &result_number);
 			if(error != MP_OKAY) {
 				mp_clear(&result_number);
 				throw std::runtime_error{ mp_error_to_string(error) };
@@ -847,8 +989,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 		}
 		case ModuloRoundingCeiled: {
 			// ceiled mod
-			// TODO: incorrect
-			error = mp_mod(*number1, *number2, &result_number);
+			error = mp_ceil_mod(*number1, *number2, &result_number);
 			if(error != MP_OKAY) {
 				mp_clear(&result_number);
 				throw std::runtime_error{ mp_error_to_string(error) };
@@ -862,6 +1003,7 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 				mp_clear(&result_number);
 				throw std::runtime_error{ mp_error_to_string(error) };
 			}
+
 			break;
 		}
 		default: {
