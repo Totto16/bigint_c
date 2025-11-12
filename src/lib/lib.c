@@ -1205,7 +1205,7 @@ NODISCARD static BigIntC bigint_add_bigint_both_positive_normal(BigIntC big_int1
 			uint64_t value2 = U64(0);
 
 			if(i < big_int1.number_count) {
-				value1 = big_int1.numbers[i];
+				value1 = big_int1.numbers[i]; // NOLINT(clang-analyzer-core.NullDereference)
 			}
 
 			if(i < big_int2.number_count) {
@@ -1394,16 +1394,15 @@ static void bigint_increment_bigint_positive_or_zero_impl(BigIntC* big_int1) {
 		if(*number != UINT64_MAX) {
 			++(*number);
 			return;
-		} else {
-			*number = 0;
 		}
+
+		*number = 0;
 	}
 
 	++(big_int1->number_count);
 	bigint_helper_realloc_to_new_size(big_int1);
 
 	big_int1->numbers[big_int1->number_count - 1] = 1;
-	return;
 }
 
 static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
@@ -1427,14 +1426,14 @@ static void bigint_decrement_bigint_positive_not_zero_impl(BigIntC* big_int1) {
 			bigint_helper_remove_leading_zeroes_but_not_normalize(big_int1);
 
 			return;
-		} else {
-			if(big_int1->number_count == 1) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
-				UNREACHABLE_WITH_MSG(         // GCOVR_EXCL_LINE (see above)
-				    "not supporting 0 in this function");
-			} // GCOVR_EXCL_LINE (see above)
-
-			*number = UINT64_MAX;
 		}
+
+		if(big_int1->number_count == 1) { // GCOVR_EXCL_BR_LINE (no caller uses the 0 here)
+			UNREACHABLE_WITH_MSG(         // GCOVR_EXCL_LINE (see above)
+			    "not supporting 0 in this function");
+		} // GCOVR_EXCL_LINE (see above)
+
+		*number = UINT64_MAX;
 	}
 
 	UNREACHABLE_WITH_MSG("leading zeros detected"); // GCOVR_EXCL_LINE (gcovr can't detect asserts)
@@ -1474,8 +1473,6 @@ BIGINT_C_LIB_EXPORTED void bigint_increment_bigint(BigIntC* big_int1) {
 	}
 
 	big_int1->positive = false;
-
-	return;
 }
 
 BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1) {
@@ -1508,8 +1505,6 @@ BIGINT_C_LIB_EXPORTED void bigint_decrement_bigint(BigIntC* big_int1) {
 	}
 
 	bigint_decrement_bigint_positive_not_zero_impl(big_int1);
-
-	return;
 }
 
 NODISCARD BIGINT_C_LIB_EXPORTED bool bigint_eq_bigint(BigIntC big_int1, BigIntC big_int2) {
@@ -1685,23 +1680,31 @@ static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, ui
 
 #else
 
-static void bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2, uint64_t* low,
-                                        uint64_t* high) {
+#define U32_SIZE_IN_BITS 32UL
+
+#define U32_MAX_BYTE_VALUE 0xFFFFFFFFUL
+
+static void
+bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2,
+                            uint64_t* low, // NOLINT(bugprone-easily-swappable-parameters)
+                            uint64_t* high) {
 
 	uint64_t b1_low = (uint32_t)(big_int1);
-	uint64_t b1_high = big_int1 >> 32;
+	uint64_t b1_high = big_int1 >> U32_SIZE_IN_BITS;
 	uint64_t b2_low = (uint32_t)(big_int2);
-	uint64_t b2_high = big_int2 >> 32;
+	uint64_t b2_high = big_int2 >> U32_SIZE_IN_BITS;
 
 	uint64_t res_ll = b1_low * b2_low;
 	uint64_t res_lh = b1_low * b2_high;
 	uint64_t res_hl = b1_high * b2_low;
 	uint64_t res_hh = b1_high * b2_high;
 
-	uint64_t carry = ((res_ll >> 32) + (res_lh & 0xFFFFFFFF) + (res_hl & 0xFFFFFFFF)) >> 32;
+	uint64_t carry = ((res_ll >> U32_SIZE_IN_BITS) + (res_lh & U32_MAX_BYTE_VALUE) +
+	                  (res_hl & U32_MAX_BYTE_VALUE)) >>
+	                 U32_SIZE_IN_BITS;
 
-	*low = res_ll + (res_lh << 32) + (res_hl << 32);
-	*high = res_hh + (res_lh >> 32) + (res_hl >> 32) + carry;
+	*low = res_ll + (res_lh << U32_SIZE_IN_BITS) + (res_hl << U32_SIZE_IN_BITS);
+	*high = res_hh + (res_lh >> U32_SIZE_IN_BITS) + (res_hl >> U32_SIZE_IN_BITS) + carry;
 }
 #endif
 #endif
@@ -1746,7 +1749,9 @@ NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t d
 
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
 
-NODISCARD static DivModU64 helper_div_mod_u64_impl(uint64_t dividend, uint64_t divisor) {
+NODISCARD static DivModU64
+helper_div_mod_u64_impl(uint64_t dividend, // NOLINT(bugprone-easily-swappable-parameters)
+                        uint64_t divisor) {
 	DivModU64 res = {};
 
 	// On x86-64: DIV r/m64 divides RDX:RAX by the operand
@@ -2232,9 +2237,7 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, uint64_t amount) {
 		// move the numbers and fill the rest with 0s
 		for(size_t i = big_int->number_count; i != 0; --i) {
 
-			if(i <= move_by_amount) {
-				big_int->numbers[i - 1] = U64(0);
-			} else if(i == big_int->number_count) {
+			if(i <= move_by_amount || i == big_int->number_count) {
 				big_int->numbers[i - 1] = U64(0);
 			} else {
 				big_int->numbers[i - 1] = big_int->numbers[i - 1 - move_by_amount];
@@ -2246,9 +2249,11 @@ static void bigint_helper_shift_left_impl(BigIntC* big_int, uint64_t amount) {
 
 	// Note: this is needed, as when the condition of amount >= 64 fails, we could need an over
 	// allocation, otherwise the last number is always 0, so this does no harm either
+
+	const uint64_t last_num =
+	    big_int->numbers[big_int->number_count - 1]; // NOLINT(clang-analyzer-core.NullDereference)
 	bool needs_new_digit =
-	    bigint_helper_bits_of_number_used(big_int->numbers[big_int->number_count - 1]) >=
-	    (BIGINT_BIT_COUNT + 1 - amount);
+	    bigint_helper_bits_of_number_used(last_num) >= (BIGINT_BIT_COUNT + 1 - amount);
 
 	if(needs_new_digit) {
 		big_int->number_count++;
@@ -2530,8 +2535,9 @@ NODISCARD static BigIntC bigint_helper_only_mod_impl(BigIntC dividend, BigIntC d
 	}
 }
 
-static void bigint_helper_only_div_impl(BigIntC dividend, BigIntC divisor, BigIntC* out_div,
-                                        DivisionRounding div_rounding) {
+static void
+bigint_helper_only_div_impl(BigIntC dividend, // NOLINT(bugprone-easily-swappable-parameters)
+                            BigIntC divisor, BigIntC* out_div, DivisionRounding div_rounding) {
 
 	// TODO
 	UNUSED(dividend);
@@ -2540,10 +2546,16 @@ static void bigint_helper_only_div_impl(BigIntC dividend, BigIntC divisor, BigIn
 
 	switch(div_rounding) {
 		case DivisionRoundingFloor: {
+			UNREACHABLE_WITH_MSG("TODO");
+			break;
 		}
 		case DivisionRoundingCeil: {
+			UNREACHABLE_WITH_MSG("TODO");
+			break;
 		}
 		case DivisionRoundingTowardsZero: {
+			UNREACHABLE_WITH_MSG("TODO");
+			break;
 		}
 		default: {
 			helper_raise_floating_point_exception(FE_INVALID);
@@ -2552,9 +2564,11 @@ static void bigint_helper_only_div_impl(BigIntC dividend, BigIntC divisor, BigIn
 	}
 }
 
-static void bigint_helper_div_mod_impl(BigIntC dividend, BigIntC divisor, BigIntC* out_div,
-                                       BigIntC* out_mod, DivisionRounding div_rounding,
-                                       ModuloRounding mod_rounding) {
+static void bigint_helper_div_mod_impl(
+    BigIntC dividend, BigIntC divisor, // NOLINT(bugprone-easily-swappable-parameters)
+    BigIntC* out_div,                  // NOLINT(bugprone-easily-swappable-parameters)
+    BigIntC* out_mod, DivisionRounding div_rounding, ModuloRounding mod_rounding) {
+
 	// TODO
 	UNUSED(dividend);
 	UNUSED(divisor);
@@ -2592,7 +2606,6 @@ void bigint_div_mod_bigint_advanced(BigIntC dividend, BigIntC divisor, BigIntC* 
 	}
 
 	bigint_helper_div_mod_impl(dividend, divisor, out_div, out_mod, div_rounding, mod_rounding);
-	return;
 }
 
 // bitwise implementations
@@ -2672,9 +2685,10 @@ static void helper_bigint_bitwise_and_same_generic_impl(size_t array_size,
 		(array) = new_array; \
 	} while(false)
 
-NODISCARD static BigIntC process_bitwise_operation_generic(BigIntC big_int1, BigIntC big_int2,
-                                                           BitWiseOperation operation,
-                                                           size_t max_size) {
+NODISCARD static BigIntC process_bitwise_operation_generic(
+    BigIntC big_int1, BigIntC big_int2,
+    BitWiseOperation operation, // NOLINT(bugprone-easily-swappable-parameters)
+    size_t max_size) {
 
 	BigIntC result = { .positive = big_int1.positive, .numbers = NULL, .number_count = max_size };
 
@@ -2859,10 +2873,11 @@ NODISCARD static size_t helper_get_alignment_bytes_of(const void* const ptr,
 	return ((uintptr_t)ptr) % aligned_to_bytes;
 }
 
-static void helper_get_config_for_aligned_arrays(BigIntC big_int1, BigIntC big_int2,
-                                                 size_t max_size, size_t aligned_to_bytes,
-                                                 PARAMS_OUT AlignedTheSame* aligned_info,
-                                                 PARAMS_OUT size_t* offset_bytes) {
+static void helper_get_config_for_aligned_arrays(
+    BigIntC big_int1, BigIntC big_int2,
+    size_t max_size, // NOLINT(bugprone-easily-swappable-parameters)
+    size_t aligned_to_bytes, PARAMS_OUT AlignedTheSame* aligned_info,
+    PARAMS_OUT size_t* offset_bytes) {
 
 	// note: this function returns, which alignment it used, and which of the two it used as a
 	// reference, so that the other one is correctly aligned later on, this also takes into account
@@ -2951,12 +2966,12 @@ static void helper_get_config_for_aligned_arrays(BigIntC big_int1, BigIntC big_i
 				}
 			} else {
 				// use the one, that is "better aligned"
-				if(aligned_bytes1 == 0) {
+				if(aligned_bytes1 == 0) { // NOLINT(bugprone-branch-clone)
 					// first is better as it is directly aligned
 					*aligned_info = AlignedTheSameFirst;
 					*offset_bytes = aligned_bytes1;
 
-				} else if(aligned_bytes2 == 0) {
+				} else if(aligned_bytes2 == 0) { // NOLINT(bugprone-branch-clone)
 					// second is better as it is directly aligned
 					*aligned_info = AlignedTheSameSecond;
 					*offset_bytes = aligned_bytes1;
@@ -3035,7 +3050,7 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_sse2_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
 
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_SSE2;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3063,7 +3078,7 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_sse2_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
 
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_SSE2;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3090,7 +3105,8 @@ CPU_TARGET(sse2)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_sse2_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
-	size_t i = 0;
+
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_SSE2;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3113,10 +3129,10 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_sse2_impl(
 	}
 }
 
-NODISCARD static BigIntC CPU_TARGET(sse2)
-    process_bitwise_operation_hardware_accelerated_amd64_sse2(BigIntC big_int1, BigIntC big_int2,
-                                                              BitWiseOperation operation,
-                                                              size_t max_size) {
+NODISCARD static BigIntC CPU_TARGET(sse2) process_bitwise_operation_hardware_accelerated_amd64_sse2(
+    BigIntC big_int1, BigIntC big_int2,
+    BitWiseOperation operation, // NOLINT(bugprone-easily-swappable-parameters)
+    size_t max_size) {
 
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
@@ -3220,7 +3236,7 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx2_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
 
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX2;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3248,7 +3264,7 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_avx2_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
 
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX2;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3275,7 +3291,8 @@ CPU_TARGET(avx2)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx2_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
-	size_t i = 0;
+
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX2;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3298,10 +3315,11 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx2_impl(
 	}
 }
 
-NODISCARD static BigIntC CPU_TARGET(avx2)
-    process_bitwise_operation_hardware_accelerated_amd64_avx2(BigIntC big_int1, BigIntC big_int2,
-                                                              BitWiseOperation operation,
-                                                              size_t max_size) {
+NODISCARD static BigIntC CPU_TARGET(avx2) process_bitwise_operation_hardware_accelerated_amd64_avx2(
+    BigIntC big_int1, BigIntC big_int2,
+    BitWiseOperation operation, // NOLINT(bugprone-easily-swappable-parameters)
+    size_t max_size) {
+
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
 	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, ALIGN_BYTES_OF_AVX2,
@@ -3404,7 +3422,7 @@ static void helper_bigint_bitwise_xor_hardware_accelerated_amd64_avx512_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
 
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX512;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3432,7 +3450,7 @@ static void helper_bigint_bitwise_or_hardware_accelerated_amd64_avx512_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
 
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX512;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3459,7 +3477,7 @@ CPU_TARGET(avx512f)
 static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx512_impl(
     size_t array_size, const uint64_t* restrict const array1, const uint64_t* restrict const array2,
     uint64_t* restrict result_array, size_t aligned_bytes) {
-	size_t i = 0;
+	size_t i = 0; // NOLINT(readability-identifier-length)
 	size_t simd_width = UINT64_AMOUNT_AT_ONCE_AVX512;
 
 	// normal unaligned process, as the head is not aligned by aligned_bytes, doing this spares one
@@ -3483,9 +3501,10 @@ static void helper_bigint_bitwise_and_hardware_accelerated_amd64_avx512_impl(
 }
 
 NODISCARD static BigIntC CPU_TARGET(avx512f)
-    process_bitwise_operation_hardware_accelerated_amd64_avx512(BigIntC big_int1, BigIntC big_int2,
-                                                                BitWiseOperation operation,
-                                                                size_t max_size) {
+    process_bitwise_operation_hardware_accelerated_amd64_avx512(
+        BigIntC big_int1, BigIntC big_int2,
+        BitWiseOperation operation, // NOLINT(bugprone-easily-swappable-parameters)
+        size_t max_size) {
 	AlignedTheSame aligned_info = AlignedTheSameNone;
 	size_t offset_bytes = 0;
 	helper_get_config_for_aligned_arrays(big_int1, big_int2, max_size, ALIGN_BYTES_OF_AVX512,
@@ -4489,10 +4508,10 @@ NODISCARD static BigIntC process_bitwise_operation_hardware_accelerated_riscv64_
 
 #if defined(USE_HARDWARE_ACCEL)
 
-NODISCARD static BigIntC
-process_bitwise_operation_generic_hardware_accelerated(BigIntC big_int1, BigIntC big_int2,
-                                                       BitWiseOperation operation, size_t max_size,
-                                                       OptimizationLevel opt_level) {
+NODISCARD static BigIntC process_bitwise_operation_generic_hardware_accelerated(
+    BigIntC big_int1, BigIntC big_int2, BitWiseOperation operation,
+    size_t max_size, // NOLINT(bugprone-easily-swappable-parameters)
+    OptimizationLevel opt_level) {
 
 	switch(opt_level) {
 #if defined(_M_X64) || defined(__x86_64__) || defined(__amd64__)
