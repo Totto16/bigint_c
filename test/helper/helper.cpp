@@ -515,13 +515,23 @@ static void initialize_bigint_from_tommath(BigIntTest& test, mp_int&& number) {
 	test = BigIntTest(positive, std::move(values));
 }
 
+#include <functional>
 #include <memory>
 
 namespace {
 
 class MPWrapper {
   private:
-	std::shared_ptr<mp_int> m_value;
+	using deleter_type = std::function<void(mp_int* p)>;
+
+	std::unique_ptr<mp_int, deleter_type> m_value;
+
+	static void deleter_for_value(mp_int* p) {
+		if(p != nullptr) {
+			mp_clear(p);
+			delete p;
+		}
+	}
 
   public:
 	MPWrapper() : m_value{ nullptr } {
@@ -533,14 +543,12 @@ class MPWrapper {
 			throw std::runtime_error{ mp_error_to_string(error) };
 		}
 
-		m_value = std::shared_ptr<mp_int>(value, [](mp_int* p) {
-			mp_clear(p);
-			delete p;
-		});
+		m_value = std::unique_ptr<mp_int, deleter_type>(
+		    value, [](mp_int* p) { MPWrapper::deleter_for_value(p); });
 	}
 
-	MPWrapper(const MPWrapper&) = default;
-	MPWrapper& operator=(const MPWrapper&) = default;
+	MPWrapper(const MPWrapper&) = delete;
+	MPWrapper& operator=(const MPWrapper&) = delete;
 
 	[[nodiscard]] const mp_int* get() const { return m_value.get(); }
 	[[nodiscard]] const mp_int* operator*() const { return m_value.get(); }
@@ -549,8 +557,7 @@ class MPWrapper {
 	[[nodiscard]] mp_int* operator*() { return m_value.get(); }
 
 	[[nodiscard]] mp_int release() {
-		mp_int* res = m_value.get();
-		m_value = nullptr;
+		mp_int* res = m_value.release();
 
 		mp_int result = *res;
 
