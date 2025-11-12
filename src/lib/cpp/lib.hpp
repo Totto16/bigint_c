@@ -188,6 +188,10 @@ struct BigInt {
 	[[nodiscard]] const BigIntC& underlying() const;
 #endif
 
+	// operators
+
+	// comparison (relational)
+
 	[[nodiscard]] std::strong_ordering operator<=>(const BigInt& value2) const;
 
 	[[nodiscard]] bool operator==(const BigInt& value2) const;
@@ -202,6 +206,8 @@ struct BigInt {
 
 	[[nodiscard]] bool operator<(const BigInt& value2) const;
 
+	// arithmetic
+
 	[[nodiscard]] BigInt operator+(const BigInt& value2) const;
 
 	[[nodiscard]] BigInt operator-(const BigInt& value2) const;
@@ -214,11 +220,33 @@ struct BigInt {
 
 	[[nodiscard]] BigInt mod(const BigInt& value2, ModuloRounding rounding) const;
 
-	[[nodiscard]] BigInt operator^(const BigInt& value2) const;
-
 	[[nodiscard]] BigInt& operator-();
 
 	[[nodiscard]] BigInt operator-() const;
+
+	[[nodiscard]] BigInt& operator++();
+
+	[[nodiscard]] BigInt& operator--();
+
+	[[nodiscard]] BigInt operator++(int);
+
+	[[nodiscard]] BigInt operator--(int);
+
+	// bitwise
+
+	[[nodiscard]] BigInt operator~() const;
+
+	[[nodiscard]] BigInt operator&(const BigInt& value2) const;
+
+	[[nodiscard]] BigInt operator|(const BigInt& value2) const;
+
+	[[nodiscard]] BigInt operator^(const BigInt& value2) const;
+
+	[[nodiscard]] BigInt operator<<(uint64_t value2) const;
+
+	[[nodiscard]] BigInt operator>>(uint64_t value2) const;
+
+	// assignment
 
 	[[nodiscard]] BigInt& operator+=(const BigInt& value2);
 
@@ -230,23 +258,17 @@ struct BigInt {
 
 	[[nodiscard]] BigInt& operator%=(const BigInt& value2);
 
+	[[nodiscard]] BigInt& operator&=(const BigInt& value2);
+
+	[[nodiscard]] BigInt& operator|=(const BigInt& value2);
+
 	[[nodiscard]] BigInt& operator^=(const BigInt& value2);
-
-	[[nodiscard]] BigInt operator<<(uint64_t value2) const;
-
-	[[nodiscard]] BigInt operator>>(uint64_t value2) const;
 
 	[[nodiscard]] BigInt& operator<<=(uint64_t value2);
 
 	[[nodiscard]] BigInt& operator>>=(uint64_t value2);
 
-	[[nodiscard]] BigInt& operator++();
-
-	[[nodiscard]] BigInt& operator--();
-
-	[[nodiscard]] BigInt operator++(int);
-
-	[[nodiscard]] BigInt operator--(int);
+	// end operators
 
 	[[nodiscard]] std::string to_string() const;
 
@@ -443,7 +465,6 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 }
 
 [[nodiscard]] BigInt BigInt::operator+(const BigInt& value2) const {
-
 	BigIntC result = bigint_add_bigint(this->m_c_value, value2.m_c_value);
 
 	return BigInt{ std::move(result) };
@@ -479,12 +500,6 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return BigInt{ std::move(result) };
 }
 
-[[nodiscard]] BigInt BigInt::operator^(const BigInt& value2) const {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
-}
-
 [[nodiscard]] BigInt& BigInt::operator-() {
 	bigint_negate(&(this->m_c_value));
 	return *this;
@@ -496,6 +511,32 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	bigint_negate(&copy);
 
 	return BigInt(std::move(copy));
+}
+
+[[nodiscard]] BigInt BigInt::operator~() const {
+	BigIntC copy = bigint_copy(this->m_c_value);
+
+	bigint_bitwise_complement(&copy);
+
+	return BigInt(std::move(copy));
+}
+
+[[nodiscard]] BigInt BigInt::operator&(const BigInt& value2) const {
+	BigIntC result = bigint_bitwise_and(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
+}
+
+[[nodiscard]] BigInt BigInt::operator|(const BigInt& value2) const {
+	BigIntC result = bigint_bitwise_or(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
+}
+
+[[nodiscard]] BigInt BigInt::operator^(const BigInt& value2) const {
+	BigIntC result = bigint_bitwise_xor(this->m_c_value, value2.m_c_value);
+
+	return BigInt{ std::move(result) };
 }
 
 [[nodiscard]] BigInt& BigInt::operator+=(const BigInt& value2) {
@@ -548,10 +589,34 @@ BigInt& BigInt::operator=(BigInt&& big_int) noexcept {
 	return *this;
 }
 
+[[nodiscard]] BigInt& BigInt::operator&=(const BigInt& value2) {
+	BigIntC result = bigint_bitwise_and(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
+}
+
+[[nodiscard]] BigInt& BigInt::operator|=(const BigInt& value2) {
+	BigIntC result = bigint_bitwise_or(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
+}
+
 [[nodiscard]] BigInt& BigInt::operator^=(const BigInt& value2) {
-	// TODO
-	UNUSED(value2);
-	throw std::runtime_error("TODO");
+	BigIntC result = bigint_bitwise_xor(this->m_c_value, value2.m_c_value);
+
+	free_bigint(&(this->m_c_value));
+
+	this->m_c_value = result;
+
+	return *this;
 }
 
 std::ostream& operator<<(std::ostream& out_stream, const BigInt& value) {
