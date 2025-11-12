@@ -640,10 +640,31 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 	initialize_bigint_from_tommath(*this, std::move(bigint));
 }
 
+namespace templates {
+
+template <typename T> struct function_traits;
+
+// Specialization for function types
+template <typename R, typename... Args> struct function_traits<R (*)(Args...)> {
+	using return_type = R;
+	using args_tuple = std::tuple<Args...>;
+};
+
+// Helper alias for the N-th argument type
+template <typename F, size_t N>
+using nth_argument_t =
+    typename std::tuple_element<N, typename function_traits<F>::args_tuple>::type;
+
+using radix_func_type = decltype(&mp_radix_size);
+
+using radix_type = std::remove_pointer<typename nth_argument_t<radix_func_type, 2>>::type;
+
+} // namespace templates
+
 [[nodiscard]] std::string BigIntTest::to_string() const {
 	MPWrapper number = get_tommath_value_from_bigint(*this);
 
-	int needed_size = 0;
+	templates::radix_type needed_size = 0;
 	mp_err error = mp_radix_size(*number, 10, &needed_size);
 	CHECK_MP_ERROR(error);
 
