@@ -111,6 +111,10 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 	// optimization_level >= OptimizationLevel_AMD64_SSE2
 	return optimization_level;
 
+#elif defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || \
+    defined(__NT__)
+	// TODO: support runtime detection
+	// do nothing, fall back to compile time detection
 #else
 #error "only gcc / clang runtime detection for x86_64 supported"
 #endif
