@@ -2553,11 +2553,11 @@ TEST(BigInt, IntegerModGeneric) {
 
 		for(ModuloRounding rounding : roundings) {
 
-			const BigInt actual_result = value1.mod(value2, rounding);
+			const BigInt actual_result_advanced = value1.mod(value2, rounding);
 
 			const BigIntTest result_expected = BigIntTest(value1).mod(BigIntTest(value2), rounding);
 
-			EXPECT_EQ(actual_result, result_expected)
+			EXPECT_EQ(actual_result_advanced, result_expected)
 			    << "Rounding mode: " << mod_rounding_to_str(rounding)
 			    << ", Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 		}
