@@ -1,5 +1,7 @@
 #pragma once
 
+#include <sal.h>
+
 #if __STDC_VERSION__ >= 202311L || defined(__cplusplus)
 #define NODISCARD [[nodiscard]]
 #else
@@ -62,7 +64,7 @@
 
 #if defined(_MSC_VER)
 
-#define CPU_TARGET(tgt) __declspec(cpu_specific(tgt))
+#define CPU_TARGET(tgt) 
 
 #define PARAMS_OUT _Out_
 #define PARAMS_IN _In_
