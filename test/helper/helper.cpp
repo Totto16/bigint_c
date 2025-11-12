@@ -958,6 +958,39 @@ clear_and_ret:
 	return err;
 }
 
+[[nodiscard]] static mp_err mp_euclid_mod(const mp_int* a, const mp_int* b, mp_int* r) {
+	mp_int t;
+	mp_err err = MP_OKAY;
+
+	err = mp_init(&t);
+	if(err != MP_OKAY) {
+		return err;
+	}
+
+	// Compute truncated remainder: r = a - trunc(a/b) * b
+	err = mp_div(a, b, NULL, r);
+	if(err != MP_OKAY) {
+		goto clear_and_ret;
+	}
+
+	// If r < 0, adjust by adding |b|
+	if(mp_isneg(r)) {
+		err = mp_abs(b, &t);
+		if(err != MP_OKAY) {
+			goto clear_and_ret;
+		}
+
+		err = mp_add(r, &t, r);
+		if(err != MP_OKAY) {
+			goto clear_and_ret;
+		}
+	}
+
+clear_and_ret:
+	mp_clear(&t);
+	return err;
+}
+
 [[nodiscard]] BigIntTest BigIntTest::mod(const BigIntTest& value2, ModuloRounding rounding) const {
 
 	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
@@ -998,12 +1031,11 @@ clear_and_ret:
 		}
 		case ModuloRoundingEuclidean: {
 			// always positive result
-			error = mp_mod(*number1, *number2, &result_number);
+			error = mp_euclid_mod(*number1, *number2, &result_number);
 			if(error != MP_OKAY) {
 				mp_clear(&result_number);
 				throw std::runtime_error{ mp_error_to_string(error) };
 			}
-
 			break;
 		}
 		default: {
