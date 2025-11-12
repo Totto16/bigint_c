@@ -2998,7 +2998,7 @@ static void helper_get_config_for_aligned_arrays(BigIntC big_int1, BigIntC big_i
 #if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #define ALIGNED_ALLOC _aligned_malloc
 #else
-#define ALIGNED_ALLOC alignedmalloc
+#define ALIGNED_ALLOC aligned_alloc
 #endif
 
 NODISCARD static void* helper_alloc_aligned_with_offset(void** result, size_t size,
