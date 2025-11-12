@@ -30,9 +30,8 @@ template <> struct hash<BigIntC> {
 			    hash ^
 			    (std::hash<uint64_t>()(
 			         value.numbers[i]) + // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-			     0x9e3779b9 + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-			     (hash
-			      << 6) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+			     0x9e3779b9 +            // NOLINT(readability-magic-numbers)
+			     (hash << 6) +           // NOLINT(readability-magic-numbers)
 			     (hash >> 2));
 		}
 

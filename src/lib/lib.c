@@ -208,8 +208,7 @@ static void bigint_helper_bcd_digits_to_bigint(BigIntC* big_int, BCDDigits bcd_d
 
 				const BCDDigit value = bcd_digits.bcd_digits[i - 1];
 
-				if(value >=
-				   8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+				if(value >= 8) { // NOLINT(readability-magic-numbers)
 					bcd_digits.bcd_digits[i - 1] = bcd_digits.bcd_digits[i - 1] - 3;
 				}
 			}
@@ -346,21 +345,17 @@ NODISCARD static StrType helper_digit_to_hex_char_checked(uint8_t value, bool up
 
 	ASSERT(value < 0x10, "value is not a valid hex digit");
 
-	if(value < 10) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+	if(value < 10) { // NOLINT(readability-magic-numbers)
 		return (StrType)((StrType)value + '0');
 	}
 
 	if(uppercase) {
-		return (
-		    StrType)((StrType)(value -
-		                       (uint8_t)10) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-		             'A');
+		return (StrType)((StrType)(value - (uint8_t)10) + // NOLINT(readability-magic-numbers)
+		                 'A');
 	}
 
-	return (
-	    StrType)((StrType)(value -
-	                       (uint8_t)10) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-	             'a');
+	return (StrType)((StrType)(value - (uint8_t)10) + // NOLINT(readability-magic-numbers)
+	                 'a');
 }
 
 NODISCARD static inline bool helper_is_separator(StrType value) {
@@ -513,6 +508,10 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 		               .numbers = NULL,
 		               .number_count = big_int.number_count };
 
+	if(big_int.number_count == 0) {
+		return result;
+	}
+
 	bigint_helper_realloc_to_new_size(&result);
 
 	memcpy(result.numbers, big_int.numbers, // NOLINT(clang-analyzer-core.NonNullParamChecker)
@@ -625,8 +624,7 @@ NODISCARD static BCDDigits bigint_helper_get_bcd_digits_from_bigint(BigIntC sour
 
 				const BCDDigit value = bcd_digits.bcd_digits[i];
 
-				if(value >=
-				   5) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+				if(value >= 5) { // NOLINT(readability-magic-numbers)
 					bcd_digits.bcd_digits[i] = bcd_digits.bcd_digits[i] + 3;
 				}
 			}
@@ -993,9 +991,7 @@ NODISCARD static BigIntC bigint_add_bigint_both_positive_using_128_bit_numbers(B
 
 			result.numbers[i] = (uint64_t)sum;
 
-			carry =
-			    (uint64_t)(sum >>
-			               64); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+			carry = (uint64_t)(sum >> 64); // NOLINT(readability-magic-numbers)
 		}
 
 		ASSERT(carry == 0,
@@ -1042,10 +1038,8 @@ NODISCARD static BigIntC bigint_sub_bigint_both_positive_using_128_bit_numbers(B
 			if(temp >= 0) {
 				borrow = (int64_t)0LL;
 			} else {
-				temp =
-				    ((int128_t)1
-				     << 64) + // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
-				    temp;
+				temp = ((int128_t)1 << 64) + // NOLINT(readability-magic-numbers)
+				       temp;
 				borrow = (int64_t)1LL;
 			}
 
@@ -1653,9 +1647,7 @@ bigint_mul_two_numbers_impl(uint64_t big_int1, uint64_t big_int2,
 	uint128_t result = (uint128_t)big_int1 * (uint128_t)big_int2;
 
 	*low = (uint64_t)result;
-	*high =
-	    (uint64_t)(result >>
-	               64); // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+	*high = (uint64_t)(result >> 64); // NOLINT(readability-magic-numbers)
 }
 
 #else

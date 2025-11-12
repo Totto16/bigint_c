@@ -214,8 +214,7 @@ consteval void consteval_bcd_digits_to_bigint(BigIntConstExpr<N>& big_int,
 
 				const BCDDigit value = bcd_digits[i - 1];
 
-				if(value >=
-				   8) { // NOLINT(cppcoreguidelines-avoid-magic-numbers,readability-magic-numbers)
+				if(value >= 8) { // NOLINT(readability-magic-numbers)
 					bcd_digits[i - 1] = bcd_digits[i - 1] - 3;
 				}
 			}
