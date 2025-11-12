@@ -793,13 +793,20 @@ using radix_type = std::remove_pointer<typename nth_argument_t<radix_func_type, 
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator<<(uint64_t value2) const {
+
+	if(value2 > std::numeric_limits<int>::max()) {
+		throw std::runtime_error{ "maximum value is an int" };
+	}
+
+	int value2_int = (int)value2;
+
 	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
 
 	mp_int result_number;
 	mp_err error = mp_init(&result_number);
 	CHECK_MP_ERROR(error);
 
-	error = mp_mul_2d(*number1, value2, &result_number);
+	error = mp_mul_2d(*number1, value2_int, &result_number);
 	if(error != MP_OKAY) {
 		mp_clear(&result_number);
 		throw std::runtime_error{ mp_error_to_string(error) };
@@ -812,13 +819,20 @@ using radix_type = std::remove_pointer<typename nth_argument_t<radix_func_type, 
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator>>(uint64_t value2) const {
+
+	if(value2 > std::numeric_limits<int>::max()) {
+		throw std::runtime_error{ "maximum value is an int" };
+	}
+
+	int value2_int = (int)value2;
+
 	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
 
 	mp_int result_number;
 	mp_err error = mp_init(&result_number);
 	CHECK_MP_ERROR(error);
 
-	error = mp_div_2d(*number1, value2, &result_number, nullptr);
+	error = mp_div_2d(*number1, value2_int, &result_number, nullptr);
 	if(error != MP_OKAY) {
 		mp_clear(&result_number);
 		throw std::runtime_error{ mp_error_to_string(error) };
