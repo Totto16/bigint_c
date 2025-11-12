@@ -28,7 +28,7 @@ typedef enum {
  *
  * @return OptimizationLevel
  */
-NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw();
+NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(void);
 
 /**
  * @brief Get the best optimization level for the current platform

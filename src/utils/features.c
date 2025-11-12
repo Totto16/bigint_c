@@ -211,7 +211,9 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 	return optimization_level;
 }
 
-static OptimizationLevel g_global_detected_optimization_level = OptimizationLevelUninitialized;
+static OptimizationLevel
+    g_global_detected_optimization_level = // NOLINT(cppcoreguidelines-avoid-non-const-global-variables)
+    OptimizationLevelUninitialized;
 
 NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level(void) {
 
