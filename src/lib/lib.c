@@ -2995,12 +2995,18 @@ static void helper_get_config_for_aligned_arrays(BigIntC big_int1, BigIntC big_i
 	}
 }
 
+#if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
+#define ALIGNED_ALLOC _aligned_malloc
+#else
+#define ALIGNED_ALLOC alignedmalloc
+#endif
+
 NODISCARD static void* helper_alloc_aligned_with_offset(void** result, size_t size,
                                                         size_t align_bytes, size_t offset_bytes) {
 
 	if(offset_bytes == 0) {
 
-		void* aligned_ptr = aligned_alloc(align_bytes, size);
+		void* aligned_ptr = ALIGNED_ALLOC(align_bytes, size);
 
 		if(aligned_ptr == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
 			UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE (OOM content)
@@ -3013,7 +3019,7 @@ NODISCARD static void* helper_alloc_aligned_with_offset(void** result, size_t si
 
 	// allocate and return an offset pointer
 
-	void* aligned_ptr = aligned_alloc(align_bytes, size + offset_bytes);
+	void* aligned_ptr = ALIGNED_ALLOC(align_bytes, size + offset_bytes);
 
 	if(aligned_ptr == NULL) { // GCOVR_EXCL_BR_LINE (OOM)
 		UNREACHABLE_WITH_MSG( // GCOVR_EXCL_LINE (OOM content)
