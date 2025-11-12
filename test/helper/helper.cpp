@@ -846,62 +846,6 @@ clear_and_ret:
 	return err;
 }
 
-[[nodiscard]] static mp_err mp_floor_mod(const mp_int* a, const mp_int* b, mp_int* r) {
-	mp_int q;
-	mp_int t;
-	mp_err err = MP_OKAY;
-
-	err = mp_init_multi(&q, &t, nullptr);
-	if(err != MP_OKAY) {
-		return err;
-	}
-
-	// q = trunc(a / b)
-	err = mp_div(a, b, &q, &t);
-	if(err != MP_OKAY) {
-		goto clear_and_ret;
-	}
-
-	// r = a - q * b
-	err = mp_mul(&q, b, &t);
-	if(err != MP_OKAY) {
-		goto clear_and_ret;
-	}
-
-	err = mp_sub(a, &t, r);
-	if(err != MP_OKAY) {
-		goto clear_and_ret;
-	}
-
-	// If remainder has different sign than divisor, adjust
-	if((r->sign != MP_ZPOS) && (b->sign == MP_ZPOS) && (mp_iszero(r) == MP_NO)) {
-		// r += b; q -= 1;
-		err = mp_add(r, b, r);
-		if(err != MP_OKAY) {
-			goto clear_and_ret;
-		}
-
-		err = mp_sub_d(&q, 1, &q);
-		if(err != MP_OKAY) {
-			goto clear_and_ret;
-		}
-	} else if((r->sign == MP_ZPOS) && (b->sign != MP_ZPOS) && (mp_iszero(r) == MP_NO)) {
-		err = mp_add(r, b, r);
-		if(err != MP_OKAY) {
-			goto clear_and_ret;
-		}
-
-		err = mp_add_d(&q, 1, &q);
-		if(err != MP_OKAY) {
-			goto clear_and_ret;
-		}
-	}
-
-clear_and_ret:
-	mp_clear_multi(&q, &t, nullptr);
-	return err;
-}
-
 [[nodiscard]] static mp_err mp_ceil_mod(const mp_int* a, const mp_int* b, mp_int* r) {
 	mp_int q;
 	mp_int t;
@@ -1012,8 +956,8 @@ clear_and_ret:
 			break;
 		}
 		case ModuloRoundingFloored: {
-			// floored mod
-			error = mp_floor_mod(*number1, *number2, &result_number);
+			// floored mod, the builtin mod does that
+			error = mp_mod(*number1, *number2, &result_number);
 			if(error != MP_OKAY) {
 				mp_clear(&result_number);
 				throw std::runtime_error{ mp_error_to_string(error) };
