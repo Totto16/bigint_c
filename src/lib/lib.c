@@ -508,9 +508,9 @@ NODISCARD static BigIntC bigint_helper_get_full_copy(BigIntC big_int) {
 		               .numbers = NULL,
 		               .number_count = big_int.number_count };
 
-	if(big_int.number_count == 0) {
-		return result;
-	}
+	if(big_int.number_count == 0) { // GCOVR_EXCL_BR_LINE (every caller assures that)
+		UNREACHABLE_WITH_MSG("not initialized BigIntC correctly"); // GCOVR_EXCL_LINE (see above)
+	} // GCOVR_EXCL_LINE (see above)
 
 	bigint_helper_realloc_to_new_size(&result);
 
