@@ -71,7 +71,7 @@ TEST(BigIntCFuncs, IncrementFailsWithInvalidInput1) {
 
 	auto fun = []() { bigint_increment_bigint(nullptr); };
 
-	EXPECT_EXIT(fun(), testing::KilledBySignal(SIGSEGV_SIGNAL),
+	EXPECT_EXIT(fun(), ::testing::KilledBySignal(SIGSEGV_SIGNAL),
 	            testing::ContainsRegex("ASSERTION FAILED: UNREACHABLE: passed in NULL pointer"));
 }
 
@@ -83,7 +83,7 @@ TEST(BigIntCFuncs, IncrementFailsWithInvalidInput2) {
 		bigint_increment_bigint(&big_int_c);
 	};
 
-	EXPECT_EXIT(fun(), testing::KilledBySignal(SIGSEGV_SIGNAL),
+	EXPECT_EXIT(fun(), ::testing::KilledBySignal(SIGSEGV_SIGNAL),
 	            testing::ContainsRegex("ASSERTION FAILED: UNREACHABLE: invalid bigint passed"));
 }
 
@@ -91,7 +91,7 @@ TEST(BigIntCFuncs, DecrementFailsWithInvalidInput1) {
 
 	auto fun = []() { bigint_decrement_bigint(nullptr); };
 
-	EXPECT_EXIT(fun(), testing::KilledBySignal(SIGSEGV_SIGNAL),
+	EXPECT_EXIT(fun(), ::testing::KilledBySignal(SIGSEGV_SIGNAL),
 	            testing::ContainsRegex("ASSERTION FAILED: UNREACHABLE: passed in NULL pointer"));
 }
 
@@ -103,7 +103,7 @@ TEST(BigIntCFuncs, DecrementFailsWithInvalidInput2) {
 		bigint_decrement_bigint(&big_int_c);
 	};
 
-	EXPECT_EXIT(fun(), testing::KilledBySignal(SIGSEGV_SIGNAL),
+	EXPECT_EXIT(fun(), ::testing::KilledBySignal(SIGSEGV_SIGNAL),
 	            testing::ContainsRegex("ASSERTION FAILED: UNREACHABLE: invalid bigint passed"));
 }
 
@@ -122,7 +122,7 @@ TEST(BigIntCFuncs, DecrementFailsWithInvalidInput3) {
 		bigint_decrement_bigint(&big_int_c);
 	};
 
-	EXPECT_EXIT(fun(), testing::KilledBySignal(SIGSEGV_SIGNAL),
+	EXPECT_EXIT(fun(), ::testing::KilledBySignal(SIGSEGV_SIGNAL),
 	            testing::ContainsRegex("ASSERTION FAILED: UNREACHABLE: leading zeros detected"));
 }
 
@@ -130,7 +130,7 @@ TEST(BigIntCFuncs, NegateFailsWithInvalidInput) {
 
 	auto fun = []() { bigint_negate(nullptr); };
 
-	EXPECT_EXIT(fun(), testing::KilledBySignal(SIGSEGV_SIGNAL),
+	EXPECT_EXIT(fun(), ::testing::KilledBySignal(SIGSEGV_SIGNAL),
 	            testing::ContainsRegex("ASSERTION FAILED: UNREACHABLE: passed in NULL pointer"));
 }
 

@@ -2050,7 +2050,7 @@ TEST(BigInt, IntegerModTruncatedCImpl) {
 		EXPECT_EQ(result_test, result_expected_b)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 
-		const uint64_t result_u64 = i64_mod_trunc(value1, value2);
+		const int64_t result_u64 = i64_mod_trunc(value1, value2);
 
 		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
@@ -2166,7 +2166,7 @@ TEST(BigInt, IntegerModFlooredCImpl) {
 		EXPECT_EQ(result_test, result_expected_b)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 
-		const uint64_t result_u64 = i64_mod_floor(value1, value2);
+		const int64_t result_u64 = i64_mod_floor(value1, value2);
 
 		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
@@ -2282,7 +2282,7 @@ TEST(BigInt, IntegerModCeiledCImpl) {
 		EXPECT_EQ(result_test, result_expected_b)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 
-		const uint64_t result_u64 = i64_mod_ceil(value1, value2);
+		const int64_t result_u64 = i64_mod_ceil(value1, value2);
 
 		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
@@ -2397,7 +2397,7 @@ TEST(BigInt, IntegerModEuclideanCImpl) {
 		EXPECT_EQ(result_test, result_expected_b)
 		    << "Input values: " << BigIntDebug{ value1 } << ", " << BigIntDebug{ value2 };
 
-		const uint64_t result_u64 = i64_mod_euclid(value1, value2);
+		const int64_t result_u64 = i64_mod_euclid(value1, value2);
 
 		EXPECT_EQ(result_u64, result_expected) << "Input values: " << value1 << ", " << value2;
 	}
