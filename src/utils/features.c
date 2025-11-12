@@ -9,9 +9,13 @@
 
 #if defined(_MSC_VER) || defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
 #error "Arm64 is not supported on windows"
-#else
+#elif defined(__APPLE__)
+// no includes
+#elif defined(__linux__)
 #include <asm/hwcap.h>
 #include <sys/auxv.h>
+#else
+#error "unknown system, not supported"
 #endif
 #elif defined(__riscv) && __riscv_xlen == 64
 
@@ -144,6 +148,8 @@ NODISCARD BIGINT_C_ONLY_LOCAL OptimizationLevel get_best_optimization_level_raw(
 	// optimization_level >= OptimizationLevel_ARM64_NEON
 	return optimization_level;
 
+#elif defined(__APPLE__)
+// do nothing, fall back to compile time detection
 #else
 #error "only linux runtime detection for arm64 supported"
 #endif
