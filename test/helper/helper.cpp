@@ -292,7 +292,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator+(const BigIntTest& value2) const {
-
 	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
 
 	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
@@ -310,7 +309,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator-(const BigIntTest& value2) const {
-
 	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
 
 	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
@@ -328,7 +326,6 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator*(const BigIntTest& value2) const {
-
 	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
 
 	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
@@ -460,6 +457,57 @@ BigIntTest::BigIntTest(const int64_t& number) : m_values{} {
 			throw new std::runtime_error("Not expected rounding mode");
 		}
 	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator&(const BigIntTest& value2) const {
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_and(result_number, *number1, *number2);
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator|(const BigIntTest& value2) const {
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_ior(result_number, *number1, *number2);
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_gmp(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator^(const BigIntTest& value2) const {
+	const MPZWrapper number1 = get_gmp_value_from_bigint(*this);
+
+	const MPZWrapper number2 = get_gmp_value_from_bigint(value2);
+
+	// see: https://gmplib.org/manual/Integer-Arithmetic
+	mpz_t result_number;
+	mpz_init(result_number);
+
+	mpz_xor(result_number, *number1, *number2);
 
 	BigIntTest result{ false, {} };
 	initialize_bigint_from_gmp(result, std::move(result_number));
@@ -733,7 +781,6 @@ using radix_type = std::remove_pointer<nth_argument_t<radix_func_type, 2>>::type
 }
 
 [[nodiscard]] BigIntTest BigIntTest::operator*(const BigIntTest& value2) const {
-
 	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
 
 	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
@@ -1020,6 +1067,69 @@ clear_and_ret:
 		default: {
 			throw new std::runtime_error("Not expected rounding mode");
 		}
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator&(const BigIntTest& value2) const {
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_and(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator|(const BigIntTest& value2) const {
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_or(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
+	}
+
+	BigIntTest result{ false, {} };
+	initialize_bigint_from_tommath(result, std::move(result_number));
+
+	return result;
+}
+
+[[nodiscard]] BigIntTest BigIntTest::operator^(const BigIntTest& value2) const {
+	const MPWrapper number1 = get_tommath_value_from_bigint(*this);
+
+	const MPWrapper number2 = get_tommath_value_from_bigint(value2);
+
+	mp_int result_number;
+	mp_err error = mp_init(&result_number);
+	CHECK_MP_ERROR(error);
+
+	error = mp_xor(*number1, *number2, &result_number);
+	if(error != MP_OKAY) {
+		mp_clear(&result_number);
+		throw std::runtime_error{ mp_error_to_string(error) };
 	}
 
 	BigIntTest result{ false, {} };
